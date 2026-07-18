@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { organization } from "better-auth/plugins";
+import { ac, workspaceAccessRoles } from "@/lib/auth/permissions";
 import { sqlite } from "@/lib/db";
 import {
   sendOrganizationInvitationEmail,
@@ -69,6 +70,8 @@ export const auth = betterAuth({
   },
   plugins: [
     organization({
+      ac,
+      roles: workspaceAccessRoles,
       allowUserToCreateOrganization: true,
       organizationLimit: 50,
       membershipLimit: 100,

@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { InvitationList } from "@/components/auth/invitation-list";
 import { InviteMemberForm } from "@/components/auth/invite-member-form";
+import { isWorkspaceManager } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
 import { requireWorkspace } from "@/lib/auth/workspace";
 
@@ -10,7 +11,7 @@ export default async function WorkspaceInvitationsPage() {
     callbackUrl: "/settings/workspace/invitations",
   });
 
-  if (role !== "owner" && role !== "admin") {
+  if (!isWorkspaceManager(role)) {
     redirect("/settings/workspace/members");
   }
 
@@ -24,7 +25,7 @@ export default async function WorkspaceInvitationsPage() {
     .map((invitation) => ({
       id: invitation.id,
       email: invitation.email,
-      role: invitation.role,
+      role: invitation.role ?? "staff",
       status: invitation.status,
       expiresAt: invitation.expiresAt,
     }));
@@ -36,7 +37,7 @@ export default async function WorkspaceInvitationsPage() {
           Invitations
         </h1>
         <p className="mt-1 text-sm text-zinc-500">
-          Invite teammates to {workspace.name}.
+          Invite teammates to {workspace.name} as Admin or Staff.
         </p>
       </div>
 

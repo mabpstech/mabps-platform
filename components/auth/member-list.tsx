@@ -3,6 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authClient } from "@/lib/auth/client";
+import {
+  formatWorkspaceRole,
+  WORKSPACE_ROLES,
+  type WorkspaceRole,
+} from "@/lib/auth/permissions";
 import { authErrorClassName } from "@/lib/auth/styles";
 
 type Member = {
@@ -20,14 +25,23 @@ type MemberListProps = {
   members: Member[];
   currentUserId: string;
   canManage: boolean;
+  currentUserRole: WorkspaceRole;
 };
 
-const roles = ["owner", "admin", "member"] as const;
-
-export function MemberList({ members, currentUserId, canManage }: MemberListProps) {
+export function MemberList({
+  members,
+  currentUserId,
+  canManage,
+  currentUserRole,
+}: MemberListProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
+
+  const assignableRoles: WorkspaceRole[] =
+    currentUserRole === "owner"
+      ? [...WORKSPACE_ROLES]
+      : (["admin", "staff"] as WorkspaceRole[]);
 
   async function updateRole(memberId: string, role: string) {
     setPendingId(memberId);
@@ -63,9 +77,15 @@ export function MemberList({ members, currentUserId, canManage }: MemberListProp
   return (
     <div className="space-y-3">
       {error ? <div className={authErrorClassName}>{error}</div> : null}
-      <ul className="divide-y divide-zinc-200 rounded-md border border-zinc-200">
+      <ul className="divide-y divide-zinc-200 rounded-md border border-zinc-200 bg-white">
         {members.map((member) => {
           const isSelf = member.userId === currentUserId;
+          const isOwnerTarget = member.role === "owner";
+          const canEditThis =
+            canManage &&
+            !isSelf &&
+            !(isOwnerTarget && currentUserRole !== "owner");
+
           return (
             <li
               key={member.id}
@@ -79,17 +99,21 @@ export function MemberList({ members, currentUserId, canManage }: MemberListProp
                 <p className="text-sm text-zinc-500">{member.user.email}</p>
               </div>
               <div className="flex items-center gap-2">
-                {canManage && !isSelf ? (
+                {canEditThis ? (
                   <>
                     <select
-                      value={member.role}
+                      value={
+                        member.role === "member" ? "staff" : member.role
+                      }
                       disabled={pendingId === member.id}
-                      onChange={(event) => updateRole(member.id, event.target.value)}
+                      onChange={(event) =>
+                        updateRole(member.id, event.target.value)
+                      }
                       className="rounded-md border border-zinc-300 px-2 py-1 text-sm"
                     >
-                      {roles.map((role) => (
+                      {assignableRoles.map((role) => (
                         <option key={role} value={role}>
-                          {role}
+                          {formatWorkspaceRole(role)}
                         </option>
                       ))}
                     </select>
@@ -103,8 +127,8 @@ export function MemberList({ members, currentUserId, canManage }: MemberListProp
                     </button>
                   </>
                 ) : (
-                  <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs font-medium capitalize text-zinc-700">
-                    {member.role}
+                  <span className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">
+                    {formatWorkspaceRole(member.role)}
                   </span>
                 )}
               </div>

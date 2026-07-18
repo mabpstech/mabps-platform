@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authClient } from "@/lib/auth/client";
+import { formatWorkspaceRole } from "@/lib/auth/permissions";
 import {
   authButtonClassName,
   authErrorClassName,
@@ -100,7 +101,7 @@ export function AcceptInvitePanel({
           Workspace: <strong>{workspaceName ?? "Unknown workspace"}</strong>
         </p>
         <p>
-          Role: <strong>{role ?? "member"}</strong>
+          Role: <strong>{formatWorkspaceRole(role)}</strong>
         </p>
         {inviterEmail ? <p>Invited by: {inviterEmail}</p> : null}
       </div>

@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, useMemo, useState } from "react";
 import { authClient } from "@/lib/auth/client";
+import { slugifyWorkspace } from "@/lib/auth/slug";
 import {
   authButtonClassName,
   authErrorClassName,
@@ -19,12 +20,28 @@ type SignupFormProps = {
 
 export function SignupForm({ googleEnabled = false }: SignupFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl");
+  const acceptingInvite = Boolean(
+    callbackUrl?.startsWith("/accept-invite"),
+  );
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [workspaceSlug, setWorkspaceSlug] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [workspaceLogo, setWorkspaceLogo] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  const derivedSlug = useMemo(
+    () => slugifyWorkspace(workspaceName),
+    [workspaceName],
+  );
+  const effectiveSlug = slugTouched ? workspaceSlug : derivedSlug;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -38,11 +55,22 @@ export function SignupForm({ googleEnabled = false }: SignupFormProps) {
       return;
     }
 
+    if (!acceptingInvite) {
+      const finalSlug = slugifyWorkspace(effectiveSlug);
+      if (!workspaceName.trim() || !finalSlug) {
+        setError("Workspace name and slug are required.");
+        setPending(false);
+        return;
+      }
+    }
+
     const { error: signUpError } = await authClient.signUp.email({
       name,
       email,
       password,
-      callbackURL: "/onboarding",
+      callbackURL: acceptingInvite
+        ? (callbackUrl as string)
+        : "/dashboard",
     });
 
     if (signUpError) {
@@ -51,8 +79,35 @@ export function SignupForm({ googleEnabled = false }: SignupFormProps) {
       return;
     }
 
-    setInfo("Account created. Check your email to verify when mail delivery is configured.");
-    router.push("/onboarding");
+    if (acceptingInvite && callbackUrl) {
+      setInfo("Account created. Continue to accept your invitation.");
+      router.push(callbackUrl);
+      router.refresh();
+      return;
+    }
+
+    const finalSlug = slugifyWorkspace(effectiveSlug);
+    const { data, error: createError } = await authClient.organization.create({
+      name: workspaceName.trim(),
+      slug: finalSlug,
+      logo: workspaceLogo.trim() || undefined,
+      keepCurrentActiveOrganization: false,
+    });
+
+    if (createError || !data) {
+      setInfo(
+        "Account created, but workspace setup needs one more step.",
+      );
+      router.push("/onboarding");
+      router.refresh();
+      return;
+    }
+
+    await authClient.organization.setActive({
+      organizationId: data.id,
+    });
+
+    router.push("/dashboard");
     router.refresh();
   }
 
@@ -109,10 +164,76 @@ export function SignupForm({ googleEnabled = false }: SignupFormProps) {
           />
           <p className="mt-1 text-xs text-zinc-500">At least 8 characters.</p>
         </div>
+
+        {!acceptingInvite ? (
+          <>
+            <div className="border-t border-zinc-200 pt-4">
+              <p className="text-sm font-medium text-zinc-900">Your workspace</p>
+              <p className="mt-1 text-xs text-zinc-500">
+                Created on signup. You will be the Owner.
+              </p>
+            </div>
+            <div>
+              <label htmlFor="workspace-name" className={authLabelClassName}>
+                Workspace name
+              </label>
+              <input
+                id="workspace-name"
+                name="workspaceName"
+                type="text"
+                required
+                value={workspaceName}
+                onChange={(event) => setWorkspaceName(event.target.value)}
+                className={authInputClassName}
+                disabled={pending}
+                placeholder="Acme Studio"
+              />
+            </div>
+            <div>
+              <label htmlFor="workspace-slug" className={authLabelClassName}>
+                Workspace slug
+              </label>
+              <input
+                id="workspace-slug"
+                name="workspaceSlug"
+                type="text"
+                required
+                value={effectiveSlug}
+                onChange={(event) => {
+                  setSlugTouched(true);
+                  setWorkspaceSlug(event.target.value);
+                }}
+                className={authInputClassName}
+                disabled={pending}
+                placeholder="acme-studio"
+              />
+            </div>
+            <div>
+              <label htmlFor="workspace-logo" className={authLabelClassName}>
+                Logo URL <span className="font-normal text-zinc-400">(optional)</span>
+              </label>
+              <input
+                id="workspace-logo"
+                name="workspaceLogo"
+                type="url"
+                value={workspaceLogo}
+                onChange={(event) => setWorkspaceLogo(event.target.value)}
+                className={authInputClassName}
+                disabled={pending}
+                placeholder="https://…"
+              />
+            </div>
+          </>
+        ) : null}
+
         {error ? <div className={authErrorClassName}>{error}</div> : null}
         {info ? <div className={authSuccessClassName}>{info}</div> : null}
         <button type="submit" disabled={pending} className={authButtonClassName}>
-          {pending ? "Creating account…" : "Create account"}
+          {pending
+            ? "Creating…"
+            : acceptingInvite
+              ? "Create account"
+              : "Create account & workspace"}
         </button>
       </form>
 
@@ -123,7 +244,12 @@ export function SignupForm({ googleEnabled = false }: SignupFormProps) {
             or
             <div className="h-px flex-1 bg-zinc-200" />
           </div>
-          <GoogleSignInButton callbackURL="/onboarding" enabled />
+          <GoogleSignInButton
+            callbackURL={
+              acceptingInvite && callbackUrl ? callbackUrl : "/onboarding"
+            }
+            enabled
+          />
         </>
       ) : null}
 

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 import { authClient } from "@/lib/auth/client";
+import { slugifyWorkspace } from "@/lib/auth/slug";
 import {
   authButtonClassName,
   authErrorClassName,
@@ -10,24 +11,16 @@ import {
   authLabelClassName,
 } from "@/lib/auth/styles";
 
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 48);
-}
-
 export function CreateWorkspaceForm() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
+  const [logo, setLogo] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const derivedSlug = useMemo(() => slugify(name), [name]);
+  const derivedSlug = useMemo(() => slugifyWorkspace(name), [name]);
   const effectiveSlug = slugTouched ? slug : derivedSlug;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -35,7 +28,7 @@ export function CreateWorkspaceForm() {
     setPending(true);
     setError(null);
 
-    const finalSlug = slugify(effectiveSlug);
+    const finalSlug = slugifyWorkspace(effectiveSlug);
     if (!name.trim() || !finalSlug) {
       setError("Workspace name and slug are required.");
       setPending(false);
@@ -45,6 +38,7 @@ export function CreateWorkspaceForm() {
     const { data, error: createError } = await authClient.organization.create({
       name: name.trim(),
       slug: finalSlug,
+      logo: logo.trim() || undefined,
       keepCurrentActiveOrganization: false,
     });
 
@@ -101,6 +95,21 @@ export function CreateWorkspaceForm() {
         <p className="mt-1 text-xs text-zinc-500">
           Unique URL-safe identifier for this workspace.
         </p>
+      </div>
+      <div>
+        <label htmlFor="workspace-logo" className={authLabelClassName}>
+          Logo URL <span className="font-normal text-zinc-400">(optional)</span>
+        </label>
+        <input
+          id="workspace-logo"
+          name="logo"
+          type="url"
+          value={logo}
+          onChange={(event) => setLogo(event.target.value)}
+          className={authInputClassName}
+          disabled={pending}
+          placeholder="https://…"
+        />
       </div>
       {error ? <div className={authErrorClassName}>{error}</div> : null}
       <button type="submit" disabled={pending} className={authButtonClassName}>

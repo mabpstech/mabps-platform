@@ -1,9 +1,14 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import {
+  isWorkspaceManager,
+  normalizeWorkspaceRole,
+  type WorkspaceRole,
+} from "@/lib/auth/permissions";
 import { auth, type Session } from "@/lib/auth/server";
 import { requireSession } from "@/lib/auth/session";
 
-export type WorkspaceRole = "owner" | "admin" | "member";
+export type { WorkspaceRole };
 
 export type WorkspaceSummary = {
   id: string;
@@ -55,10 +60,11 @@ export async function ensureActiveWorkspace(
 export async function requireWorkspace(options: {
   callbackUrl?: string;
   roles?: WorkspaceRole[];
+  managersOnly?: boolean;
 } = {}): Promise<{
   session: Session;
   workspace: WorkspaceSummary;
-  role: WorkspaceRole | string;
+  role: WorkspaceRole;
 }> {
   const session = await requireSession({ callbackUrl: options.callbackUrl });
   const workspace = await ensureActiveWorkspace(session);
@@ -75,9 +81,13 @@ export async function requireWorkspace(options: {
   const membership = fullOrg?.members?.find(
     (member) => member.userId === session.user.id,
   );
-  const role = (membership?.role ?? "member") as WorkspaceRole | string;
+  const role = normalizeWorkspaceRole(membership?.role);
 
-  if (options.roles?.length && !options.roles.includes(role as WorkspaceRole)) {
+  if (options.managersOnly && !isWorkspaceManager(role)) {
+    redirect("/dashboard");
+  }
+
+  if (options.roles?.length && !options.roles.includes(role)) {
     redirect("/dashboard");
   }
 
@@ -87,4 +97,35 @@ export async function requireWorkspace(options: {
 export async function getUserWorkspaces(): Promise<WorkspaceSummary[]> {
   const memberships = await listMemberships();
   return (memberships ?? []) as WorkspaceSummary[];
+}
+
+/**
+ * Resolve the caller's role in the active workspace.
+ * Prefer this over trusting a client-sent workspace id for tenancy checks.
+ */
+export async function getActiveWorkspaceRole(
+  session: Session,
+): Promise<{ workspace: WorkspaceSummary; role: WorkspaceRole } | null> {
+  const workspace = await ensureActiveWorkspace(session);
+  if (!workspace) {
+    return null;
+  }
+
+  const fullOrg = await auth.api.getFullOrganization({
+    headers: await headers(),
+    query: { organizationId: workspace.id },
+  });
+
+  const membership = fullOrg?.members?.find(
+    (member) => member.userId === session.user.id,
+  );
+
+  if (!membership) {
+    return null;
+  }
+
+  return {
+    workspace,
+    role: normalizeWorkspaceRole(membership.role),
+  };
 }

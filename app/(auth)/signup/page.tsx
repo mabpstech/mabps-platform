@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { SignupForm } from "@/components/auth/signup-form";
 import { isGoogleAuthEnabled } from "@/lib/auth/server";
 
@@ -7,10 +8,12 @@ export default function SignupPage() {
       <div>
         <h1 className="text-xl font-semibold text-zinc-900">Create account</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          Start with email/password or continue with Google.
+          Create your account and workspace, or continue with Google.
         </p>
       </div>
-      <SignupForm googleEnabled={isGoogleAuthEnabled} />
+      <Suspense fallback={<div className="text-sm text-zinc-500">Loading…</div>}>
+        <SignupForm googleEnabled={isGoogleAuthEnabled} />
+      </Suspense>
     </div>
   );
 }

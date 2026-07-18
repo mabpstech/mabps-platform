@@ -1,13 +1,13 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { MemberList } from "@/components/auth/member-list";
+import { isWorkspaceManager } from "@/lib/auth/permissions";
 import { auth } from "@/lib/auth/server";
 import { requireWorkspace } from "@/lib/auth/workspace";
 
 export default async function WorkspaceMembersPage() {
   const { session, workspace, role } = await requireWorkspace({
     callbackUrl: "/settings/workspace/members",
-    roles: ["owner", "admin", "member"],
   });
 
   const fullOrg = await auth.api.getFullOrganization({
@@ -15,7 +15,7 @@ export default async function WorkspaceMembersPage() {
     query: { organizationId: workspace.id },
   });
 
-  const canManage = role === "owner" || role === "admin";
+  const canManage = isWorkspaceManager(role);
   const members = (fullOrg?.members ?? []).map((member) => ({
     id: member.id,
     userId: member.userId,
@@ -35,21 +35,24 @@ export default async function WorkspaceMembersPage() {
             Members
           </h1>
           <p className="mt-1 text-sm text-zinc-500">
-            People in {workspace.name}.
+            People in {workspace.name}. Roles: Owner, Admin, Staff.
           </p>
         </div>
-        <Link
-          href="/settings/workspace/invitations"
-          className="text-sm text-zinc-700 underline-offset-2 hover:underline"
-        >
-          Manage invitations
-        </Link>
+        {canManage ? (
+          <Link
+            href="/settings/workspace/invitations"
+            className="text-sm text-zinc-700 underline-offset-2 hover:underline"
+          >
+            Manage invitations
+          </Link>
+        ) : null}
       </div>
 
       <MemberList
         members={members}
         currentUserId={session.user.id}
         canManage={canManage}
+        currentUserRole={role}
       />
     </div>
   );

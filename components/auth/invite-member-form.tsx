@@ -4,6 +4,11 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { authClient } from "@/lib/auth/client";
 import {
+  formatWorkspaceRole,
+  INVITE_ROLES,
+  type InviteRole,
+} from "@/lib/auth/permissions";
+import {
   authButtonClassName,
   authErrorClassName,
   authInputClassName,
@@ -14,7 +19,7 @@ import {
 export function InviteMemberForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"admin" | "member">("member");
+  const [role, setRole] = useState<InviteRole>("staff");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -38,6 +43,7 @@ export function InviteMemberForm() {
 
     setSuccess(`Invitation sent to ${email}.`);
     setEmail("");
+    setRole("staff");
     setPending(false);
     router.refresh();
   }
@@ -67,12 +73,17 @@ export function InviteMemberForm() {
           <select
             id="invite-role"
             value={role}
-            onChange={(event) => setRole(event.target.value as "admin" | "member")}
+            onChange={(event) =>
+              setRole(event.target.value as InviteRole)
+            }
             className={authInputClassName}
             disabled={pending}
           >
-            <option value="member">member</option>
-            <option value="admin">admin</option>
+            {INVITE_ROLES.map((inviteRole) => (
+              <option key={inviteRole} value={inviteRole}>
+                {formatWorkspaceRole(inviteRole)}
+              </option>
+            ))}
           </select>
         </div>
       </div>

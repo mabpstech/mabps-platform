@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authClient } from "@/lib/auth/client";
+import { formatWorkspaceRole } from "@/lib/auth/permissions";
 import { authErrorClassName } from "@/lib/auth/styles";
 
 type Invitation = {
@@ -54,7 +55,8 @@ export function InvitationList({ invitations, canManage }: InvitationListProps) 
             <div>
               <p className="text-sm font-medium text-zinc-900">{invitation.email}</p>
               <p className="text-sm text-zinc-500">
-                Role: {invitation.role} · Status: {invitation.status}
+                Role: {formatWorkspaceRole(invitation.role)} · Status:{" "}
+                {invitation.status}
               </p>
             </div>
             {canManage ? (

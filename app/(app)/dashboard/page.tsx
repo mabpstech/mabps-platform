@@ -20,6 +20,9 @@ export default async function DashboardPage() {
         <p className="mt-1 text-sm text-zinc-500">
           Signed in as {session.user.email}. Active workspace:{" "}
           <span className="font-medium text-zinc-800">{workspace.name}</span>
+          {workspace.slug ? (
+            <span className="text-zinc-400"> ({workspace.slug})</span>
+          ) : null}
         </p>
       </div>
 

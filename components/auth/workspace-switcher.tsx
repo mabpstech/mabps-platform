@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authClient } from "@/lib/auth/client";
@@ -8,6 +9,7 @@ type WorkspaceOption = {
   id: string;
   name: string;
   slug: string;
+  logo?: string | null;
 };
 
 type WorkspaceSwitcherProps = {
@@ -27,6 +29,12 @@ export function WorkspaceSwitcher({
     if (!organizationId || organizationId === activeWorkspaceId) {
       return;
     }
+
+    if (organizationId === "__create__") {
+      router.push("/onboarding?new=1");
+      return;
+    }
+
     setPending(true);
     setError(null);
     const { error: setActiveError } = await authClient.organization.setActive({
@@ -42,7 +50,14 @@ export function WorkspaceSwitcher({
   }
 
   if (!workspaces.length) {
-    return null;
+    return (
+      <Link
+        href="/onboarding"
+        className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 hover:bg-zinc-50"
+      >
+        Create workspace
+      </Link>
+    );
   }
 
   return (
@@ -55,13 +70,14 @@ export function WorkspaceSwitcher({
         disabled={pending}
         value={activeWorkspaceId ?? ""}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 disabled:opacity-60"
+        className="max-w-[12rem] truncate rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 disabled:opacity-60"
       >
         {workspaces.map((workspace) => (
           <option key={workspace.id} value={workspace.id}>
             {workspace.name}
           </option>
         ))}
+        <option value="__create__">+ Create workspace</option>
       </select>
       {error ? <p className="text-xs text-red-600">{error}</p> : null}
     </div>
