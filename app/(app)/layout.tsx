@@ -32,6 +32,9 @@ export default async function AppLayout({
               </Link>
               {activeWorkspace ? (
                 <>
+                  <Link href="/analytics" className="hover:text-zinc-900">
+                    Analytics
+                  </Link>
                   <Link href="/sites" className="hover:text-zinc-900">
                     Sites
                   </Link>

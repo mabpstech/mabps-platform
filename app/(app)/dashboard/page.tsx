@@ -1,5 +1,6 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { DashboardHome } from "@/components/analytics/dashboard-home";
+import { getAnalyticsOverview } from "@/lib/analytics/repository";
 import { requireSession } from "@/lib/auth/session";
 import { ensureActiveWorkspace } from "@/lib/auth/workspace";
 
@@ -11,67 +12,14 @@ export default async function DashboardPage() {
     redirect("/onboarding");
   }
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-          Dashboard
-        </h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Signed in as {session.user.email}. Active workspace:{" "}
-          <span className="font-medium text-zinc-800">{workspace.name}</span>
-          {workspace.slug ? (
-            <span className="text-zinc-400"> ({workspace.slug})</span>
-          ) : null}
-        </p>
-      </div>
+  const overview = getAnalyticsOverview(workspace.id, "30d");
 
-      <div className="rounded-xl border border-zinc-200 bg-white p-6">
-        <h2 className="text-lg font-medium text-zinc-900">Workspace ready</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">
-          Core auth, billing entitlements, Website Builder, CRM, and Chatbot
-          are live. Manage sites, customers, AI assistants, and the sales
-          pipeline from this workspace.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-3 text-sm">
-          <Link
-            href="/sites"
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-zinc-700 hover:bg-zinc-50"
-          >
-            Website Builder
-          </Link>
-          <Link
-            href="/crm"
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-zinc-700 hover:bg-zinc-50"
-          >
-            CRM
-          </Link>
-          <Link
-            href="/chatbot"
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-zinc-700 hover:bg-zinc-50"
-          >
-            Chatbot
-          </Link>
-          <Link
-            href="/settings/workspace/members"
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-zinc-700 hover:bg-zinc-50"
-          >
-            Manage members
-          </Link>
-          <Link
-            href="/settings/workspace/invitations"
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-zinc-700 hover:bg-zinc-50"
-          >
-            Invitations
-          </Link>
-          <Link
-            href="/settings/workspace/billing"
-            className="rounded-md border border-zinc-300 px-3 py-1.5 text-zinc-700 hover:bg-zinc-50"
-          >
-            Billing & plans
-          </Link>
-        </div>
-      </div>
-    </div>
+  return (
+    <DashboardHome
+      workspaceName={workspace.name}
+      workspaceSlug={workspace.slug}
+      userEmail={session.user.email}
+      overview={overview}
+    />
   );
 }

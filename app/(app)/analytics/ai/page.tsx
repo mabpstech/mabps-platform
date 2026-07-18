@@ -1,0 +1,18 @@
+import { AiUsageAnalyticsPanel } from "@/components/analytics/domain-panels";
+import { requireAnalyticsWorkspace } from "@/lib/analytics/access";
+import { parseAnalyticsDateRange } from "@/lib/analytics/http";
+import { getAiUsageAnalytics } from "@/lib/analytics/repository";
+
+export default async function AnalyticsAiPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string }>;
+}) {
+  const { workspace } = await requireAnalyticsWorkspace("/analytics/ai");
+  const params = await searchParams;
+  const range = parseAnalyticsDateRange(params.range);
+
+  return (
+    <AiUsageAnalyticsPanel data={getAiUsageAnalytics(workspace.id, range)} />
+  );
+}

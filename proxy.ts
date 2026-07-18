@@ -8,6 +8,7 @@ const protectedPrefixes = [
   "/sites",
   "/crm",
   "/chatbot",
+  "/analytics",
 ];
 const guestOnlyPaths = ["/login", "/signup", "/forgot-password"];
 
@@ -87,6 +88,8 @@ export const config = {
     "/crm",
     "/chatbot/:path*",
     "/chatbot",
+    "/analytics/:path*",
+    "/analytics",
     "/login",
     "/signup",
     "/forgot-password",
