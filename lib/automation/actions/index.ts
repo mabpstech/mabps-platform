@@ -219,6 +219,43 @@ async function crmCreateDeal(
   return { ok: true, output: { dealId: deal.id, deal } };
 }
 
+const knowledgeSearch: AutomationAction = {
+  id: "knowledge.search",
+  async run(ctx, config): Promise<ActionResult> {
+    const { searchKnowledgeForAutomation } = await import("@/lib/knowledge");
+    const resolved = resolveValue(config, ctx.context) as Record<string, unknown>;
+    const query = asString(resolved.query || resolved.q || resolved.message).trim();
+    if (!query) {
+      return { ok: false, error: "knowledge.search requires query." };
+    }
+    const sourceIds = Array.isArray(resolved.sourceIds)
+      ? resolved.sourceIds.filter(
+          (value): value is string => typeof value === "string",
+        )
+      : undefined;
+    const limit =
+      typeof resolved.limit === "number" ? resolved.limit : undefined;
+    const result = await searchKnowledgeForAutomation({
+      workspaceId: ctx.workspaceId,
+      query,
+      limit,
+      sourceIds,
+    });
+    return {
+      ok: true,
+      output: {
+        query: result.query,
+        context: result.context,
+        hits: result.hits,
+        vars: {
+          knowledgeContext: result.context,
+          knowledgeHits: result.hits,
+        },
+      },
+    };
+  },
+};
+
 const chatbotSendMessage: AutomationAction = {
   id: "chatbot.send_message",
   async run(ctx, config): Promise<ActionResult> {
@@ -290,6 +327,7 @@ const actions: Record<ActionType, AutomationAction> = {
   "crm.create_activity": { id: "crm.create_activity", run: crmCreateActivity },
   "crm.create_deal": { id: "crm.create_deal", run: crmCreateDeal },
   "chatbot.send_message": chatbotSendMessage,
+  "knowledge.search": knowledgeSearch,
   set_variable: setVariable,
   log: logAction,
 };

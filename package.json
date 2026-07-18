@@ -12,7 +12,8 @@
     "db:migrate:website": "node ./scripts/migrate-website.mjs",
     "db:migrate:crm": "node ./scripts/migrate-crm.mjs",
     "db:migrate:chatbot": "node ./scripts/migrate-chatbot.mjs",
-    "db:migrate:automation": "node ./scripts/migrate-automation.mjs"
+    "db:migrate:automation": "node ./scripts/migrate-automation.mjs",
+    "db:migrate:knowledge": "node ./scripts/migrate-knowledge.mjs"
   },
   "dependencies": {
     "better-auth": "^1.6.23",

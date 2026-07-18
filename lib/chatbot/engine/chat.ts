@@ -26,6 +26,7 @@ import {
   listKnowledgeChunks,
   listMessages,
 } from "@/lib/chatbot/repository";
+import { searchKnowledgeForChatbot } from "@/lib/knowledge";
 import type {
   AiChatMessage,
   ChatbotConversation,
@@ -129,12 +130,23 @@ export async function handleVisitorMessage(input: {
     };
   }
 
-  const chunks = retrieveRelevantChunks(
+  const botChunks = retrieveRelevantChunks(
     input.content,
     listKnowledgeChunks(bot.id),
     5,
   );
-  const knowledgeContext = formatKnowledgeContext(chunks);
+  const botKnowledgeContext = formatKnowledgeContext(botChunks);
+  const workspaceKb = await searchKnowledgeForChatbot({
+    workspaceId: bot.workspaceId,
+    query: input.content,
+    limit: 5,
+  });
+  const knowledgeContext = [
+    workspaceKb.context,
+    botKnowledgeContext,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
   const memoryContext = bot.memoryEnabled
     ? formatMemoryForPrompt(bot.id, visitorKey)
     : "";
@@ -197,7 +209,10 @@ export async function handleVisitorMessage(input: {
     provider,
     model,
     metadata: {
-      knowledgeChunkIds: chunks.map((chunk) => chunk.id),
+      knowledgeChunkIds: [
+        ...workspaceKb.chunkIds,
+        ...botChunks.map((chunk) => chunk.id),
+      ],
     },
   });
 
