@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 
-const protectedPrefixes = ["/dashboard", "/onboarding", "/settings", "/sites"];
+const protectedPrefixes = [
+  "/dashboard",
+  "/onboarding",
+  "/settings",
+  "/sites",
+  "/crm",
+];
 const guestOnlyPaths = ["/login", "/signup", "/forgot-password"];
 
 function isProtectedPath(pathname: string): boolean {
@@ -76,6 +82,8 @@ export const config = {
     "/settings/:path*",
     "/sites/:path*",
     "/sites",
+    "/crm/:path*",
+    "/crm",
     "/login",
     "/signup",
     "/forgot-password",
