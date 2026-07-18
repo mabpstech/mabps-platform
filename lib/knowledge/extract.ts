@@ -1,0 +1,141 @@
+import { inflateRawSync } from "node:zlib";
+import { readKnowledgeFile } from "@/lib/knowledge/storage";
+import type { KbSourceType } from "@/lib/knowledge/types";
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractPdfText(buffer: Buffer): string {
+  const raw = buffer.toString("latin1");
+  const pieces: string[] = [];
+  const regex = /BT([\s\S]*?)ET/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(raw))) {
+    const block = match[1];
+    const partRegex = /\((?:\\.|[^\\)])*\)\s*Tj|\[([\s\S]*?)\]\s*TJ/g;
+    let part: RegExpExecArray | null;
+    while ((part = partRegex.exec(block))) {
+      if (part[0].endsWith("Tj")) {
+        const inner = part[0].slice(1, part[0].lastIndexOf(")"));
+        pieces.push(
+          inner
+            .replace(/\\n/g, "\n")
+            .replace(/\\r/g, "")
+            .replace(/\\t/g, " ")
+            .replace(/\\\(/g, "(")
+            .replace(/\\\)/g, ")")
+            .replace(/\\\\/g, "\\"),
+        );
+      } else if (part[1]) {
+        const strings = part[1].match(/\((?:\\.|[^\\)])*\)/g) || [];
+        for (const s of strings) {
+          pieces.push(s.slice(1, -1));
+        }
+      }
+    }
+  }
+  const text = pieces.join(" ").replace(/\s+/g, " ").trim();
+  if (text.length < 20) {
+    throw new Error(
+      "Could not extract enough text from this PDF. Try a text-based PDF or TXT export.",
+    );
+  }
+  return text;
+}
+
+function extractDocxText(buffer: Buffer): string {
+  let offset = 0;
+  while (offset + 30 < buffer.length) {
+    if (buffer.readUInt32LE(offset) !== 0x04034b50) break;
+    const compression = buffer.readUInt16LE(offset + 8);
+    const compSize = buffer.readUInt32LE(offset + 18);
+    const nameLen = buffer.readUInt16LE(offset + 26);
+    const extraLen = buffer.readUInt16LE(offset + 28);
+    const name = buffer
+      .slice(offset + 30, offset + 30 + nameLen)
+      .toString("utf8");
+    const dataStart = offset + 30 + nameLen + extraLen;
+    const dataEnd = dataStart + compSize;
+    if (name === "word/document.xml") {
+      const compressed = buffer.slice(dataStart, dataEnd);
+      let xml: string;
+      if (compression === 0) {
+        xml = compressed.toString("utf8");
+      } else if (compression === 8) {
+        xml = inflateRawSync(compressed).toString("utf8");
+      } else {
+        throw new Error("Unsupported DOCX compression.");
+      }
+      const text = xml
+        .replace(/<w:tab\/>/g, "\t")
+        .replace(/<\/w:p>/g, "\n")
+        .replace(/<w:br[^/]*\/>/g, "\n")
+        .replace(/<[^>]+>/g, "")
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+      if (!text) throw new Error("DOCX document was empty.");
+      return text;
+    }
+    if (compSize === 0 && nameLen === 0) break;
+    offset = dataEnd;
+  }
+  throw new Error("Could not find word/document.xml in DOCX upload.");
+}
+
+function extractMarkdownText(buffer: Buffer): string {
+  const text = buffer
+    .toString("utf8")
+    .replace(/^---[\s\S]*?---\s*/m, "")
+    .replace(/```[\s\S]*?```/g, (block) =>
+      block.replace(/```\w*\n?/, "").replace(/```$/, ""),
+    )
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, " ")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/[*_~`>#|-]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  if (!text) throw new Error("Markdown document was empty.");
+  return text;
+}
+
+export function extractHtmlText(html: string): string {
+  return stripHtml(html);
+}
+
+export async function extractFileText(input: {
+  type: Exclude<KbSourceType, "website">;
+  storagePath: string;
+}): Promise<string> {
+  const buffer = readKnowledgeFile(input.storagePath);
+  if (input.type === "txt") {
+    const text = buffer.toString("utf8").trim();
+    if (!text) throw new Error("TXT file was empty.");
+    return text;
+  }
+  if (input.type === "markdown") {
+    return extractMarkdownText(buffer);
+  }
+  if (input.type === "pdf") {
+    return extractPdfText(buffer);
+  }
+  if (input.type === "docx") {
+    return extractDocxText(buffer);
+  }
+  throw new Error(`Unsupported knowledge source type: ${input.type}`);
+}
