@@ -4,8 +4,10 @@ import {
   extractLeadHints,
 } from "@/lib/chatbot/engine/leads";
 import {
+  formatEngineMemoryForPrompt,
   formatMemoryForPrompt,
   rememberFromUserText,
+  rememberWithMemoryEngine,
 } from "@/lib/chatbot/engine/memory";
 import {
   formatKnowledgeContext,
@@ -83,6 +85,13 @@ export async function handleVisitorMessage(input: {
       visitorKey,
       text: input.content,
     });
+    await rememberWithMemoryEngine({
+      botId: bot.id,
+      workspaceId: conversation.workspaceId,
+      visitorKey,
+      conversationId: conversation.id,
+      text: input.content,
+    });
   }
 
   const hints = extractLeadHints(input.content);
@@ -147,9 +156,20 @@ export async function handleVisitorMessage(input: {
   ]
     .filter(Boolean)
     .join("\n\n");
-  const memoryContext = bot.memoryEnabled
+  const legacyMemory = bot.memoryEnabled
     ? formatMemoryForPrompt(bot.id, visitorKey)
     : "";
+  const engineMemory = bot.memoryEnabled
+    ? await formatEngineMemoryForPrompt({
+        workspaceId: bot.workspaceId,
+        query: input.content,
+        visitorKey,
+        conversationId: latest.id,
+      })
+    : "";
+  const memoryContext = [legacyMemory, engineMemory]
+    .filter(Boolean)
+    .join("\n");
 
   const history = listMessages(latest.id)
     .filter((message) => message.role === "user" || message.role === "assistant")

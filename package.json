@@ -13,7 +13,8 @@
     "db:migrate:crm": "node ./scripts/migrate-crm.mjs",
     "db:migrate:chatbot": "node ./scripts/migrate-chatbot.mjs",
     "db:migrate:automation": "node ./scripts/migrate-automation.mjs",
-    "db:migrate:knowledge": "node ./scripts/migrate-knowledge.mjs"
+    "db:migrate:knowledge": "node ./scripts/migrate-knowledge.mjs",
+    "db:migrate:memory": "node ./scripts/migrate-memory.mjs"
   },
   "dependencies": {
     "better-auth": "^1.6.23",

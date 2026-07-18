@@ -40,6 +40,9 @@ export const ACTION_TYPES = [
   "crm.create_deal",
   "chatbot.send_message",
   "knowledge.search",
+  "memory.remember",
+  "memory.search",
+  "memory.merge",
   "set_variable",
   "log",
 ] as const;

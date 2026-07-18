@@ -256,6 +256,146 @@ const knowledgeSearch: AutomationAction = {
   },
 };
 
+const memoryRemember: AutomationAction = {
+  id: "memory.remember",
+  async run(ctx, config): Promise<ActionResult> {
+    const { rememberForAutomation } = await import("@/lib/memory");
+    const resolved = resolveValue(config, ctx.context) as Record<string, unknown>;
+    const content = asString(resolved.content || resolved.value || resolved.text).trim();
+    const kind = asString(resolved.kind, "long_term").trim();
+    if (!content) {
+      return { ok: false, error: "memory.remember requires content." };
+    }
+    if (
+      kind !== "short_term" &&
+      kind !== "long_term" &&
+      kind !== "profile" &&
+      kind !== "business"
+    ) {
+      return {
+        ok: false,
+        error:
+          "memory.remember kind must be short_term, long_term, profile, or business.",
+      };
+    }
+    const result = await rememberForAutomation({
+      workspaceId: ctx.workspaceId,
+      kind,
+      content,
+      key: asString(resolved.key) || null,
+      scopeType: (asString(resolved.scopeType) || undefined) as
+        | "workspace"
+        | "visitor"
+        | "conversation"
+        | "contact"
+        | "bot"
+        | "user"
+        | undefined,
+      scopeId: asString(resolved.scopeId) || null,
+      importance:
+        typeof resolved.importance === "number"
+          ? resolved.importance
+          : undefined,
+      metadata:
+        resolved.metadata && typeof resolved.metadata === "object"
+          ? (resolved.metadata as Record<string, unknown>)
+          : undefined,
+      merge: resolved.merge === true,
+    });
+    return {
+      ok: true,
+      output: {
+        memoryId: result.memory.id,
+        memory: result.memory,
+        merged: result.merged,
+        vars: {
+          memoryId: result.memory.id,
+          memoryContent: result.memory.content,
+        },
+      },
+    };
+  },
+};
+
+const memorySearch: AutomationAction = {
+  id: "memory.search",
+  async run(ctx, config): Promise<ActionResult> {
+    const { searchMemoryForAutomation } = await import("@/lib/memory");
+    const resolved = resolveValue(config, ctx.context) as Record<string, unknown>;
+    const query = asString(resolved.query || resolved.q || resolved.message).trim();
+    if (!query) {
+      return { ok: false, error: "memory.search requires query." };
+    }
+    const kinds = Array.isArray(resolved.kinds)
+      ? resolved.kinds.filter(
+          (value): value is "short_term" | "long_term" | "profile" | "business" =>
+            value === "short_term" ||
+            value === "long_term" ||
+            value === "profile" ||
+            value === "business",
+        )
+      : undefined;
+    const result = await searchMemoryForAutomation({
+      workspaceId: ctx.workspaceId,
+      query,
+      limit: typeof resolved.limit === "number" ? resolved.limit : undefined,
+      kinds,
+      scopeType: (asString(resolved.scopeType) || undefined) as
+        | "workspace"
+        | "visitor"
+        | "conversation"
+        | "contact"
+        | "bot"
+        | "user"
+        | undefined,
+      scopeId: asString(resolved.scopeId) || null,
+    });
+    return {
+      ok: true,
+      output: {
+        query: result.query,
+        context: result.context,
+        hits: result.hits,
+        vars: {
+          memoryContext: result.context,
+          memoryHits: result.hits,
+        },
+      },
+    };
+  },
+};
+
+const memoryMerge: AutomationAction = {
+  id: "memory.merge",
+  async run(ctx, config): Promise<ActionResult> {
+    const { mergeMemoryForAutomation } = await import("@/lib/memory");
+    const resolved = resolveValue(config, ctx.context) as Record<string, unknown>;
+    const memoryIds = Array.isArray(resolved.memoryIds)
+      ? resolved.memoryIds.filter(
+          (value): value is string => typeof value === "string",
+        )
+      : [];
+    if (memoryIds.length < 2) {
+      return {
+        ok: false,
+        error: "memory.merge requires at least two memoryIds.",
+      };
+    }
+    const result = await mergeMemoryForAutomation({
+      workspaceId: ctx.workspaceId,
+      memoryIds,
+    });
+    return {
+      ok: true,
+      output: {
+        survivorId: result.survivorId,
+        mergedIds: result.mergedIds,
+        vars: { memorySurvivorId: result.survivorId },
+      },
+    };
+  },
+};
+
 const chatbotSendMessage: AutomationAction = {
   id: "chatbot.send_message",
   async run(ctx, config): Promise<ActionResult> {
@@ -328,6 +468,9 @@ const actions: Record<ActionType, AutomationAction> = {
   "crm.create_deal": { id: "crm.create_deal", run: crmCreateDeal },
   "chatbot.send_message": chatbotSendMessage,
   "knowledge.search": knowledgeSearch,
+  "memory.remember": memoryRemember,
+  "memory.search": memorySearch,
+  "memory.merge": memoryMerge,
   set_variable: setVariable,
   log: logAction,
 };
