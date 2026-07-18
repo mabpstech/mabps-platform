@@ -30,6 +30,24 @@ export function InviteMemberForm() {
     setError(null);
     setSuccess(null);
 
+    const entitlementsResponse = await fetch("/api/billing/entitlements");
+    if (entitlementsResponse.ok) {
+      const entitlements = (await entitlementsResponse.json()) as {
+        usage?: { members?: number };
+        limits?: { members?: number };
+        plan?: { name?: string };
+      };
+      const limit = entitlements.limits?.members ?? -1;
+      const current = entitlements.usage?.members ?? 0;
+      if (limit >= 0 && current + 1 > limit) {
+        setError(
+          `${entitlements.plan?.name ?? "Current"} plan allows ${limit} members (including pending invites). Upgrade billing to invite more.`,
+        );
+        setPending(false);
+        return;
+      }
+    }
+
     const { error: inviteError } = await authClient.organization.inviteMember({
       email,
       role,

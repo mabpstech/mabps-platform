@@ -44,6 +44,12 @@ export default async function WorkspaceSettingsPage() {
           >
             Invitations
           </Link>
+          <Link
+            href="/settings/workspace/billing"
+            className="text-zinc-700 underline-offset-2 hover:underline"
+          >
+            Billing
+          </Link>
         </div>
       </div>
 

@@ -107,6 +107,8 @@ export function SignupForm({ googleEnabled = false }: SignupFormProps) {
       organizationId: data.id,
     });
 
+    await fetch("/api/billing/bootstrap", { method: "POST" }).catch(() => null);
+
     router.push("/dashboard");
     router.refresh();
   }

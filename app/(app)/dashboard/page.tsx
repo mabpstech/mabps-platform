@@ -29,8 +29,8 @@ export default async function DashboardPage() {
       <div className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-medium text-zinc-900">Workspace ready</h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">
-          Authentication, sessions, and multi-tenant workspaces are live. Later
-          Core modules will mount into this shell.
+          Authentication, workspaces, and billing entitlements are live. Next
+          modules can mount into this shell and enforce plan limits.
         </p>
         <div className="mt-4 flex flex-wrap gap-3 text-sm">
           <Link
@@ -50,6 +50,12 @@ export default async function DashboardPage() {
             className="rounded-md border border-zinc-300 px-3 py-1.5 text-zinc-700 hover:bg-zinc-50"
           >
             Account settings
+          </Link>
+          <Link
+            href="/settings/workspace/billing"
+            className="rounded-md border border-zinc-300 px-3 py-1.5 text-zinc-700 hover:bg-zinc-50"
+          >
+            Billing & plans
           </Link>
         </div>
       </div>

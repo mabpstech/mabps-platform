@@ -34,9 +34,20 @@ export default async function AppLayout({
                 Account
               </Link>
               {activeWorkspace ? (
-                <Link href="/settings/workspace" className="hover:text-zinc-900">
-                  Workspace
-                </Link>
+                <>
+                  <Link
+                    href="/settings/workspace"
+                    className="hover:text-zinc-900"
+                  >
+                    Workspace
+                  </Link>
+                  <Link
+                    href="/settings/workspace/billing"
+                    className="hover:text-zinc-900"
+                  >
+                    Billing
+                  </Link>
+                </>
               ) : null}
             </nav>
           </div>

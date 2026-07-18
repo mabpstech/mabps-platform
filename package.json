@@ -7,14 +7,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:migrate": "npx auth migrate --config ./lib/auth/server.ts --yes"
+    "db:migrate": "npx auth migrate --config ./lib/auth/server.ts --yes",
+    "db:migrate:billing": "node ./scripts/migrate-billing.mjs"
   },
   "dependencies": {
     "better-auth": "^1.6.23",
     "better-sqlite3": "^12.11.1",
     "next": "16.2.10",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "stripe": "^22.3.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

@@ -7,6 +7,7 @@ import {
 } from "@/lib/auth/permissions";
 import { auth, type Session } from "@/lib/auth/server";
 import { requireSession } from "@/lib/auth/session";
+import { ensureFreeSubscription } from "@/lib/billing/repository";
 
 export type { WorkspaceRole };
 
@@ -44,6 +45,7 @@ export async function ensureActiveWorkspace(
   if (activeId) {
     const active = memberships.find((org) => org.id === activeId);
     if (active) {
+      ensureFreeSubscription(active.id);
       return active as WorkspaceSummary;
     }
   }
@@ -53,6 +55,7 @@ export async function ensureActiveWorkspace(
     body: { organizationId: fallback.id },
     headers: requestHeaders,
   });
+  ensureFreeSubscription(fallback.id);
 
   return fallback as WorkspaceSummary;
 }

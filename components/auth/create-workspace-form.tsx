@@ -52,6 +52,9 @@ export function CreateWorkspaceForm() {
       organizationId: data.id,
     });
 
+    // Provision Free plan subscription for the new workspace.
+    await fetch("/api/billing/bootstrap", { method: "POST" }).catch(() => null);
+
     router.push("/dashboard");
     router.refresh();
   }
