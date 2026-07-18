@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 
-const protectedPrefixes = ["/dashboard", "/onboarding", "/settings"];
+const protectedPrefixes = ["/dashboard", "/onboarding", "/settings", "/sites"];
 const guestOnlyPaths = ["/login", "/signup", "/forgot-password"];
 
 function isProtectedPath(pathname: string): boolean {
@@ -16,12 +16,44 @@ function isGuestOnlyPath(pathname: string): boolean {
   );
 }
 
+function appHosts(): Set<string> {
+  const hosts = new Set<string>(["localhost", "127.0.0.1"]);
+  const configured =
+    process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
+  if (configured) {
+    try {
+      hosts.add(new URL(configured).hostname.toLowerCase());
+    } catch {
+      // ignore invalid URL
+    }
+  }
+  return hosts;
+}
+
 /**
  * Optimistic cookie check for redirects only.
  * Real authorization always happens via getSession / requireSession in layouts and pages.
+ * Non-app hosts rewrite to /site/...; the page resolves the published custom domain.
  */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const hostHeader =
+    request.headers.get("x-forwarded-host") || request.headers.get("host");
+  const hostname = hostHeader?.split(":")[0]?.toLowerCase();
+
+  if (
+    hostname &&
+    !appHosts().has(hostname) &&
+    !pathname.startsWith("/api/") &&
+    !pathname.startsWith("/_next/") &&
+    !pathname.startsWith("/site")
+  ) {
+    const rewriteUrl = request.nextUrl.clone();
+    const suffix = pathname === "/" ? "" : pathname;
+    rewriteUrl.pathname = `/site${suffix}`;
+    return NextResponse.rewrite(rewriteUrl);
+  }
+
   const sessionCookie = getSessionCookie(request);
 
   if (isProtectedPath(pathname) && !sessionCookie) {
@@ -42,8 +74,11 @@ export const config = {
     "/dashboard/:path*",
     "/onboarding",
     "/settings/:path*",
+    "/sites/:path*",
+    "/sites",
     "/login",
     "/signup",
     "/forgot-password",
+    "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 };

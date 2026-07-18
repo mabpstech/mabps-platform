@@ -24,9 +24,10 @@
 .DS_Store
 *.pem
 
-# local database
+# local database & uploads
 /data/*.db
 /data/*.db-*
+/data/uploads/
 
 # debug
 npm-debug.log*

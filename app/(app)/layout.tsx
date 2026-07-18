@@ -21,7 +21,7 @@ export default async function AppLayout({
   return (
     <div className="flex min-h-full flex-1 flex-col bg-zinc-50">
       <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-6 py-4">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-4">
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="text-lg font-semibold text-zinc-900">
               MABPS
@@ -30,11 +30,11 @@ export default async function AppLayout({
               <Link href="/dashboard" className="hover:text-zinc-900">
                 Dashboard
               </Link>
-              <Link href="/settings/account" className="hover:text-zinc-900">
-                Account
-              </Link>
               {activeWorkspace ? (
                 <>
+                  <Link href="/sites" className="hover:text-zinc-900">
+                    Sites
+                  </Link>
                   <Link
                     href="/settings/workspace"
                     className="hover:text-zinc-900"
@@ -49,6 +49,9 @@ export default async function AppLayout({
                   </Link>
                 </>
               ) : null}
+              <Link href="/settings/account" className="hover:text-zinc-900">
+                Account
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-3">
@@ -68,7 +71,7 @@ export default async function AppLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8">{children}</main>
     </div>
   );
 }
