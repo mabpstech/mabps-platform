@@ -91,7 +91,8 @@ function actionPermissions(action: string): PluginPermission[] {
     case "ping":
       return [];
     default:
-      return [];
+      // Deny unknown actions — empty permissions would skip assertPermissions.
+      throw new Error(`Unknown plugin action denied: ${action}`);
   }
 }
 
