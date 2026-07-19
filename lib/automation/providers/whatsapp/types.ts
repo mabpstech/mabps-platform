@@ -14,6 +14,7 @@ export type WhatsAppSendResult = {
 };
 
 export type WhatsAppProviderConfig = {
+  workspaceId?: string;
   phoneNumberId?: string;
   accessToken?: string;
   wabaId?: string;

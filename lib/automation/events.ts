@@ -71,3 +71,11 @@ export function emitChatbotEvent(
 ) {
   return emitAutomationEvent({ type, workspaceId, payload });
 }
+
+export function emitWhatsAppEvent(
+  workspaceId: string,
+  type: Extract<TriggerType, `whatsapp.${string}`>,
+  payload: Record<string, unknown>,
+) {
+  return emitAutomationEvent({ type, workspaceId, payload });
+}

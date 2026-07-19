@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
@@ -26,7 +27,7 @@ export function ChannelsManager({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  async function markWhatsAppReady() {
+  async function connectWhatsApp() {
     if (!botId) return;
     setPending(true);
     setError(null);
@@ -36,13 +37,10 @@ export function ChannelsManager({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           channel: "whatsapp",
-          status: "ready",
+          status: "connected",
           config: {
-            note: "Reserved for WhatsApp Cloud API credentials",
-            phoneNumberId: null,
-            accessToken: null,
-            verifyToken: null,
-            wabaId: null,
+            note: "Credentials managed in WhatsApp Integration settings",
+            workspaceId: null,
           },
         }),
       });
@@ -61,8 +59,12 @@ export function ChannelsManager({
       <div>
         <h1 className="text-2xl font-semibold text-zinc-900">Channels</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          API-first channel adapters. Widget and API are live. WhatsApp keeps a
-          provider interface ready without Cloud API wiring yet.
+          API-first channel adapters. Widget, API, and WhatsApp Cloud API are
+          available. Configure WhatsApp credentials under{" "}
+          <Link href="/whatsapp/settings" className="underline">
+            WhatsApp settings
+          </Link>
+          .
         </p>
       </div>
 
@@ -109,7 +111,7 @@ export function ChannelsManager({
                 </td>
                 <td className="px-4 py-3 text-zinc-500">
                   {channel.channel === "whatsapp"
-                    ? "WhatsApp Cloud API deferred; config shape reserved."
+                    ? "WhatsApp Cloud API via Integrations module."
                     : channel.channel === "widget"
                       ? "Website embed + public session APIs."
                       : "Programmatic send/receive over Chatbot APIs."}
@@ -123,10 +125,10 @@ export function ChannelsManager({
       <button
         type="button"
         className={`${authSecondaryButtonClassName} !w-auto px-4`}
-        onClick={markWhatsAppReady}
+        onClick={connectWhatsApp}
         disabled={pending || !botId}
       >
-        Mark WhatsApp channel ready (no Cloud API)
+        Mark WhatsApp channel connected
       </button>
     </div>
   );

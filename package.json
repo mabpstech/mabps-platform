@@ -16,7 +16,8 @@
     "db:migrate:knowledge": "node ./scripts/migrate-knowledge.mjs",
     "db:migrate:memory": "node ./scripts/migrate-memory.mjs",
     "db:migrate:analytics": "node ./scripts/migrate-analytics.mjs",
-    "db:migrate:ai": "node ./scripts/migrate-ai.mjs"
+    "db:migrate:ai": "node ./scripts/migrate-ai.mjs",
+    "db:migrate:whatsapp": "node ./scripts/migrate-whatsapp.mjs"
   },
   "dependencies": {
     "better-auth": "^1.6.23",

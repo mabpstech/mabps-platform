@@ -36,14 +36,20 @@ const whatsappSend: AutomationAction = {
     );
     const result = await provider.sendMessage(
       {
+        workspaceId: ctx.workspaceId,
         phoneNumberId: asString(resolved.phoneNumberId) || undefined,
         accessToken: asString(resolved.accessToken) || undefined,
         wabaId: asString(resolved.wabaId) || undefined,
+        apiVersion: asString(resolved.apiVersion) || undefined,
       },
       {
         to: asString(resolved.to),
         message: asString(resolved.message),
         templateName: asString(resolved.templateName) || undefined,
+        templateParams:
+          resolved.templateParams && typeof resolved.templateParams === "object"
+            ? (resolved.templateParams as Record<string, string>)
+            : undefined,
       },
     );
     if (!result.ok) {

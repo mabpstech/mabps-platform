@@ -17,6 +17,8 @@ export const TRIGGER_TYPES = [
   "chatbot.message_received",
   "chatbot.handoff_requested",
   "chatbot.lead_captured",
+  "whatsapp.conversation_started",
+  "whatsapp.message_received",
 ] as const;
 export type TriggerType = (typeof TRIGGER_TYPES)[number];
 

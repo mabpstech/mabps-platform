@@ -45,16 +45,6 @@ export async function PATCH(request: Request, context: RouteContext) {
       );
     }
     const channel = body.channel as ChatChannel;
-    if (channel === "whatsapp" && body.status === "connected") {
-      return NextResponse.json(
-        {
-          error:
-            "WhatsApp Cloud API is not implemented yet. Provider interface is ready.",
-        },
-        { status: 501 },
-      );
-    }
-
     const updated = updateChannel(botId, workspace.id, channel, {
       status:
         typeof body.status === "string"

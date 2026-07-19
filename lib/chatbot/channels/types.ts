@@ -16,7 +16,7 @@ export type ChannelSendResult = {
 
 /**
  * Channel providers keep Chatbot API-first and channel-agnostic.
- * WhatsApp Cloud API is intentionally stubbed for a later Integrations pass.
+ * WhatsApp is implemented via the WhatsApp Integration module (Cloud API).
  */
 export interface ChannelProvider {
   id: ChatChannel;

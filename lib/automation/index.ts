@@ -24,6 +24,7 @@ export {
   emitWebsiteEvent,
   emitCrmEvent,
   emitChatbotEvent,
+  emitWhatsAppEvent,
 } from "@/lib/automation/events";
 export { processAutomationQueue, executeRun } from "@/lib/automation/engine/runner";
 export { tickAutomationEngine } from "@/lib/automation/engine/scheduler";
