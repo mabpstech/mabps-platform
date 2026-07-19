@@ -33,13 +33,13 @@ export const CRITICAL_DEPENDENCIES = [
 /** Expected module schema tables for integrity checks. */
 export const MODULE_SCHEMA_TABLES: Record<string, string[]> = {
   auth: ["user", "session", "organization", "member"],
-  billing: ["billing_subscription", "billing_customer"],
+  billing: ["subscription", "billing_customer"],
   website: ["website_site", "website_page"],
   crm: ["crm_contact", "crm_lead"],
   ai: ["ai_settings", "ai_conversation"],
   automation: ["automation_workflow"],
   analytics: ["analytics_event"],
-  notifications: ["notification_settings", "notification_item"],
+  notifications: ["notification_settings", "notification"],
   deployment: ["deployment_settings", "deployment_project"],
   guardian: ["guardian_settings", "guardian_scan", "guardian_finding"],
 };
