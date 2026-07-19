@@ -23,6 +23,11 @@ import {
 import { getCrmOverview, searchCrm } from "@/lib/crm/repository";
 import { searchKnowledge } from "@/lib/knowledge/search";
 import { searchMemory } from "@/lib/memory/search";
+import { sendWorkspaceNotification } from "@/lib/notifications/engine/send";
+import {
+  getNotificationsOverview,
+  listNotifications,
+} from "@/lib/notifications/repository";
 import type { AiRegisteredTool, AiToolContext } from "@/lib/ai/tools/types";
 import type { AiToolDefinition, AiToolResult } from "@/lib/ai/types";
 import { listSitesForWorkspace } from "@/lib/website/repository";
@@ -166,6 +171,79 @@ const tools: AiRegisteredTool[] = [
             updatedAt: workflow.updatedAt,
           })),
       }),
+  },
+  {
+    name: "notifications_overview",
+    description:
+      "Get notifications module overview, unread count, and recent items.",
+    parameters: { type: "object", properties: {} },
+    handler: (ctx) =>
+      ok({
+        overview: getNotificationsOverview(ctx.workspaceId),
+        recent: listNotifications(ctx.workspaceId, { limit: 10 }).map(
+          (item) => ({
+            id: item.id,
+            title: item.title,
+            priority: item.priority,
+            category: item.category,
+            isRead: item.isRead,
+            status: item.status,
+            createdAt: item.createdAt,
+          }),
+        ),
+      }),
+  },
+  {
+    name: "notifications_send",
+    description:
+      "Send a workspace notification across in-app, push, email, WhatsApp, or browser channels.",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        body: { type: "string" },
+        userId: { type: "string" },
+        priority: {
+          type: "string",
+          description: "low | normal | high | urgent",
+        },
+        channels: {
+          type: "array",
+          items: { type: "string" },
+          description: "in_app | push | email | whatsapp | browser",
+        },
+        href: { type: "string" },
+      },
+      required: ["title", "body"],
+    },
+    handler: async (ctx, args) => {
+      const title = asString(args.title).trim();
+      const body = asString(args.body).trim();
+      if (!title || !body) return fail("title and body are required.");
+      const channels = Array.isArray(args.channels)
+        ? args.channels.map((item) => String(item))
+        : undefined;
+      const result = await sendWorkspaceNotification(ctx.workspaceId, {
+        userId: asString(args.userId) || ctx.userId || null,
+        title,
+        body,
+        href: asString(args.href) || null,
+        priority: ["low", "normal", "high", "urgent"].includes(
+          asString(args.priority),
+        )
+          ? (asString(args.priority) as "low" | "normal" | "high" | "urgent")
+          : undefined,
+        channels: channels as
+          | Array<"in_app" | "push" | "email" | "whatsapp" | "browser">
+          | undefined,
+        createdByUserId: ctx.userId,
+      });
+      return ok({
+        notificationId: result.notification.id,
+        status: result.notification.status,
+        channels: result.notification.channels,
+      });
+    },
   },
   {
     name: "website_list_sites",

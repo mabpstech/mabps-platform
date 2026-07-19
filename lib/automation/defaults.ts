@@ -66,4 +66,8 @@ export const TRIGGER_LABELS: Record<TriggerType, string> = {
   "email.opened": "Email opened",
   "email.clicked": "Email clicked",
   "email.bounced": "Email bounced",
+  "notification.created": "Notification created",
+  "notification.delivered": "Notification delivered",
+  "notification.read": "Notification read",
+  "notification.failed": "Notification failed",
 };

@@ -87,3 +87,11 @@ export function emitEmailEvent(
 ) {
   return emitAutomationEvent({ type, workspaceId, payload });
 }
+
+export function emitNotificationEvent(
+  workspaceId: string,
+  type: Extract<TriggerType, `notification.${string}`>,
+  payload: Record<string, unknown>,
+) {
+  return emitAutomationEvent({ type, workspaceId, payload });
+}

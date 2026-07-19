@@ -1,5 +1,6 @@
 import { resolveValue } from "@/lib/automation/engine/templates";
 import { getEmailProvider } from "@/lib/automation/providers/email";
+import { getNotificationProvider } from "@/lib/automation/providers/notifications";
 import { getWhatsAppProvider } from "@/lib/automation/providers/whatsapp";
 import type {
   ActionExecutionContext,
@@ -69,6 +70,73 @@ const emailSend: AutomationAction = {
         subject,
         messageId: result.messageId,
         providerMessageId: result.providerMessageId,
+      },
+    };
+  },
+};
+
+const notificationSend: AutomationAction = {
+  id: "notification.send",
+  async run(ctx, config): Promise<ActionResult> {
+    const resolved = resolveValue(config, ctx.context) as Record<
+      string,
+      unknown
+    >;
+    const title = asString(resolved.title).trim();
+    const body = asString(resolved.body).trim();
+    if (!title || !body) {
+      return {
+        ok: false,
+        error: "notification.send requires title and body.",
+      };
+    }
+
+    const channels = Array.isArray(resolved.channels)
+      ? resolved.channels.map((item) => String(item))
+      : undefined;
+
+    const provider = getNotificationProvider(
+      asString(resolved.provider, "notifications"),
+    );
+    const result = await provider.sendNotification(
+      { workspaceId: ctx.workspaceId },
+      {
+        userId: asString(resolved.userId) || undefined,
+        title,
+        body,
+        href: asString(resolved.href) || undefined,
+        category: asString(resolved.category) || undefined,
+        priority: asString(resolved.priority) || undefined,
+        channels,
+        templateId: asString(resolved.templateId) || undefined,
+        email: asString(resolved.email) || undefined,
+        phone: asString(resolved.phone) || undefined,
+        crmEntityType: asString(resolved.crmEntityType) || undefined,
+        crmEntityId: asString(resolved.crmEntityId) || undefined,
+        variables:
+          resolved.variables && typeof resolved.variables === "object"
+            ? Object.fromEntries(
+                Object.entries(
+                  resolved.variables as Record<string, unknown>,
+                ).map(([key, value]) => [key, String(value ?? "")]),
+              )
+            : undefined,
+      },
+    );
+
+    if (!result.ok) {
+      return {
+        ok: false,
+        error: result.error || "Notification send failed.",
+        output: result.raw,
+      };
+    }
+
+    return {
+      ok: true,
+      output: {
+        notificationId: result.notificationId,
+        title,
       },
     };
   },
@@ -513,6 +581,7 @@ const logAction: AutomationAction = {
 const actions: Record<ActionType, AutomationAction> = {
   "email.send": emailSend,
   "whatsapp.send": whatsappSend,
+  "notification.send": notificationSend,
   "webhook.http_request": webhookHttp,
   "crm.create_lead": { id: "crm.create_lead", run: crmCreateLead },
   "crm.update_lead": { id: "crm.update_lead", run: crmUpdateLead },

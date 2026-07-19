@@ -15,6 +15,7 @@ export const SOURCE_LABELS: Record<AnalyticsSource, string> = {
   user: "User",
   system: "System",
   email: "Email",
+  notifications: "Notifications",
 };
 
 export const REPORT_LABELS: Record<AnalyticsReportId, string> = {

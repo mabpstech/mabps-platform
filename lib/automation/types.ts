@@ -23,6 +23,10 @@ export const TRIGGER_TYPES = [
   "email.opened",
   "email.clicked",
   "email.bounced",
+  "notification.created",
+  "notification.delivered",
+  "notification.read",
+  "notification.failed",
 ] as const;
 export type TriggerType = (typeof TRIGGER_TYPES)[number];
 
@@ -38,6 +42,7 @@ export type NodeKind = (typeof NODE_KINDS)[number];
 export const ACTION_TYPES = [
   "email.send",
   "whatsapp.send",
+  "notification.send",
   "webhook.http_request",
   "crm.create_lead",
   "crm.update_lead",

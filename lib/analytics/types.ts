@@ -9,6 +9,7 @@ export const ANALYTICS_SOURCES = [
   "user",
   "system",
   "email",
+  "notifications",
 ] as const;
 
 export type AnalyticsSource = (typeof ANALYTICS_SOURCES)[number];
