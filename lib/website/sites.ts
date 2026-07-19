@@ -43,16 +43,16 @@ export function updateWorkspaceSite(
   return updateSite(siteId, input);
 }
 
-export function deleteWorkspaceSite(
+export async function deleteWorkspaceSite(
   siteId: string,
   workspaceId: string,
-): void {
+): Promise<void> {
   const site = getSiteById(siteId);
   if (!site || site.workspaceId !== workspaceId) {
     throw new Error("Site not found.");
   }
 
-  removeSiteUploadDir(workspaceId, siteId);
+  await removeSiteUploadDir(workspaceId, siteId);
   deleteSite(siteId);
 
   const count = countSitesForWorkspace(workspaceId);

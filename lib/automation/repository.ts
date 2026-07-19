@@ -1114,20 +1114,50 @@ export function getQueueJobById(id: string): AutomationQueueJob | null {
   return row ? rowToJob(row) : null;
 }
 
+/** Reclaim jobs stuck in `processing` after a worker crash (default 15m). */
+export function reclaimStaleQueueJobs(
+  staleAfterMs = 15 * 60 * 1000,
+): number {
+  ensureAutomationReady();
+  const cutoff = new Date(Date.now() - staleAfterMs).toISOString();
+  const timestamp = nowIso();
+  const result = sqlite
+    .prepare(
+      `UPDATE "automation_queue_job"
+       SET "status" = 'pending', "lockedAt" = NULL, "lockedBy" = NULL,
+           "updatedAt" = ?, "lastError" = COALESCE("lastError", 'Reclaimed stale lock.')
+       WHERE "status" = 'processing'
+         AND "lockedAt" IS NOT NULL
+         AND "lockedAt" < ?`,
+    )
+    .run(timestamp, cutoff);
+  return result.changes;
+}
+
 export function claimQueueJobs(
   limit = 10,
   workerId = `worker_${process.pid}`,
+  options: { workspaceId?: string } = {},
 ): AutomationQueueJob[] {
   ensureAutomationReady();
+  reclaimStaleQueueJobs();
   const now = nowIso();
+  const clauses = [`"status" = 'pending'`, `"availableAt" <= ?`];
+  const params: unknown[] = [now];
+  if (options.workspaceId) {
+    clauses.push(`"workspaceId" = ?`);
+    params.push(options.workspaceId);
+  }
+  params.push(limit);
+
   const rows = sqlite
     .prepare(
       `SELECT * FROM "automation_queue_job"
-       WHERE "status" = 'pending' AND "availableAt" <= ?
+       WHERE ${clauses.join(" AND ")}
        ORDER BY "priority" ASC, "availableAt" ASC
        LIMIT ?`,
     )
-    .all(now, limit) as Record<string, unknown>[];
+    .all(...params) as Record<string, unknown>[];
 
   const claimed: AutomationQueueJob[] = [];
   for (const row of rows) {

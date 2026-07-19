@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { processAutomationQueue } from "@/lib/automation/engine/runner";
 import { automationErrorResponse } from "@/lib/automation/http";
 import {
   createRun,
@@ -39,13 +38,8 @@ export async function POST(request: Request, context: RouteContext) {
       triggerPayload: payload,
     });
 
-    const processNow = body.process !== false;
-    let queue = null;
-    if (processNow) {
-      queue = await processAutomationQueue({ limit: 5 });
-    }
-
-    return NextResponse.json({ ok: true, runId: run.id, queue }, { status: 202 });
+    // Enqueue only — the background worker drains the queue.
+    return NextResponse.json({ ok: true, runId: run.id }, { status: 202 });
   } catch (error) {
     return automationErrorResponse(error);
   }

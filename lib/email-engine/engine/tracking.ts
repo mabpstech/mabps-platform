@@ -20,7 +20,6 @@ import type {
   EmailMessage,
   EmailMessageStatus,
 } from "@/lib/email-engine/types";
-import { processAutomationQueue } from "@/lib/automation/engine/runner";
 import { emitEmailEvent } from "@/lib/automation/events";
 
 const TRANSPARENT_GIF = Buffer.from(
@@ -228,7 +227,6 @@ export function recordDeliveryEvent(input: {
         url: input.url || null,
         kind: updated.kind,
       });
-      void processAutomationQueue({ limit: 10 }).catch(() => undefined);
     }
   }
 

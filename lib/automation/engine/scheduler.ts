@@ -12,6 +12,7 @@ import {
  */
 export async function tickAutomationEngine(options: {
   queueLimit?: number;
+  workerId?: string;
 } = {}): Promise<{
   schedulesFired: number;
   queue: { processed: number; failed: number; claimed: number };
@@ -41,6 +42,7 @@ export async function tickAutomationEngine(options: {
 
   const queue = await processAutomationQueue({
     limit: options.queueLimit ?? 25,
+    workerId: options.workerId,
   });
 
   return { schedulesFired, queue };

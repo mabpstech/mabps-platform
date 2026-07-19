@@ -1,4 +1,3 @@
-import { processAutomationQueue } from "@/lib/automation/engine/runner";
 import { emitEmailEvent } from "@/lib/automation/events";
 import {
   isValidEmail,
@@ -212,7 +211,6 @@ export async function sendWorkspaceEmail(
       campaignId: sent.campaignId,
       providerMessageId: sent.providerMessageId,
     });
-    void processAutomationQueue({ limit: 10 }).catch(() => undefined);
   }
 
   return sent;

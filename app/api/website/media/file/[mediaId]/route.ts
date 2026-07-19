@@ -1,10 +1,9 @@
-import fs from "node:fs";
 import { NextResponse } from "next/server";
 import {
   requireWebsiteMemberApi,
   WebsiteAuthError,
 } from "@/lib/website/access";
-import { resolveMediaAbsolutePath } from "@/lib/website/media-storage";
+import { readMediaFile } from "@/lib/website/media-storage";
 import {
   ensureWebsiteReady,
   getMediaById,
@@ -34,7 +33,9 @@ export async function GET(_request: Request, context: RouteContext) {
       return NextResponse.json({ error: "Not found." }, { status: 404 });
     }
 
-    if (site.status !== "published") {
+    const published = site.status === "published";
+
+    if (!published) {
       try {
         const { workspace } = await requireWebsiteMemberApi();
         if (workspace.id !== site.workspaceId) {
@@ -51,17 +52,18 @@ export async function GET(_request: Request, context: RouteContext) {
       }
     }
 
-    const absolute = resolveMediaAbsolutePath(media.storagePath);
-    if (!fs.existsSync(absolute)) {
+    const buffer = await readMediaFile(media.storagePath);
+    if (!buffer) {
       return NextResponse.json({ error: "File missing." }, { status: 404 });
     }
 
-    const buffer = fs.readFileSync(absolute);
     return new NextResponse(buffer, {
       headers: {
         "Content-Type": media.mimeType,
         "Content-Length": String(buffer.byteLength),
-        "Cache-Control": "public, max-age=31536000, immutable",
+        "Cache-Control": published
+          ? "public, max-age=31536000, immutable"
+          : "private, no-store",
       },
     });
   } catch (error) {

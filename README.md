@@ -21,29 +21,26 @@ npm install
 cp .env.example .env
 # Fill BETTER_AUTH_SECRET, BETTER_AUTH_URL, and any optional keys you need.
 
+# Preferred: versioned migrator (baseline modules + migrations/*.sql)
+npm run db:migrate:all
+
+# Optional: Better Auth CLI + per-module scripts still work
 npm run db:migrate
-npm run db:migrate:billing
-npm run db:migrate:website
-npm run db:migrate:crm
-npm run db:migrate:chatbot
-npm run db:migrate:automation
-npm run db:migrate:knowledge
-npm run db:migrate:memory
-npm run db:migrate:analytics
-npm run db:migrate:ai
-npm run db:migrate:whatsapp
-npm run db:migrate:email
-npm run db:migrate:notifications
-npm run db:migrate:deployment
-npm run db:migrate:guardian
-npm run db:migrate:marketplace
 
 npm run dev
 ```
 
+For automation in production, also run the background worker (requires `AUTOMATION_WORKER_SECRET`):
+
+```bash
+npm run automation:worker
+```
+
 Open [http://localhost:3000](http://localhost:3000).
 
-See [`.env.example`](./.env.example) for every runtime variable (auth, Stripe, WhatsApp, knowledge embeddings, etc.).
+See [`.env.example`](./.env.example) for every runtime variable (auth, Stripe, WhatsApp, knowledge embeddings, media storage, worker, etc.).
+
+DB scale path: [docs/DB_MIGRATION_PATH.md](./docs/DB_MIGRATION_PATH.md).
 
 ## Scripts
 
@@ -52,4 +49,6 @@ See [`.env.example`](./.env.example) for every runtime variable (auth, Stripe, W
 | `npm run dev` | Development server |
 | `npm run build` / `npm start` | Production build / serve |
 | `npm run lint` | ESLint |
-| `npm run db:migrate*` | Schema migrators (auth + each feature module) |
+| `npm run db:migrate:all` | Versioned schema migrator (recommended) |
+| `npm run db:migrate*` | Auth CLI + per-module schema helpers |
+| `npm run automation:worker` | Background automation queue worker |

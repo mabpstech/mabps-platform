@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { processAutomationQueue } from "@/lib/automation/engine/runner";
 import { emitNotificationEvent } from "@/lib/automation/events";
 import { requireNotificationsMemberApi } from "@/lib/notifications/access";
 import { recordNotificationAnalyticsEvent } from "@/lib/notifications/engine/analytics";
@@ -81,7 +80,6 @@ export async function PATCH(request: Request) {
         notificationId: notification.id,
         userId: session.user.id,
       });
-      void processAutomationQueue({ limit: 10 }).catch(() => undefined);
     }
 
     return NextResponse.json({ notification });

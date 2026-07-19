@@ -1,4 +1,3 @@
-import { processAutomationQueue } from "@/lib/automation/engine/runner";
 import { emitAutomationEvent } from "@/lib/automation/events";
 import {
   markMessageAsRead,
@@ -127,11 +126,6 @@ async function persistInboundMessage(
         crmLeadId: contact.crmLeadId,
       },
     });
-    try {
-      void processAutomationQueue({ limit: 10 });
-    } catch (error) {
-      console.error("[whatsapp/automation]", error);
-    }
   }
 
   if (settings?.chatbotEnabled) {

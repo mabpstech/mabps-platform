@@ -28,6 +28,8 @@ export const RECOMMENDED_ENV_VARS = [
   "WHATSAPP_APP_SECRET",
   // Knowledge embeddings — without this, ingest silently uses weaker local hashes.
   "OPENAI_API_KEY",
+  // Scale / ops (P3): worker secret for queue ticks; media driver defaults to local.
+  "AUTOMATION_WORKER_SECRET",
 ] as const;
 
 /** Core package dependencies that should resolve. */

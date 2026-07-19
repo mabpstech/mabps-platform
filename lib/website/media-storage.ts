@@ -1,45 +1,33 @@
-import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { getMediaBlobStore } from "@/lib/storage/media-blob-store";
 
-function uploadsRoot(): string {
-  return path.join(
-    /* turbopackIgnore: true */ process.cwd(),
-    "data",
-    "uploads",
-  );
+function uploadsRelativeRoot(): string {
+  return path.join("data", "uploads");
 }
 
 export function siteUploadDir(workspaceId: string, siteId: string): string {
-  return path.join(uploadsRoot(), workspaceId, siteId);
+  return path.join(uploadsRelativeRoot(), workspaceId, siteId);
 }
 
-export function ensureSiteUploadDir(
+export async function ensureSiteUploadDir(
   workspaceId: string,
   siteId: string,
-): string {
-  const dir = siteUploadDir(workspaceId, siteId);
-  fs.mkdirSync(dir, { recursive: true });
-  return dir;
+): Promise<string> {
+  // Local adapter creates dirs on put; return logical prefix for key building.
+  return siteUploadDir(workspaceId, siteId);
 }
 
-export function removeSiteUploadDir(
+export async function removeSiteUploadDir(
   workspaceId: string,
   siteId: string,
-): void {
-  const dir = siteUploadDir(workspaceId, siteId);
-  if (fs.existsSync(dir)) {
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
+): Promise<void> {
+  const prefix = siteUploadDir(workspaceId, siteId);
+  await getMediaBlobStore().deletePrefix(prefix);
 }
 
-export function removeMediaFile(storagePath: string): void {
-  const absolute = path.isAbsolute(storagePath)
-    ? storagePath
-    : path.join(/* turbopackIgnore: true */ process.cwd(), storagePath);
-  if (fs.existsSync(absolute)) {
-    fs.unlinkSync(absolute);
-  }
+export async function removeMediaFile(storagePath: string): Promise<void> {
+  await getMediaBlobStore().delete(storagePath);
 }
 
 const ALLOWED_MIME = new Set([
@@ -104,17 +92,13 @@ export async function storeMediaFile(input: {
   const sizeBytes = input.file.size;
   assertAllowedMedia(mimeType, sizeBytes);
 
-  const dir = ensureSiteUploadDir(input.workspaceId, input.siteId);
+  const dir = await ensureSiteUploadDir(input.workspaceId, input.siteId);
   const ext = extensionForMime(mimeType, input.file.name);
   const filename = `${randomUUID()}${ext}`;
-  const absolute = path.join(dir, filename);
+  const storagePath = path.join(dir, filename);
   const buffer = Buffer.from(await input.file.arrayBuffer());
-  fs.writeFileSync(absolute, buffer);
 
-  const storagePath = path.relative(
-    /* turbopackIgnore: true */ process.cwd(),
-    absolute,
-  );
+  await getMediaBlobStore().put(storagePath, buffer, { contentType: mimeType });
 
   return {
     filename,
@@ -125,12 +109,10 @@ export async function storeMediaFile(input: {
   };
 }
 
-export function resolveMediaAbsolutePath(storagePath: string): string {
-  const absolute = path.isAbsolute(storagePath)
-    ? storagePath
-    : path.join(/* turbopackIgnore: true */ process.cwd(), storagePath);
-  if (!absolute.startsWith(uploadsRoot())) {
-    throw new Error("Invalid media path.");
-  }
-  return absolute;
+export async function readMediaFile(storagePath: string): Promise<Buffer | null> {
+  return getMediaBlobStore().get(storagePath);
+}
+
+export async function mediaFileExists(storagePath: string): Promise<boolean> {
+  return getMediaBlobStore().exists(storagePath);
 }

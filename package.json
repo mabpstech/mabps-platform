@@ -22,9 +22,12 @@
     "db:migrate:notifications": "node ./scripts/migrate-notifications.mjs",
     "db:migrate:deployment": "node ./scripts/migrate-deployment.mjs",
     "db:migrate:guardian": "node ./scripts/migrate-guardian.mjs",
-    "db:migrate:marketplace": "node ./scripts/migrate-marketplace.mjs"
+    "db:migrate:marketplace": "node ./scripts/migrate-marketplace.mjs",
+    "db:migrate:all": "node ./scripts/migrate-all.mjs",
+    "automation:worker": "node ./scripts/automation-worker.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1090.0",
     "better-auth": "^1.6.23",
     "better-sqlite3": "^12.11.1",
     "next": "16.2.10",

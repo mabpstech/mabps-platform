@@ -1,0 +1,27 @@
+-- MABPS baseline migration marker.
+--
+-- Do not put CREATE TABLE statements here. The versioned runner
+-- (`npm run db:migrate:all`) applies module schemas from:
+--
+--   lib/db/schema.sql
+--   lib/billing/schema.sql
+--   lib/website/schema.sql
+--   lib/crm/schema.sql
+--   lib/chatbot/schema.sql
+--   lib/automation/schema.sql
+--   lib/knowledge/schema.sql
+--   lib/memory/schema.sql
+--   lib/analytics/schema.sql
+--   lib/ai/schema.sql
+--   lib/whatsapp/schema.sql
+--   lib/email-engine/schema.sql
+--   lib/notifications/schema.sql
+--   lib/deployment/schema.sql
+--   lib/guardian/schema.sql
+--   lib/marketplace/schema.sql
+--
+-- and records them as migration id `0001_baseline`.
+--
+-- Add forward-only changes as 0002_*.sql, 0003_*.sql, …
+
+SELECT 1;

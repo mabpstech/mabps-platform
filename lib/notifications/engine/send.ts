@@ -1,4 +1,3 @@
-import { processAutomationQueue } from "@/lib/automation/engine/runner";
 import { emitNotificationEvent } from "@/lib/automation/events";
 import { truncateSummary } from "@/lib/notifications/defaults";
 import { deliverBrowser } from "@/lib/notifications/engine/channels/browser";
@@ -331,7 +330,6 @@ export async function sendWorkspaceNotification(
         errorMessage: updated.errorMessage,
       },
     );
-    void processAutomationQueue({ limit: 10 }).catch(() => undefined);
   }
 
   return { notification: updated, deliveries };

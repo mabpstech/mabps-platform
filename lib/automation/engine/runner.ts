@@ -410,9 +410,16 @@ export async function executeRun(runId: string): Promise<void> {
 }
 
 export async function processAutomationQueue(
-  options: { limit?: number; workerId?: string } = {},
+  options: {
+    limit?: number;
+    workerId?: string;
+    /** When set, only claim jobs for this workspace (tenant-safe drains). */
+    workspaceId?: string;
+  } = {},
 ): Promise<{ processed: number; failed: number; claimed: number }> {
-  const jobs = claimQueueJobs(options.limit ?? 10, options.workerId);
+  const jobs = claimQueueJobs(options.limit ?? 10, options.workerId, {
+    workspaceId: options.workspaceId,
+  });
   let processed = 0;
   let failed = 0;
 

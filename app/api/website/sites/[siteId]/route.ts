@@ -56,7 +56,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     const { workspace } = await requireWebsiteManagerApi();
     const { siteId } = await context.params;
     await requireSiteForWorkspace(siteId, workspace.id);
-    deleteWorkspaceSite(siteId, workspace.id);
+    await deleteWorkspaceSite(siteId, workspace.id);
     return NextResponse.json({ ok: true });
   } catch (error) {
     return websiteErrorResponse(error);

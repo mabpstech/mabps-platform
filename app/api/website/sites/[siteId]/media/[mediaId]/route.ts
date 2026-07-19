@@ -53,7 +53,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     }
 
     const deleted = deleteMedia(mediaId);
-    removeMediaFile(deleted.storagePath);
+    await removeMediaFile(deleted.storagePath);
     syncStorageUsage(workspace.id);
 
     return NextResponse.json({ ok: true });

@@ -1,6 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
+import { assertDatabaseDriverSupported } from "@/lib/db/driver";
+
+assertDatabaseDriverSupported();
 
 const dataDir = path.join(/* turbopackIgnore: true */ process.cwd(), "data");
 const databaseFile = process.env.DATABASE_URL
@@ -27,3 +30,6 @@ sqlite.pragma("foreign_keys = ON");
 if (process.env.NODE_ENV !== "production") {
   globalForDb.sqlite = sqlite;
 }
+
+export { resolveDatabaseDriver, assertDatabaseDriverSupported } from "@/lib/db/driver";
+export type { DatabaseDriver } from "@/lib/db/driver";
