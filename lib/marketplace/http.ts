@@ -1,49 +1,11 @@
-import { NextResponse } from "next/server";
-import { MarketplaceAuthError } from "@/lib/marketplace/access";
+import { platformErrorResponse } from "@/lib/platform/http";
 import type { CatalogFilters } from "@/lib/marketplace/types";
 
 export function marketplaceErrorResponse(error: unknown) {
-  if (error instanceof MarketplaceAuthError) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: error.status },
-    );
-  }
-
-  const message =
-    error instanceof Error ? error.message : "Unexpected Marketplace error.";
-
-  let status = 400;
-  if (
-    message.includes("Authentication required") ||
-    message.includes("Unauthorized") ||
-    message.includes("Invalid API key")
-  ) {
-    status = 401;
-  } else if (
-    message.includes("not found") ||
-    message.includes("Not found")
-  ) {
-    status = 404;
-  } else if (
-    message.includes("Plan limit") ||
-    message.includes("plan allows") ||
-    message.includes("Upgrade to continue") ||
-    message.includes("requires the")
-  ) {
-    status = 402;
-  } else if (
-    message.includes("permission") ||
-    message.includes("Permission") ||
-    message.includes("denied")
-  ) {
-    status = 403;
-  } else if (message.includes("not implemented")) {
-    status = 501;
-  }
-
-  console.error("[marketplace]", error);
-  return NextResponse.json({ error: message }, { status });
+  return platformErrorResponse(error, {
+    label: "marketplace",
+    fallback: "Unexpected Marketplace error.",
+  });
 }
 
 export function parseMarketplaceCatalogFilters(

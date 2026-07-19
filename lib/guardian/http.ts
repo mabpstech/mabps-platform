@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import { GuardianAuthError } from "@/lib/guardian/access";
+import { platformErrorResponse } from "@/lib/platform/http";
 import {
   GUARDIAN_CHECK_CATEGORIES,
   GUARDIAN_FINDING_STATUSES,
@@ -14,30 +13,10 @@ import {
 } from "@/lib/guardian/types";
 
 export function guardianErrorResponse(error: unknown) {
-  if (error instanceof GuardianAuthError) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: error.status },
-    );
-  }
-
-  const message =
-    error instanceof Error ? error.message : "Unexpected Guardian error.";
-
-  let status = 400;
-  if (
-    message.includes("Authentication required") ||
-    message.includes("Unauthorized")
-  ) {
-    status = 401;
-  } else if (message.includes("not found") || message.includes("Not found")) {
-    status = 404;
-  } else if (message.includes("not implemented")) {
-    status = 501;
-  }
-
-  console.error("[guardian]", error);
-  return NextResponse.json({ error: message }, { status });
+  return platformErrorResponse(error, {
+    label: "guardian",
+    fallback: "Unexpected Guardian error.",
+  });
 }
 
 export function parseGuardianListFilters(searchParams: URLSearchParams) {

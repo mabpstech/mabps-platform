@@ -5,7 +5,8 @@ const protectedPrefixes = [
   "/dashboard",
   "/onboarding",
   "/settings",
-  "/sites",
+  "/website",
+  "/sites", // legacy → redirects to /website
   "/crm",
   "/ai",
   "/whatsapp",
@@ -17,7 +18,8 @@ const protectedPrefixes = [
   "/guardian",
   "/knowledge",
   "/memory",
-  "/automations",
+  "/automation",
+  "/automations", // legacy → redirects to /automation
   "/marketplace",
 ];
 const guestOnlyPaths = ["/login", "/signup", "/forgot-password"];
@@ -92,8 +94,8 @@ export const config = {
     "/dashboard/:path*",
     "/onboarding",
     "/settings/:path*",
-    "/sites/:path*",
-    "/sites",
+    "/website/:path*",
+    "/website",
     "/crm/:path*",
     "/crm",
     "/ai/:path*",
@@ -116,8 +118,8 @@ export const config = {
     "/knowledge",
     "/memory/:path*",
     "/memory",
-    "/automations/:path*",
-    "/automations",
+    "/automation/:path*",
+    "/automation",
     "/marketplace/:path*",
     "/marketplace",
     "/login",

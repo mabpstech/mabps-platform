@@ -44,7 +44,7 @@ export function FormsManager({
       if (!response.ok) throw new Error(data.error || "Unable to create form.");
       setName("");
       if (data.form) {
-        router.push(`/sites/${siteId}/forms/${data.form.id}`);
+        router.push(`/website/${siteId}/forms/${data.form.id}`);
       }
       router.refresh();
     } catch (err) {
@@ -98,7 +98,7 @@ export function FormsManager({
           >
             <div>
               <Link
-                href={`/sites/${siteId}/forms/${form.id}`}
+                href={`/website/${siteId}/forms/${form.id}`}
                 className="font-medium text-zinc-900 hover:underline"
               >
                 {form.name}
@@ -108,7 +108,7 @@ export function FormsManager({
               </p>
             </div>
             <Link
-              href={`/sites/${siteId}/forms/${form.id}`}
+              href={`/website/${siteId}/forms/${form.id}`}
               className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5`}
             >
               Manage

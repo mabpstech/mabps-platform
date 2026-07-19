@@ -17,34 +17,13 @@ export function generateTrackingToken(): string {
   return randomBytes(24).toString("hex");
 }
 
-export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
-
-export function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
-}
-
-export function maskSecret(value: string | null | undefined): string {
-  if (!value) return "";
-  if (value.length <= 8) return "••••••••";
-  return `${value.slice(0, 4)}…${value.slice(-4)}`;
-}
-
-export function truncateSummary(text: string, max = 240): string {
-  const trimmed = text.trim();
-  if (trimmed.length <= max) return trimmed;
-  return `${trimmed.slice(0, max - 1)}…`;
-}
-
-export function slugify(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-}
+export {
+  normalizeEmail,
+  isValidEmail,
+  maskSecret,
+  truncateSummary,
+  slugify,
+} from "@/lib/platform/secrets";
 
 export function formatFromAddress(
   fromEmail: string,

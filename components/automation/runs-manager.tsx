@@ -39,7 +39,7 @@ export function RunsManager({
               <tr key={run.id} className="border-b border-zinc-100">
                 <td className="px-4 py-3">
                   <Link
-                    href={`/automations/runs/${run.id}`}
+                    href={`/automation/runs/${run.id}`}
                     className="font-medium text-zinc-900 hover:underline"
                   >
                     {workflowName.get(run.workflowId) ?? run.workflowId}

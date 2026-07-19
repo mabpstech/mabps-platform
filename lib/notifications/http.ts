@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import { NotificationsAuthError } from "@/lib/notifications/access";
+import { platformErrorResponse } from "@/lib/platform/http";
 import {
   NOTIFICATION_CATEGORIES,
   NOTIFICATION_CHANNELS,
@@ -12,32 +11,10 @@ import {
 } from "@/lib/notifications/types";
 
 export function notificationsErrorResponse(error: unknown) {
-  if (error instanceof NotificationsAuthError) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: error.status },
-    );
-  }
-
-  const message =
-    error instanceof Error
-      ? error.message
-      : "Unexpected Notifications error.";
-
-  let status = 400;
-  if (
-    message.includes("Authentication required") ||
-    message.includes("Unauthorized")
-  ) {
-    status = 401;
-  } else if (message.includes("not found") || message.includes("Not found")) {
-    status = 404;
-  } else if (message.includes("not implemented")) {
-    status = 501;
-  }
-
-  console.error("[notifications]", error);
-  return NextResponse.json({ error: message }, { status });
+  return platformErrorResponse(error, {
+    label: "notifications",
+    fallback: "Unexpected Notifications error.",
+  });
 }
 
 export function parseNotificationListFilters(searchParams: URLSearchParams) {

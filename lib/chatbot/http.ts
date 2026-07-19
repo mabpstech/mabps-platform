@@ -1,37 +1,10 @@
-import { NextResponse } from "next/server";
-import { ChatbotAuthError } from "@/lib/chatbot/access";
+import { platformErrorResponse } from "@/lib/platform/http";
 
 export function chatbotErrorResponse(error: unknown) {
-  if (error instanceof ChatbotAuthError) {
-    return NextResponse.json({ error: error.message }, { status: error.status });
-  }
-
-  const message =
-    error instanceof Error ? error.message : "Unexpected Chatbot error.";
-
-  let status = 400;
-  if (
-    message.includes("Authentication required") ||
-    message.includes("Unauthorized")
-  ) {
-    status = 401;
-  } else if (
-    message.includes("not found") ||
-    message.includes("Not found")
-  ) {
-    status = 404;
-  } else if (
-    message.includes("Plan limit") ||
-    message.includes("plan allows") ||
-    message.includes("Upgrade to continue")
-  ) {
-    status = 402;
-  } else if (message.includes("not implemented")) {
-    status = 501;
-  }
-
-  console.error("[chatbot]", error);
-  return NextResponse.json({ error: message }, { status });
+  return platformErrorResponse(error, {
+    label: "chatbot",
+    fallback: "Unexpected Chatbot error.",
+  });
 }
 
 export function parseChatbotListFilters(searchParams: URLSearchParams) {

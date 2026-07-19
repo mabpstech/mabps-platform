@@ -52,7 +52,7 @@ export function WorkflowsManager({
       }
       setName("");
       if (data.workflow) {
-        router.push(`/automations/workflows/${data.workflow.id}`);
+        router.push(`/automation/workflows/${data.workflow.id}`);
       }
       router.refresh();
     } catch (err) {
@@ -133,7 +133,7 @@ export function WorkflowsManager({
               <tr key={workflow.id} className="border-b border-zinc-100">
                 <td className="px-4 py-3">
                   <Link
-                    href={`/automations/workflows/${workflow.id}`}
+                    href={`/automation/workflows/${workflow.id}`}
                     className="font-medium text-zinc-900 hover:underline"
                   >
                     {workflow.name}

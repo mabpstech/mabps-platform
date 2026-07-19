@@ -1,35 +1,10 @@
-import { NextResponse } from "next/server";
-import { CrmAuthError } from "@/lib/crm/access";
+import { platformErrorResponse } from "@/lib/platform/http";
 
 export function crmErrorResponse(error: unknown) {
-  if (error instanceof CrmAuthError) {
-    return NextResponse.json({ error: error.message }, { status: error.status });
-  }
-
-  const message =
-    error instanceof Error ? error.message : "Unexpected CRM error.";
-
-  let status = 400;
-  if (
-    message.includes("Authentication required") ||
-    message.includes("Unauthorized")
-  ) {
-    status = 401;
-  } else if (
-    message.includes("not found") ||
-    message.includes("Not found")
-  ) {
-    status = 404;
-  } else if (
-    message.includes("Plan limit") ||
-    message.includes("plan allows") ||
-    message.includes("Upgrade to continue")
-  ) {
-    status = 402;
-  }
-
-  console.error("[crm]", error);
-  return NextResponse.json({ error: message }, { status });
+  return platformErrorResponse(error, {
+    label: "crm",
+    fallback: "Unexpected CRM error.",
+  });
 }
 
 export function parseListFilters(searchParams: URLSearchParams) {

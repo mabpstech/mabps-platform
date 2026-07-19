@@ -1,41 +1,11 @@
-import { NextResponse } from "next/server";
-import { MemoryAuthError } from "@/lib/memory/access";
+import { platformErrorResponse } from "@/lib/platform/http";
 import { MEMORY_KINDS, MEMORY_SCOPE_TYPES } from "@/lib/memory/types";
 
 export function memoryErrorResponse(error: unknown) {
-  if (error instanceof MemoryAuthError) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: error.status },
-    );
-  }
-
-  const message =
-    error instanceof Error ? error.message : "Unexpected Memory Engine error.";
-
-  let status = 400;
-  if (
-    message.includes("Authentication required") ||
-    message.includes("Unauthorized")
-  ) {
-    status = 401;
-  } else if (
-    message.includes("not found") ||
-    message.includes("Not found")
-  ) {
-    status = 404;
-  } else if (
-    message.includes("Plan limit") ||
-    message.includes("plan allows") ||
-    message.includes("Upgrade to continue")
-  ) {
-    status = 402;
-  } else if (message.includes("not implemented")) {
-    status = 501;
-  }
-
-  console.error("[memory]", error);
-  return NextResponse.json({ error: message }, { status });
+  return platformErrorResponse(error, {
+    label: "memory",
+    fallback: "Unexpected Memory Engine error.",
+  });
 }
 
 export function parseMemoryListFilters(searchParams: URLSearchParams) {

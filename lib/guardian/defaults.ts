@@ -63,11 +63,7 @@ export const ALL_CHECK_CATEGORIES: GuardianCheckCategory[] = [
   ...GUARDIAN_CHECK_CATEGORIES,
 ];
 
-export function truncateSummary(text: string, max = 240): string {
-  const trimmed = text.trim();
-  if (trimmed.length <= max) return trimmed;
-  return `${trimmed.slice(0, max - 1)}…`;
-}
+export { truncateSummary } from "@/lib/platform/secrets";
 
 export function severityRank(severity: GuardianSeverity): number {
   switch (severity) {

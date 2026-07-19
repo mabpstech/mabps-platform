@@ -76,7 +76,7 @@ export function BlogPostEditor({
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            href={`/sites/${siteId}/blog`}
+            href={`/website/${siteId}/blog`}
             className={`${authSecondaryButtonClassName} !w-auto px-3`}
           >
             Back

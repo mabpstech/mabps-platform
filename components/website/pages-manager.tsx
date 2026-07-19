@@ -44,7 +44,7 @@ export function PagesManager({
       if (!response.ok) throw new Error(data.error || "Unable to create page.");
       setTitle("");
       if (data.page) {
-        router.push(`/sites/${siteId}/pages/${data.page.id}`);
+        router.push(`/website/${siteId}/pages/${data.page.id}`);
       }
       router.refresh();
     } catch (err) {
@@ -113,7 +113,7 @@ export function PagesManager({
           >
             <div>
               <Link
-                href={`/sites/${siteId}/pages/${page.id}`}
+                href={`/website/${siteId}/pages/${page.id}`}
                 className="font-medium text-zinc-900 hover:underline"
               >
                 {page.title}
@@ -125,7 +125,7 @@ export function PagesManager({
             </div>
             <div className="flex gap-2">
               <Link
-                href={`/sites/${siteId}/pages/${page.id}`}
+                href={`/website/${siteId}/pages/${page.id}`}
                 className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5`}
               >
                 Open builder

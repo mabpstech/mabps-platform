@@ -25,7 +25,7 @@ export function SiteSubnav({
   siteName: string;
 }) {
   const pathname = usePathname();
-  const base = `/sites/${siteId}`;
+  const base = `/website/${siteId}`;
 
   return (
     <aside className="w-full shrink-0 space-y-4 sm:w-52">
@@ -60,7 +60,7 @@ export function SiteSubnav({
         })}
       </nav>
       <Link
-        href="/sites"
+        href="/website"
         className="inline-block text-sm text-zinc-500 underline-offset-2 hover:text-zinc-800 hover:underline"
       >
         All sites

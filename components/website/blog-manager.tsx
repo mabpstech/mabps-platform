@@ -44,7 +44,7 @@ export function BlogManager({
       if (!response.ok) throw new Error(data.error || "Unable to create post.");
       setTitle("");
       if (data.post) {
-        router.push(`/sites/${siteId}/blog/${data.post.id}`);
+        router.push(`/website/${siteId}/blog/${data.post.id}`);
       }
       router.refresh();
     } catch (err) {
@@ -118,7 +118,7 @@ export function BlogManager({
             >
               <div>
                 <Link
-                  href={`/sites/${siteId}/blog/${post.id}`}
+                  href={`/website/${siteId}/blog/${post.id}`}
                   className="font-medium text-zinc-900 hover:underline"
                 >
                   {post.title}
@@ -129,7 +129,7 @@ export function BlogManager({
               </div>
               <div className="flex gap-2">
                 <Link
-                  href={`/sites/${siteId}/blog/${post.id}`}
+                  href={`/website/${siteId}/blog/${post.id}`}
                   className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5`}
                 >
                   Edit

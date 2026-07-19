@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import { AiAuthError } from "@/lib/ai/access";
+import { platformErrorResponse } from "@/lib/platform/http";
 import {
   AI_PROMPT_KINDS,
   AI_PROVIDERS,
@@ -8,41 +7,10 @@ import {
 } from "@/lib/ai/types";
 
 export function aiErrorResponse(error: unknown) {
-  if (error instanceof AiAuthError) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: error.status },
-    );
-  }
-
-  const message =
-    error instanceof Error ? error.message : "Unexpected AI Assistant error.";
-
-  let status = 400;
-  if (
-    message.includes("Authentication required") ||
-    message.includes("Unauthorized")
-  ) {
-    status = 401;
-  } else if (message.includes("not found") || message.includes("Not found")) {
-    status = 404;
-  } else if (
-    message.includes("Plan limit") ||
-    message.includes("plan allows") ||
-    message.includes("Upgrade to continue")
-  ) {
-    status = 402;
-  } else if (
-    message.includes("API key") ||
-    message.includes("provider credential")
-  ) {
-    status = 400;
-  } else if (message.includes("not implemented")) {
-    status = 501;
-  }
-
-  console.error("[ai]", error);
-  return NextResponse.json({ error: message }, { status });
+  return platformErrorResponse(error, {
+    label: "ai",
+    fallback: "Unexpected AI Assistant error.",
+  });
 }
 
 export function parseAiListFilters(searchParams: URLSearchParams) {

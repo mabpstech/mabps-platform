@@ -22,18 +22,8 @@ export function displayPhone(phone: string): string {
   return normalized ? `+${normalized}` : phone;
 }
 
-export function maskSecret(value: string | null | undefined): string {
-  if (!value) return "";
-  if (value.length <= 8) return "••••••••";
-  return `${value.slice(0, 4)}…${value.slice(-4)}`;
-}
+export { maskSecret, truncateSummary } from "@/lib/platform/secrets";
 
 export function graphBaseUrl(apiVersion = DEFAULT_WHATSAPP_API_VERSION): string {
   return `https://graph.facebook.com/${apiVersion}`;
-}
-
-export function truncateSummary(text: string, max = 240): string {
-  const trimmed = text.trim();
-  if (trimmed.length <= max) return trimmed;
-  return `${trimmed.slice(0, max - 1)}…`;
 }

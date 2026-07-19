@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import { EmailEngineAuthError } from "@/lib/email-engine/access";
+import { platformErrorResponse } from "@/lib/platform/http";
 import {
   EMAIL_CAMPAIGN_STATUSES,
   EMAIL_MESSAGE_KINDS,
@@ -12,37 +11,10 @@ import {
 } from "@/lib/email-engine/types";
 
 export function emailErrorResponse(error: unknown) {
-  if (error instanceof EmailEngineAuthError) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: error.status },
-    );
-  }
-
-  const message =
-    error instanceof Error
-      ? error.message
-      : "Unexpected Email Engine error.";
-
-  let status = 400;
-  if (
-    message.includes("Authentication required") ||
-    message.includes("Unauthorized")
-  ) {
-    status = 401;
-  } else if (message.includes("not found") || message.includes("Not found")) {
-    status = 404;
-  } else if (
-    message.includes("not connected") ||
-    message.includes("credentials")
-  ) {
-    status = 400;
-  } else if (message.includes("not implemented")) {
-    status = 501;
-  }
-
-  console.error("[email-engine]", error);
-  return NextResponse.json({ error: message }, { status });
+  return platformErrorResponse(error, {
+    label: "email-engine",
+    fallback: "Unexpected Email Engine error.",
+  });
 }
 
 export function parseEmailListFilters(searchParams: URLSearchParams) {

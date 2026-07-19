@@ -1,16 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
-import { sqlite } from "@/lib/db";
+import { createSchemaMigrator } from "@/lib/platform/migrate";
 
-let migrated = false;
-
-export function migrateChatbotSchema(): void {
-  if (migrated) return;
-  const schemaPath = path.join(
-    /* turbopackIgnore: true */ process.cwd(),
-    "lib/chatbot/schema.sql",
-  );
-  const schema = fs.readFileSync(schemaPath, "utf8");
-  sqlite.exec(schema);
-  migrated = true;
-}
+export const migrateChatbotSchema = createSchemaMigrator("lib/chatbot/schema.sql");

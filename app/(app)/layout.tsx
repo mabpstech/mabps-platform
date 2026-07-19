@@ -35,8 +35,8 @@ export default async function AppLayout({
                   <Link href="/analytics" className="hover:text-zinc-900">
                     Analytics
                   </Link>
-                  <Link href="/sites" className="hover:text-zinc-900">
-                    Sites
+                  <Link href="/website" className="hover:text-zinc-900">
+                    Website
                   </Link>
                   <Link href="/crm" className="hover:text-zinc-900">
                     CRM
@@ -68,8 +68,8 @@ export default async function AppLayout({
                   <Link href="/memory" className="hover:text-zinc-900">
                     Memory
                   </Link>
-                  <Link href="/automations" className="hover:text-zinc-900">
-                    Automations
+                  <Link href="/automation" className="hover:text-zinc-900">
+                    Automation
                   </Link>
                   <Link href="/marketplace" className="hover:text-zinc-900">
                     Marketplace

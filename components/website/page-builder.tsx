@@ -200,7 +200,7 @@ export function PageBuilder({
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            href={`/sites/${siteId}/pages`}
+            href={`/website/${siteId}/pages`}
             className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5`}
           >
             All pages

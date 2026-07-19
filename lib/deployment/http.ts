@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import { DeploymentAuthError } from "@/lib/deployment/access";
+import { platformErrorResponse } from "@/lib/platform/http";
 import {
   DEPLOYMENT_ENVIRONMENTS,
   DEPLOYMENT_PROVIDERS,
@@ -14,30 +13,10 @@ import {
 } from "@/lib/deployment/types";
 
 export function deploymentErrorResponse(error: unknown) {
-  if (error instanceof DeploymentAuthError) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: error.status },
-    );
-  }
-
-  const message =
-    error instanceof Error ? error.message : "Unexpected Deployment error.";
-
-  let status = 400;
-  if (
-    message.includes("Authentication required") ||
-    message.includes("Unauthorized")
-  ) {
-    status = 401;
-  } else if (message.includes("not found") || message.includes("Not found")) {
-    status = 404;
-  } else if (message.includes("not implemented")) {
-    status = 501;
-  }
-
-  console.error("[deployment]", error);
-  return NextResponse.json({ error: message }, { status });
+  return platformErrorResponse(error, {
+    label: "deployment",
+    fallback: "Unexpected Deployment error.",
+  });
 }
 
 export function parseDeploymentListFilters(searchParams: URLSearchParams) {

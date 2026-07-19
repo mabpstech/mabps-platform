@@ -54,7 +54,7 @@ export function SitesDashboard({
       setName("");
       setSlug("");
       if (data.site) {
-        router.push(`/sites/${data.site.id}`);
+        router.push(`/website/${data.site.id}`);
         router.refresh();
       }
     } catch (err) {
@@ -164,7 +164,7 @@ export function SitesDashboard({
             >
               <div>
                 <Link
-                  href={`/sites/${site.id}`}
+                  href={`/website/${site.id}`}
                   className="text-base font-medium text-zinc-900 hover:underline"
                 >
                   {site.name}
@@ -176,7 +176,7 @@ export function SitesDashboard({
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link
-                  href={`/sites/${site.id}/pages`}
+                  href={`/website/${site.id}/pages`}
                   className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5`}
                 >
                   Edit

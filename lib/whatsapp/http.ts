@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import { WhatsAppAuthError } from "@/lib/whatsapp/access";
+import { platformErrorResponse } from "@/lib/platform/http";
 import {
   WHATSAPP_BROADCAST_STATUSES,
   WHATSAPP_MESSAGE_TYPES,
@@ -8,37 +7,10 @@ import {
 } from "@/lib/whatsapp/types";
 
 export function whatsappErrorResponse(error: unknown) {
-  if (error instanceof WhatsAppAuthError) {
-    return NextResponse.json(
-      { error: error.message },
-      { status: error.status },
-    );
-  }
-
-  const message =
-    error instanceof Error
-      ? error.message
-      : "Unexpected WhatsApp Integration error.";
-
-  let status = 400;
-  if (
-    message.includes("Authentication required") ||
-    message.includes("Unauthorized")
-  ) {
-    status = 401;
-  } else if (message.includes("not found") || message.includes("Not found")) {
-    status = 404;
-  } else if (
-    message.includes("not connected") ||
-    message.includes("credentials")
-  ) {
-    status = 400;
-  } else if (message.includes("not implemented")) {
-    status = 501;
-  }
-
-  console.error("[whatsapp]", error);
-  return NextResponse.json({ error: message }, { status });
+  return platformErrorResponse(error, {
+    label: "whatsapp",
+    fallback: "Unexpected WhatsApp Integration error.",
+  });
 }
 
 export function parseWhatsAppListFilters(searchParams: URLSearchParams) {

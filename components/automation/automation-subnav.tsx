@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const LINKS = [
-  { href: "/automations", label: "Overview" },
-  { href: "/automations/workflows", label: "Workflows" },
-  { href: "/automations/runs", label: "Runs & logs" },
+  { href: "/automation", label: "Overview" },
+  { href: "/automation/workflows", label: "Workflows" },
+  { href: "/automation/runs", label: "Runs & logs" },
 ] as const;
 
 export function AutomationSubnav() {
@@ -25,8 +25,8 @@ export function AutomationSubnav() {
       <nav className="flex flex-row flex-wrap gap-1 sm:flex-col">
         {LINKS.map((link) => {
           const active =
-            link.href === "/automations"
-              ? pathname === "/automations"
+            link.href === "/automation"
+              ? pathname === "/automation"
               : pathname === link.href || pathname.startsWith(`${link.href}/`);
           return (
             <Link

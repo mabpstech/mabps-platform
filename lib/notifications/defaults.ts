@@ -29,26 +29,13 @@ export function generateSubscriptionId(): string {
   return randomBytes(16).toString("hex");
 }
 
-export function maskSecret(value: string | null | undefined): string {
-  if (!value) return "";
-  if (value.length <= 8) return "••••••••";
-  return `${value.slice(0, 4)}…${value.slice(-4)}`;
-}
-
-export function truncateSummary(text: string, max = 240): string {
-  const trimmed = text.trim();
-  if (trimmed.length <= max) return trimmed;
-  return `${trimmed.slice(0, max - 1)}…`;
-}
-
-export function slugify(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-}
+export {
+  maskSecret,
+  truncateSummary,
+  slugify,
+  normalizeEmail,
+  isValidEmail,
+} from "@/lib/platform/secrets";
 
 export function renderTemplateString(
   template: string,
@@ -58,14 +45,6 @@ export function renderTemplateString(
     /\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g,
     (_, key: string) => variables[key] ?? "",
   );
-}
-
-export function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim().toLowerCase());
-}
-
-export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
 }
 
 export function channelPreferenceKey(

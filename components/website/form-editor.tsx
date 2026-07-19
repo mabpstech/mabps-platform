@@ -111,7 +111,7 @@ export function FormEditor({
         </div>
         <div className="flex gap-2">
           <Link
-            href={`/sites/${siteId}/forms`}
+            href={`/website/${siteId}/forms`}
             className={`${authSecondaryButtonClassName} !w-auto px-3`}
           >
             All forms

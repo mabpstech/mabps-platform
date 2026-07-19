@@ -15,20 +15,7 @@ export const DEFAULT_RETENTION_DEPLOYMENTS = 50;
 export const DEFAULT_CNAME_TARGET = "cname.vercel-dns.com";
 export const DEFAULT_CLOUDFLARE_CNAME_TARGET = "pages.dev";
 
-export function slugify(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-}
-
-export function maskSecret(value: string | null | undefined): string {
-  if (!value) return "";
-  if (value.length <= 8) return "••••••••";
-  return `${value.slice(0, 4)}…${value.slice(-4)}`;
-}
+export { slugify, maskSecret, truncateSummary } from "@/lib/platform/secrets";
 
 export function generateVerificationToken(): string {
   return `mabps-verify-${randomBytes(16).toString("hex")}`;
@@ -59,12 +46,6 @@ export function isValidEnvKey(key: string): boolean {
 
 export function normalizeEnvKey(key: string): string {
   return key.trim().toUpperCase().replace(/[^A-Z0-9_]/g, "_");
-}
-
-export function truncateSummary(text: string, max = 240): string {
-  const trimmed = text.trim();
-  if (trimmed.length <= max) return trimmed;
-  return `${trimmed.slice(0, max - 1)}…`;
 }
 
 export function hashValue(value: string): string {
