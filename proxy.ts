@@ -9,6 +9,7 @@ const protectedPrefixes = [
   "/crm",
   "/ai",
   "/whatsapp",
+  "/email",
   "/chatbot",
   "/analytics",
 ];
@@ -92,6 +93,8 @@ export const config = {
     "/ai",
     "/whatsapp/:path*",
     "/whatsapp",
+    "/email/:path*",
+    "/email",
     "/chatbot/:path*",
     "/chatbot",
     "/analytics/:path*",

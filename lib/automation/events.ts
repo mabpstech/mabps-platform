@@ -79,3 +79,11 @@ export function emitWhatsAppEvent(
 ) {
   return emitAutomationEvent({ type, workspaceId, payload });
 }
+
+export function emitEmailEvent(
+  workspaceId: string,
+  type: Extract<TriggerType, `email.${string}`>,
+  payload: Record<string, unknown>,
+) {
+  return emitAutomationEvent({ type, workspaceId, payload });
+}

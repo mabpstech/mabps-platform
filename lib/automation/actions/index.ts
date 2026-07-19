@@ -1,11 +1,11 @@
 import { resolveValue } from "@/lib/automation/engine/templates";
+import { getEmailProvider } from "@/lib/automation/providers/email";
 import { getWhatsAppProvider } from "@/lib/automation/providers/whatsapp";
 import type {
   ActionExecutionContext,
   AutomationAction,
 } from "@/lib/automation/actions/types";
 import type { ActionResult, ActionType } from "@/lib/automation/types";
-import { sendEmail } from "@/lib/email";
 
 function asString(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
@@ -18,12 +18,59 @@ const emailSend: AutomationAction = {
     const to = asString(resolved.to).trim();
     const subject = asString(resolved.subject).trim();
     const text = asString(resolved.text);
-    const html = asString(resolved.html) || `<p>${text}</p>`;
+    const html = asString(resolved.html) || (text ? `<p>${text}</p>` : "");
     if (!to || !subject) {
       return { ok: false, error: "email.send requires to and subject." };
     }
-    await sendEmail({ to, subject, text: text || subject, html });
-    return { ok: true, output: { to, subject } };
+    if (!html && !text) {
+      return { ok: false, error: "email.send requires html or text." };
+    }
+
+    const provider = getEmailProvider(
+      asString(resolved.provider, "email_engine"),
+    );
+    const result = await provider.sendEmail(
+      { workspaceId: ctx.workspaceId },
+      {
+        to,
+        subject,
+        text: text || subject,
+        html: html || undefined,
+        toName: asString(resolved.toName) || undefined,
+        replyTo: asString(resolved.replyTo) || undefined,
+        templateId: asString(resolved.templateId) || undefined,
+        kind:
+          asString(resolved.kind, "transactional") === "marketing"
+            ? "marketing"
+            : "transactional",
+        variables:
+          resolved.variables && typeof resolved.variables === "object"
+            ? Object.fromEntries(
+                Object.entries(resolved.variables as Record<string, unknown>).map(
+                  ([key, value]) => [key, String(value ?? "")],
+                ),
+              )
+            : undefined,
+      },
+    );
+
+    if (!result.ok) {
+      return {
+        ok: false,
+        error: result.error || "Email send failed.",
+        output: result.raw,
+      };
+    }
+
+    return {
+      ok: true,
+      output: {
+        to,
+        subject,
+        messageId: result.messageId,
+        providerMessageId: result.providerMessageId,
+      },
+    };
   },
 };
 

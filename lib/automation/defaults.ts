@@ -62,4 +62,8 @@ export const TRIGGER_LABELS: Record<TriggerType, string> = {
   "chatbot.lead_captured": "Chatbot lead captured",
   "whatsapp.conversation_started": "WhatsApp conversation started",
   "whatsapp.message_received": "WhatsApp message received",
+  "email.sent": "Email sent",
+  "email.opened": "Email opened",
+  "email.clicked": "Email clicked",
+  "email.bounced": "Email bounced",
 };

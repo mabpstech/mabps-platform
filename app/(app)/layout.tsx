@@ -47,6 +47,9 @@ export default async function AppLayout({
                   <Link href="/whatsapp" className="hover:text-zinc-900">
                     WhatsApp
                   </Link>
+                  <Link href="/email" className="hover:text-zinc-900">
+                    Email
+                  </Link>
                   <Link href="/chatbot" className="hover:text-zinc-900">
                     Chatbot
                   </Link>

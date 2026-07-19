@@ -8,6 +8,7 @@ export const ANALYTICS_SOURCES = [
   "api",
   "user",
   "system",
+  "email",
 ] as const;
 
 export type AnalyticsSource = (typeof ANALYTICS_SOURCES)[number];
