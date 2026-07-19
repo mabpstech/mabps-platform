@@ -12,13 +12,22 @@ export const REQUIRED_ENV_VARS = [
   "DATABASE_URL",
 ] as const;
 
-/** Optional but recommended env vars. */
+/** Optional but recommended env vars (aligned with `.env.example`). */
 export const RECOMMENDED_ENV_VARS = [
   "NEXT_PUBLIC_APP_URL",
   "RESEND_API_KEY",
   "EMAIL_FROM",
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
+  "STRIPE_PRICE_STARTER_MONTHLY",
+  "STRIPE_PRICE_STARTER_YEARLY",
+  "STRIPE_PRICE_PRO_MONTHLY",
+  "STRIPE_PRICE_PRO_YEARLY",
+  "STRIPE_PRICE_ENTERPRISE_MONTHLY",
+  "STRIPE_PRICE_ENTERPRISE_YEARLY",
+  "WHATSAPP_APP_SECRET",
+  // Knowledge embeddings — without this, ingest silently uses weaker local hashes.
+  "OPENAI_API_KEY",
 ] as const;
 
 /** Core package dependencies that should resolve. */
