@@ -11,6 +11,7 @@ const protectedPrefixes = [
   "/whatsapp",
   "/email",
   "/notifications",
+  "/deployment",
   "/chatbot",
   "/analytics",
 ];
@@ -98,6 +99,8 @@ export const config = {
     "/email",
     "/notifications/:path*",
     "/notifications",
+    "/deployment/:path*",
+    "/deployment",
     "/chatbot/:path*",
     "/chatbot",
     "/analytics/:path*",

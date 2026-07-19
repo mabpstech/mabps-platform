@@ -19,7 +19,8 @@
     "db:migrate:ai": "node ./scripts/migrate-ai.mjs",
     "db:migrate:whatsapp": "node ./scripts/migrate-whatsapp.mjs",
     "db:migrate:email": "node ./scripts/migrate-email.mjs",
-    "db:migrate:notifications": "node ./scripts/migrate-notifications.mjs"
+    "db:migrate:notifications": "node ./scripts/migrate-notifications.mjs",
+    "db:migrate:deployment": "node ./scripts/migrate-deployment.mjs"
   },
   "dependencies": {
     "better-auth": "^1.6.23",
