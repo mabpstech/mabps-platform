@@ -28,6 +28,12 @@ import {
   getNotificationsOverview,
   listNotifications,
 } from "@/lib/notifications/repository";
+import { troubleshootWorkspace } from "@/lib/guardian/engine/troubleshoot";
+import {
+  getGuardianOverview,
+  listFindings,
+  listRepairs,
+} from "@/lib/guardian/repository";
 import type { AiRegisteredTool, AiToolContext } from "@/lib/ai/tools/types";
 import type { AiToolDefinition, AiToolResult } from "@/lib/ai/types";
 import { listSitesForWorkspace } from "@/lib/website/repository";
@@ -337,6 +343,59 @@ const tools: AiRegisteredTool[] = [
           error instanceof Error ? error.message : "AI credit limit exceeded.",
         );
       }
+    },
+  },
+  {
+    name: "guardian_overview",
+    description:
+      "Get AI Guardian health overview, open findings, and suggested repairs.",
+    parameters: { type: "object", properties: {} },
+    handler: (ctx) =>
+      ok({
+        overview: getGuardianOverview(ctx.workspaceId),
+        openFindings: listFindings(ctx.workspaceId, {
+          status: "open",
+          limit: 15,
+        }).map((finding) => ({
+          id: finding.id,
+          code: finding.code,
+          title: finding.title,
+          category: finding.category,
+          severity: finding.severity,
+          suggestion: finding.suggestion,
+          autoRepairable: finding.autoRepairable,
+        })),
+        suggestedRepairs: listRepairs(ctx.workspaceId, {
+          status: "suggested",
+          limit: 10,
+        }).map((repair) => ({
+          id: repair.id,
+          title: repair.title,
+          action: repair.action,
+          oneClick: repair.oneClick,
+          riskLevel: repair.riskLevel,
+        })),
+      }),
+  },
+  {
+    name: "guardian_troubleshoot",
+    description:
+      "Run AI Guardian troubleshooting for open findings and return recommended actions.",
+    parameters: {
+      type: "object",
+      properties: {
+        question: {
+          type: "string",
+          description: "Optional operator question about the incident",
+        },
+      },
+    },
+    handler: async (ctx, args) => {
+      const result = await troubleshootWorkspace({
+        workspaceId: ctx.workspaceId,
+        question: asString(args.question) || null,
+      });
+      return ok(result);
     },
   },
 ];

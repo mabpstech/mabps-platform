@@ -56,6 +56,9 @@ export default async function AppLayout({
                   <Link href="/deployment" className="hover:text-zinc-900">
                     Deployment
                   </Link>
+                  <Link href="/guardian" className="hover:text-zinc-900">
+                    Guardian
+                  </Link>
                   <Link href="/chatbot" className="hover:text-zinc-900">
                     Chatbot
                   </Link>
