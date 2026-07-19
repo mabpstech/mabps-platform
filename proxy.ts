@@ -14,6 +14,11 @@ const protectedPrefixes = [
   "/deployment",
   "/chatbot",
   "/analytics",
+  "/guardian",
+  "/knowledge",
+  "/memory",
+  "/automations",
+  "/marketplace",
 ];
 const guestOnlyPaths = ["/login", "/signup", "/forgot-password"];
 
@@ -105,6 +110,16 @@ export const config = {
     "/chatbot",
     "/analytics/:path*",
     "/analytics",
+    "/guardian/:path*",
+    "/guardian",
+    "/knowledge/:path*",
+    "/knowledge",
+    "/memory/:path*",
+    "/memory",
+    "/automations/:path*",
+    "/automations",
+    "/marketplace/:path*",
+    "/marketplace",
     "/login",
     "/signup",
     "/forgot-password",

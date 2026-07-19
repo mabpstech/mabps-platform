@@ -42,6 +42,12 @@ export const MODULE_SCHEMA_TABLES: Record<string, string[]> = {
   notifications: ["notification_settings", "notification"],
   deployment: ["deployment_settings", "deployment_project"],
   guardian: ["guardian_settings", "guardian_scan", "guardian_finding"],
+  marketplace: ["marketplace_listing", "marketplace_install"],
+  whatsapp: ["whatsapp_settings", "whatsapp_conversation"],
+  email: ["email_settings", "email_message"],
+  knowledge: ["kb_source", "kb_chunk"],
+  memory: ["memory_entry", "memory_embedding"],
+  chatbot: ["chatbot_bot", "chatbot_conversation"],
 };
 
 export const ALL_CHECK_CATEGORIES: GuardianCheckCategory[] = [
