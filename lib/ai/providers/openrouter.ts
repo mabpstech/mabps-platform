@@ -71,7 +71,7 @@ export const openrouterProvider: AiProvider = {
         Authorization: `Bearer ${config.apiKey}`,
         "Content-Type": "application/json",
         "HTTP-Referer": appReferer(),
-        "X-Title": "MABPS AI Assistant",
+        "X-Title": config.appTitle || "MABPS AI Assistant",
       },
       body: JSON.stringify({
         model: config.model,
@@ -151,7 +151,7 @@ export const openrouterProvider: AiProvider = {
         Authorization: `Bearer ${config.apiKey}`,
         "Content-Type": "application/json",
         "HTTP-Referer": appReferer(),
-        "X-Title": "MABPS AI Assistant",
+        "X-Title": config.appTitle || "MABPS AI Assistant",
       },
       body: JSON.stringify({
         model: config.model,

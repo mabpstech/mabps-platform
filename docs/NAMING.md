@@ -36,3 +36,7 @@ Deleted unused empty directories that conflicted with the real module layout:
 - `hooks/`
 - `app/(dashboard)/` (real UI: `app/(app)/dashboard`)
 - `app/(website)/` (real admin UI: `app/(app)/website`)
+
+## Docs source of truth (P2-4)
+
+Architecture lives in `ARCHITECTURE_AUDIT.md` + `PRODUCTION_ROADMAP.md` only. See [README.md](./README.md).

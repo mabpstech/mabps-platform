@@ -1,40 +1,56 @@
-import { DEFAULT_BOT_MODEL } from "@/lib/chatbot/defaults";
-import { geminiProvider } from "@/lib/chatbot/providers/gemini";
-import { openaiProvider } from "@/lib/chatbot/providers/openai";
-import { openrouterProvider } from "@/lib/chatbot/providers/openrouter";
+/**
+ * Chatbot LLM facade — HTTP adapters live in `lib/ai/providers` (canonical).
+ * Credential storage and bot defaults remain chatbot-owned.
+ */
+import { DEFAULT_AI_MODEL } from "@/lib/ai/defaults";
+import {
+  getAiProvider,
+  runAiChat as runSharedAiChat,
+} from "@/lib/ai/providers";
+import type { AiProviderConfig as SharedProviderConfig } from "@/lib/ai/providers/types";
 import type {
-  AiProvider,
-  AiProviderConfig,
-} from "@/lib/chatbot/providers/types";
-import type { AiChatMessage, AiChatResult, AiProviderId } from "@/lib/chatbot/types";
+  AiChatMessage as SharedChatMessage,
+  AiProviderId,
+} from "@/lib/ai/types";
+import type { AiChatMessage, AiChatResult } from "@/lib/chatbot/types";
 
-const providers: Record<AiProviderId, AiProvider> = {
-  openai: openaiProvider,
-  gemini: geminiProvider,
-  openrouter: openrouterProvider,
+export type AiProviderConfig = {
+  provider: AiProviderId;
+  apiKey: string;
+  baseUrl?: string | null;
+  model: string;
+  temperature?: number;
+  appTitle?: string;
 };
 
-export function getAiProvider(provider: AiProviderId): AiProvider {
-  const impl = providers[provider];
-  if (!impl) {
-    throw new Error(`Unknown AI provider: ${provider}`);
-  }
-  return impl;
-}
+export { getAiProvider };
+export type { AiProvider } from "@/lib/ai/providers/types";
 
 export function defaultModelForProvider(provider: AiProviderId): string {
-  return DEFAULT_BOT_MODEL[provider] || DEFAULT_BOT_MODEL.openai;
+  return DEFAULT_AI_MODEL[provider] || DEFAULT_AI_MODEL.openai;
 }
 
 export async function runAiChat(
   messages: AiChatMessage[],
   config: AiProviderConfig,
 ): Promise<AiChatResult> {
-  const provider = getAiProvider(config.provider);
-  return provider.chat(messages, {
-    ...config,
+  const sharedConfig: SharedProviderConfig = {
+    provider: config.provider,
+    apiKey: config.apiKey,
+    baseUrl: config.baseUrl,
     model: config.model || defaultModelForProvider(config.provider),
-  });
-}
+    temperature: config.temperature,
+    appTitle: config.appTitle || "MABPS Chatbot",
+  };
 
-export type { AiProvider, AiProviderConfig };
+  const result = await runSharedAiChat(
+    messages as SharedChatMessage[],
+    sharedConfig,
+  );
+
+  return {
+    content: result.content,
+    provider: result.provider,
+    model: result.model,
+  };
+}

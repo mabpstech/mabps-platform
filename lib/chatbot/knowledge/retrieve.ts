@@ -1,3 +1,9 @@
+/**
+ * Bot-local lexical retrieval over `chatbot_knowledge_chunk`.
+ *
+ * Workspace semantic search is separate: `searchKnowledgeForChatbot`
+ * in `lib/knowledge/consumers`. Ownership rules: docs/KNOWLEDGE.md.
+ */
 import type { ChatbotKnowledgeChunk } from "@/lib/chatbot/types";
 
 function tokenize(text: string): string[] {

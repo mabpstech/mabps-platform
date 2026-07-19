@@ -13,6 +13,8 @@ export type AiProviderConfig = {
   model: string;
   temperature?: number;
   tools?: AiToolDefinition[];
+  /** OpenRouter `X-Title` (defaults to AI Assistant). */
+  appTitle?: string;
 };
 
 export interface AiProvider {

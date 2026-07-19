@@ -1,3 +1,9 @@
+/**
+ * Cross-module facades for **workspace** knowledge (`kb_*` tables only).
+ *
+ * Chatbot-local KB (`chatbot_knowledge_*`) is owned by `lib/chatbot/knowledge`
+ * and is never queried here. See docs/KNOWLEDGE.md.
+ */
 import {
   formatKnowledgeContext,
   searchKnowledge,
@@ -6,7 +12,8 @@ import { ensureKnowledgeReady } from "@/lib/knowledge/repository";
 import type { KbSearchHit, KbSearchResult } from "@/lib/knowledge/types";
 
 /**
- * Chatbot engine consumer — semantic retrieval for grounded replies.
+ * Chatbot engine consumer — workspace semantic retrieval for grounded replies.
+ * Pair with bot-local `retrieveRelevantChunks` in the chatbot engine.
  */
 export async function searchKnowledgeForChatbot(input: {
   workspaceId: string;

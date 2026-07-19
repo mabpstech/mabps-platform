@@ -139,6 +139,7 @@ export async function handleVisitorMessage(input: {
     };
   }
 
+  // Merge workspace KB (semantic) + bot-local KB (lexical). See docs/KNOWLEDGE.md.
   const botChunks = retrieveRelevantChunks(
     input.content,
     listKnowledgeChunks(bot.id),
