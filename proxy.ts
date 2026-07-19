@@ -7,6 +7,7 @@ const protectedPrefixes = [
   "/settings",
   "/sites",
   "/crm",
+  "/ai",
   "/chatbot",
   "/analytics",
 ];
@@ -86,6 +87,8 @@ export const config = {
     "/sites",
     "/crm/:path*",
     "/crm",
+    "/ai/:path*",
+    "/ai",
     "/chatbot/:path*",
     "/chatbot",
     "/analytics/:path*",

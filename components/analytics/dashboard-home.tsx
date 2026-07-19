@@ -64,7 +64,12 @@ export function DashboardHome({
         </section>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <StatLink
+          href="/ai"
+          label="AI Assistant"
+          value={`${overview.modules.billing.aiCredits} credits`}
+        />
         <StatLink
           href="/analytics/crm"
           label="Open pipeline"
