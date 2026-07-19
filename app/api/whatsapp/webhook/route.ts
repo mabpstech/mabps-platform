@@ -7,11 +7,16 @@ import {
   ensureWhatsAppReady,
   getSettingsByVerifyToken,
 } from "@/lib/whatsapp/repository";
+import {
+  getWhatsAppAppSecret,
+  verifyWhatsAppWebhookSignature,
+} from "@/lib/whatsapp/webhook-signature";
 
 /**
  * Meta Cloud API webhook (multi-tenant).
  * GET: hub challenge verification via workspace verifyToken.
  * POST: inbound messages + delivery status updates keyed by phoneNumberId.
+ *       Requires valid X-Hub-Signature-256 (WHATSAPP_APP_SECRET).
  */
 export async function GET(request: Request) {
   ensureWhatsAppReady();
@@ -39,8 +44,36 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   ensureWhatsAppReady();
+
+  const appSecret = getWhatsAppAppSecret();
+  if (!appSecret) {
+    console.error(
+      "[whatsapp/webhook] WHATSAPP_APP_SECRET is not configured.",
+    );
+    return NextResponse.json(
+      { error: "Webhook signature verification is not configured." },
+      { status: 500 },
+    );
+  }
+
+  const signatureHeader = request.headers.get("x-hub-signature-256");
+  const rawBody = await request.text();
+
+  if (
+    !verifyWhatsAppWebhookSignature({
+      rawBody,
+      signatureHeader,
+      appSecret,
+    })
+  ) {
+    return NextResponse.json(
+      { error: "Invalid webhook signature." },
+      { status: 401 },
+    );
+  }
+
   try {
-    const payload = await request.json();
+    const payload = JSON.parse(rawBody) as unknown;
     const result = await processWhatsAppWebhook(payload);
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {

@@ -63,3 +63,7 @@ export { routeInboundToChatbot } from "@/lib/whatsapp/engine/chatbot-bridge";
 export { runWhatsAppBroadcast } from "@/lib/whatsapp/engine/broadcast";
 export { syncWhatsAppTemplates } from "@/lib/whatsapp/engine/templates";
 export { parseWhatsAppWebhookPayload } from "@/lib/whatsapp/engine/parse";
+export {
+  getWhatsAppAppSecret,
+  verifyWhatsAppWebhookSignature,
+} from "@/lib/whatsapp/webhook-signature";

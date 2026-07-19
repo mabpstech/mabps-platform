@@ -7,12 +7,17 @@ import {
   ensureWhatsAppReady,
   getSettingsByWebhookSecret,
 } from "@/lib/whatsapp/repository";
+import {
+  getWhatsAppAppSecret,
+  verifyWhatsAppWebhookSignature,
+} from "@/lib/whatsapp/webhook-signature";
 
 type RouteContext = { params: Promise<{ secret: string }> };
 
 /**
  * Optional workspace-scoped webhook path using webhookPathSecret.
  * Useful when a WABA is dedicated to one workspace.
+ * POST still requires valid X-Hub-Signature-256 (WHATSAPP_APP_SECRET).
  */
 export async function GET(request: Request, context: RouteContext) {
   ensureWhatsAppReady();
@@ -47,8 +52,35 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Unknown webhook." }, { status: 404 });
   }
 
+  const appSecret = getWhatsAppAppSecret();
+  if (!appSecret) {
+    console.error(
+      "[whatsapp/webhook/secret] WHATSAPP_APP_SECRET is not configured.",
+    );
+    return NextResponse.json(
+      { error: "Webhook signature verification is not configured." },
+      { status: 500 },
+    );
+  }
+
+  const signatureHeader = request.headers.get("x-hub-signature-256");
+  const rawBody = await request.text();
+
+  if (
+    !verifyWhatsAppWebhookSignature({
+      rawBody,
+      signatureHeader,
+      appSecret,
+    })
+  ) {
+    return NextResponse.json(
+      { error: "Invalid webhook signature." },
+      { status: 401 },
+    );
+  }
+
   try {
-    const payload = await request.json();
+    const payload = JSON.parse(rawBody) as unknown;
     const result = await processWhatsAppWebhook(payload);
     return NextResponse.json({
       ok: true,
