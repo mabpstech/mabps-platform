@@ -1,5 +1,9 @@
 import fs from "node:fs";
 import { NextResponse } from "next/server";
+import {
+  requireWebsiteMemberApi,
+  WebsiteAuthError,
+} from "@/lib/website/access";
 import { resolveMediaAbsolutePath } from "@/lib/website/media-storage";
 import {
   ensureWebsiteReady,
@@ -13,10 +17,10 @@ type RouteContext = {
 
 /**
  * Public media file serving for published sites and authenticated previews.
- * Access is granted when the parent site is published, or when a session
- * cookie is present (optimistic; builder always loads after auth).
+ * Access is granted when the parent site is published, or when the caller
+ * has a valid session for the site's owning workspace.
  */
-export async function GET(request: Request, context: RouteContext) {
+export async function GET(_request: Request, context: RouteContext) {
   try {
     ensureWebsiteReady();
     const { mediaId } = await context.params;
@@ -30,11 +34,21 @@ export async function GET(request: Request, context: RouteContext) {
       return NextResponse.json({ error: "Not found." }, { status: 404 });
     }
 
-    const cookie = request.headers.get("cookie") || "";
-    const hasSession =
-      cookie.includes("better-auth") || cookie.includes("session_token");
-    if (site.status !== "published" && !hasSession) {
-      return NextResponse.json({ error: "Not found." }, { status: 404 });
+    if (site.status !== "published") {
+      try {
+        const { workspace } = await requireWebsiteMemberApi();
+        if (workspace.id !== site.workspaceId) {
+          return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+        }
+      } catch (error) {
+        if (error instanceof WebsiteAuthError) {
+          return NextResponse.json(
+            { error: error.message },
+            { status: error.status },
+          );
+        }
+        throw error;
+      }
     }
 
     const absolute = resolveMediaAbsolutePath(media.storagePath);
