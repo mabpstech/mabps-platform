@@ -9,6 +9,12 @@ import type {
   WorkspaceSubscription,
 } from "@/lib/billing/types";
 import { sqlite } from "@/lib/db";
+import {
+  CacheKeys,
+  cacheGetOrSet,
+  cacheSet,
+  invalidateWorkspaceEntitlements,
+} from "@/lib/platform/cache";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -85,11 +91,13 @@ export function ensureBillingReady(): void {
 export function getSubscriptionByWorkspaceId(
   workspaceId: string,
 ): WorkspaceSubscription | null {
-  ensureBillingReady();
-  const row = sqlite
-    .prepare(`SELECT * FROM "subscription" WHERE "workspaceId" = ?`)
-    .get(workspaceId) as Record<string, unknown> | undefined;
-  return row ? rowToSubscription(row) : null;
+  return cacheGetOrSet(CacheKeys.subscription(workspaceId), () => {
+    ensureBillingReady();
+    const row = sqlite
+      .prepare(`SELECT * FROM "subscription" WHERE "workspaceId" = ?`)
+      .get(workspaceId) as Record<string, unknown> | undefined;
+    return row ? rowToSubscription(row) : null;
+  });
 }
 
 export function getSubscriptionByStripeId(
@@ -113,6 +121,7 @@ export function ensureFreeSubscription(
 
   const timestamp = nowIso();
   const id = randomUUID();
+  invalidateWorkspaceEntitlements(workspaceId);
   sqlite
     .prepare(
       `INSERT INTO "subscription" (
@@ -211,7 +220,10 @@ export function upsertSubscription(
       );
   }
 
-  return getSubscriptionByWorkspaceId(input.workspaceId)!;
+  invalidateWorkspaceEntitlements(input.workspaceId);
+  const subscription = getSubscriptionByWorkspaceId(input.workspaceId)!;
+  cacheSet(CacheKeys.planId(input.workspaceId), subscription.planId);
+  return subscription;
 }
 
 export function downgradeToFree(workspaceId: string): WorkspaceSubscription {

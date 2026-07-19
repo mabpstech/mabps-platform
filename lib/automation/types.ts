@@ -288,6 +288,8 @@ export type PlatformEvent = {
   workspaceId: string;
   payload: Record<string, unknown>;
   occurredAt?: string;
+  /** Formal schema version (P3-6). Defaults to current PLATFORM_EVENT_SCHEMA_VERSION on emit. */
+  schemaVersion?: number;
 };
 
 export type ActionResult = {

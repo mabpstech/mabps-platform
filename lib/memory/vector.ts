@@ -1,32 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { sqlite } from "@/lib/db";
+import {
+  deleteMemoryEmbeddingPg,
+  searchMemoryVectorsPg,
+  upsertMemoryEmbeddingPg,
+} from "@/lib/memory/vector/pgvector";
 import type { MemoryEmbeddingRecord } from "@/lib/memory/types";
-
-function cosineSimilarity(a: number[], b: number[]): number {
-  const len = Math.min(a.length, b.length);
-  if (!len) return 0;
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-  for (let i = 0; i < len; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  const denom = Math.sqrt(normA) * Math.sqrt(normB);
-  return denom ? dot / denom : 0;
-}
-
-function parseVector(raw: unknown): number[] {
-  if (typeof raw !== "string" || !raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map((value) => Number(value) || 0);
-  } catch {
-    return [];
-  }
-}
+import { cosineSimilarity, parseVectorJson } from "@/lib/vector/cosine";
+import { resolveVectorStoreId } from "@/lib/vector/driver";
 
 function rowToRecord(row: Record<string, unknown>): MemoryEmbeddingRecord {
   return {
@@ -36,12 +17,12 @@ function rowToRecord(row: Record<string, unknown>): MemoryEmbeddingRecord {
     provider: String(row.provider),
     model: String(row.model),
     dimensions: Number(row.dimensions || 0),
-    vector: parseVector(row.vectorJson),
+    vector: parseVectorJson(row.vectorJson),
     createdAt: String(row.createdAt),
   };
 }
 
-export async function upsertMemoryEmbedding(input: {
+async function upsertMemoryEmbeddingSqlite(input: {
   memoryId: string;
   workspaceId: string;
   provider: string;
@@ -74,7 +55,7 @@ export async function upsertMemoryEmbedding(input: {
     );
 }
 
-export async function deleteMemoryEmbedding(
+async function deleteMemoryEmbeddingSqlite(
   memoryId: string,
   workspaceId: string,
 ): Promise<void> {
@@ -85,7 +66,7 @@ export async function deleteMemoryEmbedding(
     .run(memoryId, workspaceId);
 }
 
-export async function searchMemoryVectors(input: {
+async function searchMemoryVectorsSqlite(input: {
   workspaceId: string;
   vector: number[];
   provider: string;
@@ -135,4 +116,42 @@ export async function searchMemoryVectors(input: {
     .filter((hit) => hit.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
+}
+
+export async function upsertMemoryEmbedding(input: {
+  memoryId: string;
+  workspaceId: string;
+  provider: string;
+  model: string;
+  dimensions: number;
+  vector: number[];
+}): Promise<void> {
+  if (resolveVectorStoreId() === "pgvector") {
+    return upsertMemoryEmbeddingPg(input);
+  }
+  return upsertMemoryEmbeddingSqlite(input);
+}
+
+export async function deleteMemoryEmbedding(
+  memoryId: string,
+  workspaceId: string,
+): Promise<void> {
+  if (resolveVectorStoreId() === "pgvector") {
+    return deleteMemoryEmbeddingPg(memoryId, workspaceId);
+  }
+  return deleteMemoryEmbeddingSqlite(memoryId, workspaceId);
+}
+
+export async function searchMemoryVectors(input: {
+  workspaceId: string;
+  vector: number[];
+  provider: string;
+  model: string;
+  memoryIds?: string[];
+  limit?: number;
+}): Promise<Array<{ memoryId: string; score: number }>> {
+  if (resolveVectorStoreId() === "pgvector") {
+    return searchMemoryVectorsPg(input);
+  }
+  return searchMemoryVectorsSqlite(input);
 }

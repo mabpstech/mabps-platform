@@ -11,6 +11,7 @@ import {
   getUsageValue,
 } from "@/lib/billing/repository";
 import type { UsageMetric, UsageSnapshot } from "@/lib/billing/types";
+import { CacheKeys, cacheGetOrSet } from "@/lib/platform/cache";
 
 export type LimitCheckResult = {
   allowed: boolean;
@@ -29,7 +30,9 @@ function currentPeriodKey(date = new Date()): string {
 }
 
 export function getWorkspacePlanId(workspaceId: string): PlanId {
-  return ensureFreeSubscription(workspaceId).planId;
+  return cacheGetOrSet(CacheKeys.planId(workspaceId), () =>
+    ensureFreeSubscription(workspaceId).planId,
+  );
 }
 
 export function getWorkspaceLimits(workspaceId: string): PlanLimits {

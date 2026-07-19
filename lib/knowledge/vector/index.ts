@@ -1,5 +1,11 @@
+import { createPgvectorStore } from "@/lib/knowledge/vector/pgvector";
 import { createSqliteVectorStore } from "@/lib/knowledge/vector/sqlite";
 import type { VectorStore } from "@/lib/knowledge/vector/types";
+import {
+  listVectorStoreIds,
+  resolveVectorStoreId,
+  type VectorStoreId,
+} from "@/lib/vector/driver";
 
 export type {
   VectorRecord,
@@ -8,19 +14,15 @@ export type {
   VectorUpsertInput,
 } from "@/lib/knowledge/vector/types";
 
-export type VectorStoreId = "sqlite";
-
-export function listVectorStores(): VectorStoreId[] {
-  return ["sqlite"];
-}
+export type { VectorStoreId };
+export { listVectorStoreIds as listVectorStores, resolveVectorStoreId };
 
 export function getVectorStore(
   preferred?: VectorStoreId | string | null,
 ): VectorStore {
-  const requested =
-    preferred || process.env.MABPS_KB_VECTOR_STORE || "sqlite";
-  if (requested === "sqlite") {
-    return createSqliteVectorStore();
+  const id = resolveVectorStoreId(preferred);
+  if (id === "pgvector") {
+    return createPgvectorStore();
   }
   return createSqliteVectorStore();
 }

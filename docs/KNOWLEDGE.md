@@ -41,6 +41,8 @@ Both are intentional. The chatbot engine merges them into one prompt context; sc
 
 Workspace retrieval is stronger (embeddings). Bot-local retrieval is lexical-only by design for small, bot-specific packs. Improving bot-local to vectors is a scale concern (see P3), not a reason to collapse the two stores.
 
+Workspace (+ memory) vector storage can move from SQLite JSON to dedicated **pgvector** without changing retrieval callers — see [VECTOR_STORE_PATH.md](./VECTOR_STORE_PATH.md) (P3-5).
+
 ## Out of scope (do not do here)
 
 - Merging `kb_*` and `chatbot_knowledge_*` schemas

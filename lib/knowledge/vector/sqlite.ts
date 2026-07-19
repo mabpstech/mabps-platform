@@ -1,36 +1,11 @@
 import { sqlite } from "@/lib/db";
+import { cosineSimilarity, parseVectorJson } from "@/lib/vector/cosine";
 import type {
   VectorRecord,
   VectorSearchHit,
   VectorStore,
   VectorUpsertInput,
 } from "@/lib/knowledge/vector/types";
-
-function cosineSimilarity(a: number[], b: number[]): number {
-  const len = Math.min(a.length, b.length);
-  if (!len) return 0;
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-  for (let i = 0; i < len; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  const denom = Math.sqrt(normA) * Math.sqrt(normB);
-  return denom ? dot / denom : 0;
-}
-
-function parseVector(raw: unknown): number[] {
-  if (typeof raw !== "string" || !raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed.map((value) => Number(value) || 0);
-  } catch {
-    return [];
-  }
-}
 
 function rowToRecord(row: Record<string, unknown>): VectorRecord {
   return {
@@ -42,7 +17,7 @@ function rowToRecord(row: Record<string, unknown>): VectorRecord {
     provider: String(row.provider),
     model: String(row.model),
     dimensions: Number(row.dimensions || 0),
-    vector: parseVector(row.vectorJson),
+    vector: parseVectorJson(row.vectorJson),
     createdAt: String(row.createdAt),
   };
 }

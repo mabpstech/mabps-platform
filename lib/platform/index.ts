@@ -27,3 +27,18 @@ export {
   type RateLimitBucket,
   type RateLimitResult,
 } from "@/lib/platform/rate-limit";
+export {
+  CacheKeys,
+  cacheClear,
+  cacheDelete,
+  cacheDeleteByPrefix,
+  cacheGet,
+  cacheGetOrSet,
+  cacheSet,
+  getCacheStats,
+  invalidateWorkspaceEntitlements,
+  invalidateWorkspaceSettings,
+  resolveCacheDriver,
+  type CacheDriver,
+  type CacheStats,
+} from "@/lib/platform/cache";

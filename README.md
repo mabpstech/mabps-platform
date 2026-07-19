@@ -38,9 +38,9 @@ npm run automation:worker
 
 Open [http://localhost:3000](http://localhost:3000).
 
-See [`.env.example`](./.env.example) for every runtime variable (auth, Stripe, WhatsApp, knowledge embeddings, media storage, worker, etc.).
+See [`.env.example`](./.env.example) for every runtime variable (auth, Stripe, WhatsApp, knowledge embeddings, media storage, worker, cache, etc.).
 
-DB scale path: [docs/DB_MIGRATION_PATH.md](./docs/DB_MIGRATION_PATH.md).
+Scale paths: [docs/DB_MIGRATION_PATH.md](./docs/DB_MIGRATION_PATH.md) (DB), [docs/VECTOR_STORE_PATH.md](./docs/VECTOR_STORE_PATH.md) (vectors / pgvector).
 
 ## Scripts
 

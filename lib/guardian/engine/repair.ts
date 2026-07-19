@@ -85,7 +85,10 @@ async function applyAction(
         : "No recent Guardian error logs to analyze.";
     }
     case "clear_stale_cache": {
-      return "No durable cache layer to clear in this runtime.";
+      const { cacheClear, getCacheStats } = await import("@/lib/platform/cache");
+      const before = getCacheStats();
+      cacheClear();
+      return `Cleared platform cache (${before.size} entries, driver=${before.driver}).`;
     }
     case "document_env_var":
     case "install_dependency":

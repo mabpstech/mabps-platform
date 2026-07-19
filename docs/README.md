@@ -7,6 +7,7 @@
 | [ARCHITECTURE_AUDIT.md](./ARCHITECTURE_AUDIT.md) | Canonical architecture scan: modules, wiring, risks, gaps |
 | [PRODUCTION_ROADMAP.md](./PRODUCTION_ROADMAP.md) | Prioritized P0–P3 production readiness plan derived from the audit |
 | [DB_MIGRATION_PATH.md](./DB_MIGRATION_PATH.md) | SQLite → Postgres/libSQL migration path and cutover plan |
+| [VECTOR_STORE_PATH.md](./VECTOR_STORE_PATH.md) | SQLite vectors → pgvector dedicated store path |
 
 Do **not** recreate parallel architecture / roadmap / tech-stack stubs. Update the audit when structure changes; update the roadmap when priorities change.
 

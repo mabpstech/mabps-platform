@@ -39,7 +39,7 @@ Per-module `npm run db:migrate:*` scripts remain for convenience; prefer `db:mig
 | --- | --- |
 | Rewriting all repositories to `pg` / `@libsql/client` | Large; blocked on real multi-instance need |
 | Better Auth adapter swap | Follow Better Auth’s Postgres/libSQL adapters at cutover time |
-| Vector store move | **P3-5** |
+| Vector store move | **P3-5** — see [VECTOR_STORE_PATH.md](./VECTOR_STORE_PATH.md) |
 | Dropping lazy `createSchemaMigrator` | Can coexist until all deploys use `db:migrate:all` |
 
 ## Operator commands

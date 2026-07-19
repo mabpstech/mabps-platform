@@ -27,6 +27,12 @@ export {
   emitWhatsAppEvent,
   emitEmailEvent,
   emitNotificationEvent,
+  EVENT_PAYLOAD_SCHEMAS,
+  PLATFORM_EVENT_SCHEMA_VERSION,
+  PlatformEventSchemaError,
+  getEventPayloadSchema,
+  listVersionedEventTypes,
+  normalizePlatformEvent,
 } from "@/lib/automation/events";
 export { processAutomationQueue, executeRun } from "@/lib/automation/engine/runner";
 export { tickAutomationEngine } from "@/lib/automation/engine/scheduler";

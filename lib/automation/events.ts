@@ -1,9 +1,22 @@
 import {
+  normalizePlatformEvent,
+  PLATFORM_EVENT_SCHEMA_VERSION,
+} from "@/lib/automation/event-schema";
+import {
   createRun,
   ensureAutomationReady,
   listActiveWorkflowsByTrigger,
 } from "@/lib/automation/repository";
 import type { PlatformEvent, TriggerType } from "@/lib/automation/types";
+
+export {
+  EVENT_PAYLOAD_SCHEMAS,
+  PLATFORM_EVENT_SCHEMA_VERSION,
+  PlatformEventSchemaError,
+  getEventPayloadSchema,
+  listVersionedEventTypes,
+  normalizePlatformEvent,
+} from "@/lib/automation/event-schema";
 
 /**
  * Emit a platform event into the Automation Engine.
@@ -13,10 +26,12 @@ import type { PlatformEvent, TriggerType } from "@/lib/automation/types";
 export function emitAutomationEvent(event: PlatformEvent): {
   enqueued: number;
   runIds: string[];
+  schemaVersion: number;
 } {
   ensureAutomationReady();
-  const type = event.type;
-  const workflows = listActiveWorkflowsByTrigger(event.workspaceId, type);
+  const normalized = normalizePlatformEvent(event);
+  const type = normalized.type;
+  const workflows = listActiveWorkflowsByTrigger(normalized.workspaceId, type);
   const runIds: string[] = [];
 
   for (const workflow of workflows) {
@@ -25,27 +40,32 @@ export function emitAutomationEvent(event: PlatformEvent): {
       // Optional shallow key match: triggerConfig.filters.field === payload.field
       const entries = Object.entries(filters as Record<string, unknown>);
       const matches = entries.every(([key, expected]) => {
-        return event.payload[key] === expected;
+        return normalized.payload[key] === expected;
       });
       if (!matches) continue;
     }
 
     const run = createRun({
-      workspaceId: event.workspaceId,
+      workspaceId: normalized.workspaceId,
       workflowId: workflow.id,
       triggerType: type,
       triggerPayload: {
-        ...event.payload,
+        ...normalized.payload,
         _event: {
           type,
-          occurredAt: event.occurredAt ?? new Date().toISOString(),
+          schemaVersion: normalized.schemaVersion,
+          occurredAt: normalized.occurredAt,
         },
       },
     });
     runIds.push(run.id);
   }
 
-  return { enqueued: runIds.length, runIds };
+  return {
+    enqueued: runIds.length,
+    runIds,
+    schemaVersion: PLATFORM_EVENT_SCHEMA_VERSION,
+  };
 }
 
 export function emitWebsiteEvent(

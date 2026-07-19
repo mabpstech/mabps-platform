@@ -34,6 +34,12 @@ import {
 import { getWorkspaceLimits, getWorkspaceUsage } from "@/lib/billing/entitlements";
 import { getProviderCredential as getChatbotProviderCredential } from "@/lib/chatbot/repository";
 import { sqlite } from "@/lib/db";
+import {
+  CacheKeys,
+  cacheGetOrSet,
+  cacheSet,
+  invalidateWorkspaceSettings,
+} from "@/lib/platform/cache";
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -291,15 +297,18 @@ export function ensureWorkspaceAi(workspaceId: string): AiSettings {
       timestamp,
     );
 
+  invalidateWorkspaceSettings(workspaceId);
   return getAiSettings(workspaceId)!;
 }
 
 export function getAiSettings(workspaceId: string): AiSettings | null {
-  ensureAiReady();
-  const row = sqlite
-    .prepare(`SELECT * FROM "ai_settings" WHERE "workspaceId" = ?`)
-    .get(workspaceId) as Record<string, unknown> | undefined;
-  return row ? rowToSettings(row) : null;
+  return cacheGetOrSet(CacheKeys.aiSettings(workspaceId), () => {
+    ensureAiReady();
+    const row = sqlite
+      .prepare(`SELECT * FROM "ai_settings" WHERE "workspaceId" = ?`)
+      .get(workspaceId) as Record<string, unknown> | undefined;
+    return row ? rowToSettings(row) : null;
+  });
 }
 
 export function updateAiSettings(
@@ -371,7 +380,10 @@ export function updateAiSettings(
       workspaceId,
     );
 
-  return getAiSettings(workspaceId)!;
+  invalidateWorkspaceSettings(workspaceId);
+  const settings = getAiSettings(workspaceId)!;
+  cacheSet(CacheKeys.aiSettings(workspaceId), settings);
+  return settings;
 }
 
 export function listProviderCredentials(
