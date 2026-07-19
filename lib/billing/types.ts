@@ -61,6 +61,7 @@ export type UsageMetric =
   | "sites"
   | "storageMb"
   | "aiCredits"
-  | "automations";
+  | "automations"
+  | "plugins";
 
 export type UsageSnapshot = Record<UsageMetric, number>;

@@ -71,6 +71,9 @@ export default async function AppLayout({
                   <Link href="/automations" className="hover:text-zinc-900">
                     Automations
                   </Link>
+                  <Link href="/marketplace" className="hover:text-zinc-900">
+                    Marketplace
+                  </Link>
                   <Link
                     href="/settings/workspace"
                     className="hover:text-zinc-900"

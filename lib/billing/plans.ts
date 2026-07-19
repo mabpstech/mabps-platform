@@ -15,6 +15,8 @@ export type PlanLimits = {
   aiCredits: number;
   /** Max active automations. -1 = unlimited. */
   automations: number;
+  /** Max enabled marketplace plugins/extensions. -1 = unlimited. */
+  plugins: number;
 };
 
 export type PlanDefinition = {
@@ -40,12 +42,14 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       storageMb: 500,
       aiCredits: 100,
       automations: 0,
+      plugins: 2,
     },
     features: [
       "3 team members",
       "1 site",
       "500 MB storage",
       "100 AI credits / month",
+      "2 marketplace plugins",
       "Community support",
     ],
   },
@@ -60,6 +64,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       storageMb: 10_240,
       aiCredits: 1_000,
       automations: 5,
+      plugins: 10,
     },
     features: [
       "10 team members",
@@ -67,6 +72,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       "10 GB storage",
       "1,000 AI credits / month",
       "5 automations",
+      "10 marketplace plugins",
       "Email support",
     ],
   },
@@ -81,6 +87,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       storageMb: 102_400,
       aiCredits: 10_000,
       automations: 50,
+      plugins: 50,
     },
     features: [
       "50 team members",
@@ -88,6 +95,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       "100 GB storage",
       "10,000 AI credits / month",
       "50 automations",
+      "50 marketplace plugins",
       "Priority support",
     ],
     highlighted: true,
@@ -103,6 +111,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       storageMb: 1_048_576,
       aiCredits: -1,
       automations: -1,
+      plugins: -1,
     },
     features: [
       "Unlimited members",
@@ -110,6 +119,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       "1 TB storage",
       "Unlimited AI credits",
       "Unlimited automations",
+      "Unlimited marketplace plugins",
       "Dedicated support",
     ],
   },

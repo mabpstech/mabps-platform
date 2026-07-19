@@ -48,6 +48,7 @@ export function getWorkspaceUsage(workspaceId: string): UsageSnapshot {
     storageMb: getUsageValue(workspaceId, "storageMb", "lifetime"),
     aiCredits: getUsageValue(workspaceId, "aiCredits", periodKey),
     automations: getUsageValue(workspaceId, "automations", "lifetime"),
+    plugins: getUsageValue(workspaceId, "plugins", "lifetime"),
   };
 }
 
@@ -102,6 +103,8 @@ function metricLabel(metric: UsageMetric): string {
       return "AI credits / month";
     case "automations":
       return "automations";
+    case "plugins":
+      return "marketplace plugins";
     default:
       return metric;
   }

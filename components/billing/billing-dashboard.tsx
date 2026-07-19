@@ -88,6 +88,7 @@ export function BillingDashboard({
           ["storageMb", "Storage (MB)", usage.storageMb, limits.storageMb],
           ["aiCredits", "AI credits (month)", usage.aiCredits, limits.aiCredits],
           ["automations", "Automations", usage.automations, limits.automations],
+          ["plugins", "Marketplace plugins", usage.plugins, limits.plugins],
         ] as const
       ).map(([key, label, current, limit]) => ({
         key,
