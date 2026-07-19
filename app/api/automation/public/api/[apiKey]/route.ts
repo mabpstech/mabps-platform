@@ -6,11 +6,15 @@ import {
   ensureAutomationReady,
   getWorkflowByApiKey,
 } from "@/lib/automation/repository";
+import { enforcePublicRateLimit } from "@/lib/platform/rate-limit";
 
 type RouteContext = { params: Promise<{ apiKey: string }> };
 
 /** API trigger — authenticated by workflow API key. */
 export async function POST(request: Request, context: RouteContext) {
+  const limited = enforcePublicRateLimit(request, "automation");
+  if (limited) return limited;
+
   try {
     ensureAutomationReady();
     const { apiKey } = await context.params;

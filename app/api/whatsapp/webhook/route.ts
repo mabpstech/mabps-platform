@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { enforcePublicRateLimit } from "@/lib/platform/rate-limit";
 import {
   processWhatsAppWebhook,
   verifyWhatsAppWebhookChallenge,
@@ -19,6 +20,9 @@ import {
  *       Requires valid X-Hub-Signature-256 (WHATSAPP_APP_SECRET).
  */
 export async function GET(request: Request) {
+  const limited = enforcePublicRateLimit(request, "webhook");
+  if (limited) return limited;
+
   ensureWhatsAppReady();
   const { searchParams } = new URL(request.url);
   const mode = searchParams.get("hub.mode");
@@ -43,6 +47,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const limited = enforcePublicRateLimit(request, "webhook");
+  if (limited) return limited;
+
   ensureWhatsAppReady();
 
   const appSecret = getWhatsAppAppSecret();

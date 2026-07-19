@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { processEmailWebhook } from "@/lib/email-engine/engine/webhooks";
 import { emailErrorResponse } from "@/lib/email-engine/http";
 import { getSettingsByWebhookSecret } from "@/lib/email-engine/repository";
+import { enforcePublicRateLimit } from "@/lib/platform/rate-limit";
 
 type Params = { params: Promise<{ secret: string }> };
 
 export async function POST(request: Request, { params }: Params) {
+  const limited = enforcePublicRateLimit(request, "webhook");
+  if (limited) return limited;
+
   try {
     const { secret } = await params;
     const settings = getSettingsByWebhookSecret(secret);
@@ -21,7 +25,10 @@ export async function POST(request: Request, { params }: Params) {
   }
 }
 
-export async function GET(_request: Request, { params }: Params) {
+export async function GET(request: Request, { params }: Params) {
+  const limited = enforcePublicRateLimit(request, "webhook");
+  if (limited) return limited;
+
   try {
     const { secret } = await params;
     const settings = getSettingsByWebhookSecret(secret);

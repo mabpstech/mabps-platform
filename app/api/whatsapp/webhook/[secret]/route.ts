@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { enforcePublicRateLimit } from "@/lib/platform/rate-limit";
 import {
   processWhatsAppWebhook,
   verifyWhatsAppWebhookChallenge,
@@ -20,6 +21,9 @@ type RouteContext = { params: Promise<{ secret: string }> };
  * POST still requires valid X-Hub-Signature-256 (WHATSAPP_APP_SECRET).
  */
 export async function GET(request: Request, context: RouteContext) {
+  const limited = enforcePublicRateLimit(request, "webhook");
+  if (limited) return limited;
+
   ensureWhatsAppReady();
   const { secret } = await context.params;
   const settings = getSettingsByWebhookSecret(secret);
@@ -45,6 +49,9 @@ export async function GET(request: Request, context: RouteContext) {
 }
 
 export async function POST(request: Request, context: RouteContext) {
+  const limited = enforcePublicRateLimit(request, "webhook");
+  if (limited) return limited;
+
   ensureWhatsAppReady();
   const { secret } = await context.params;
   const settings = getSettingsByWebhookSecret(secret);

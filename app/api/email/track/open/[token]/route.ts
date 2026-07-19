@@ -3,10 +3,14 @@ import {
   getTrackingPixelBuffer,
   trackOpen,
 } from "@/lib/email-engine/engine/tracking";
+import { enforcePublicRateLimit } from "@/lib/platform/rate-limit";
 
 type Params = { params: Promise<{ token: string }> };
 
 export async function GET(request: Request, { params }: Params) {
+  const limited = enforcePublicRateLimit(request, "tracking");
+  if (limited) return limited;
+
   const { token } = await params;
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||

@@ -6,11 +6,15 @@ import {
   ensureAutomationReady,
   getWorkflowByWebhookSecret,
 } from "@/lib/automation/repository";
+import { enforcePublicRateLimit } from "@/lib/platform/rate-limit";
 
 type RouteContext = { params: Promise<{ secret: string }> };
 
 /** Inbound webhook trigger — authenticated by workflow webhook secret. */
 export async function POST(request: Request, context: RouteContext) {
+  const limited = enforcePublicRateLimit(request, "automation");
+  if (limited) return limited;
+
   try {
     ensureAutomationReady();
     const { secret } = await context.params;

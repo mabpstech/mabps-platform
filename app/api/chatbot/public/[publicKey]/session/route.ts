@@ -10,10 +10,14 @@ import {
   getWidgetByBotId,
   listMessages,
 } from "@/lib/chatbot/repository";
+import { enforcePublicRateLimit } from "@/lib/platform/rate-limit";
 
 type RouteContext = { params: Promise<{ publicKey: string }> };
 
 export async function POST(request: Request, context: RouteContext) {
+  const limited = enforcePublicRateLimit(request, "chatbotWrite");
+  if (limited) return limited;
+
   try {
     ensureChatbotReady();
     const { publicKey } = await context.params;

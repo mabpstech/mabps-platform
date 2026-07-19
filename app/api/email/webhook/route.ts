@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { processEmailWebhook } from "@/lib/email-engine/engine/webhooks";
 import { emailErrorResponse } from "@/lib/email-engine/http";
+import { enforcePublicRateLimit } from "@/lib/platform/rate-limit";
 
 /**
  * Multi-tenant provider webhook.
@@ -8,6 +9,9 @@ import { emailErrorResponse } from "@/lib/email-engine/http";
  * This route accepts payloads that include a `workspaceSecret` field.
  */
 export async function POST(request: Request) {
+  const limited = enforcePublicRateLimit(request, "webhook");
+  if (limited) return limited;
+
   try {
     const payload = await request.json();
     const secret =

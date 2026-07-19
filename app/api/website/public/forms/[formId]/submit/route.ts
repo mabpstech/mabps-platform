@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { enforcePublicRateLimit } from "@/lib/platform/rate-limit";
 import {
   createFormSubmission,
   ensureWebsiteReady,
@@ -12,6 +13,9 @@ type RouteContext = {
 };
 
 export async function POST(request: Request, context: RouteContext) {
+  const limited = enforcePublicRateLimit(request, "form");
+  if (limited) return limited;
+
   try {
     ensureWebsiteReady();
     const { formId } = await context.params;

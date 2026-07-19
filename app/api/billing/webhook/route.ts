@@ -4,10 +4,14 @@ import {
   processStripeWebhookEvent,
 } from "@/lib/billing/webhooks";
 import { migrateBillingSchema } from "@/lib/billing/migrate";
+import { enforcePublicRateLimit } from "@/lib/platform/rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  const limited = enforcePublicRateLimit(request, "webhook");
+  if (limited) return limited;
+
   migrateBillingSchema();
 
   const signature = request.headers.get("stripe-signature");

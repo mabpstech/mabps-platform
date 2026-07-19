@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { trackClick } from "@/lib/email-engine/engine/tracking";
+import { enforcePublicRateLimit } from "@/lib/platform/rate-limit";
 
 type Params = { params: Promise<{ token: string }> };
 
 export async function GET(request: Request, { params }: Params) {
+  const limited = enforcePublicRateLimit(request, "tracking");
+  if (limited) return limited;
+
   const { token } = await params;
   const { searchParams } = new URL(request.url);
   const url = searchParams.get("u") || "/";
