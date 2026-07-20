@@ -50,13 +50,14 @@ export function loadRenderableSite(input: {
 export function loadRenderablePage(
   siteId: string,
   pathSegments: string[] | undefined,
+  options: { preview?: boolean } = {},
 ) {
   const segments = pathSegments?.filter(Boolean) ?? [];
   if (segments[0] === "blog" && segments[1]) {
     const post = resolvePublicBlogPost(siteId, segments[1]);
     return post ? { kind: "blog" as const, post } : null;
   }
-  const page = resolvePublicPage(siteId, segments);
+  const page = resolvePublicPage(siteId, segments, options);
   return page ? { kind: "page" as const, ...page } : null;
 }
 

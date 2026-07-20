@@ -67,6 +67,7 @@ export function PageBuilder({
   } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
+  const [previewToken, setPreviewToken] = useState(0);
   const hydrated = useRef(false);
   const skipDirty = useRef(false);
 
@@ -75,10 +76,14 @@ export function PageBuilder({
     [sections, selectedId],
   );
 
-  const previewPath =
-    page.pageType === "home"
-      ? `/p/${siteSlug}`
-      : `/p/${siteSlug}/${page.slug}`;
+  // Editor preview always uses authenticated preview mode so draft pages render.
+  const previewPath = useMemo(() => {
+    const path =
+      page.pageType === "home"
+        ? `/p/${siteSlug}`
+        : `/p/${siteSlug}/${encodeURIComponent(page.slug)}`;
+    return `${path}?preview=1`;
+  }, [page.pageType, page.slug, siteSlug]);
 
   useEffect(() => {
     if (!hydrated.current) {
@@ -211,6 +216,7 @@ export function PageBuilder({
           setSelectedId(stillThere?.clientKey ?? draft[0]?.clientKey ?? null);
         }
         setSaveState("saved");
+        setPreviewToken((current) => current + 1);
         if (!silent) {
           setToast({ message: "Page saved ✓", tone: "success" });
         }
@@ -438,7 +444,11 @@ export function PageBuilder({
 
         {showPreview ? (
           <div className="xl:sticky xl:top-20 xl:self-start">
-            <LivePreview src={previewPath} title="Live preview" />
+            <LivePreview
+              src={previewPath}
+              title="Live preview"
+              refreshToken={previewToken}
+            />
           </div>
         ) : null}
       </div>

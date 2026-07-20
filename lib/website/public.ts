@@ -63,7 +63,9 @@ export function loadPublicSite(
 export function resolvePublicPage(
   siteId: string,
   pathSegments: string[] | undefined,
+  options: { preview?: boolean } = {},
 ): { page: WebsitePage; sections: WebsiteSection[] } | null {
+  const preview = Boolean(options.preview);
   const segments = pathSegments?.filter(Boolean) ?? [];
   const slug = segments.length === 0 ? "home" : segments[0];
 
@@ -73,11 +75,13 @@ export function resolvePublicPage(
 
   const page = getPageBySlug(siteId, slug);
   if (!page) return null;
-  if (page.status !== "published") return null;
+  if (!preview && page.status !== "published") return null;
 
   return {
     page,
-    sections: listSections(page.id).filter((section) => !section.settings.hidden),
+    sections: listSections(page.id).filter(
+      (section) => preview || !section.settings.hidden,
+    ),
   };
 }
 

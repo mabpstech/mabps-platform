@@ -9,24 +9,49 @@ import {
 
 type PageProps = {
   params: Promise<{ slug: string; path?: string[] }>;
+  searchParams: Promise<{ preview?: string }>;
 };
 
-export default async function PublicSlugSitePage({ params }: PageProps) {
+function wantsPreviewMode(preview: string | undefined): boolean {
+  return preview === "1" || preview === "true";
+}
+
+export default async function PublicSlugSitePage({
+  params,
+  searchParams,
+}: PageProps) {
   const { slug, path } = await params;
+  const { preview: previewParam } = await searchParams;
   const requestHeaders = await headers();
   const host = requestHeaders.get("host") ?? undefined;
+  const explicitPreview = wantsPreviewMode(previewParam);
 
-  let renderable = loadRenderableSite({ slug, host, preview: false });
+  let preview = false;
+  let renderable = null;
 
-  if (!renderable) {
+  if (explicitPreview) {
     const session = await getSession();
-    if (!session) notFound();
-    renderable = loadRenderableSite({ slug, host, preview: true });
+    if (session) {
+      // Authenticated editor/preview: include draft sites and draft pages.
+      preview = true;
+      renderable = loadRenderableSite({ slug, host, preview: true });
+    } else {
+      // No session: ignore preview flag and serve the public site if published.
+      renderable = loadRenderableSite({ slug, host, preview: false });
+    }
+  } else {
+    renderable = loadRenderableSite({ slug, host, preview: false });
+    if (!renderable) {
+      const session = await getSession();
+      if (!session) notFound();
+      preview = true;
+      renderable = loadRenderableSite({ slug, host, preview: true });
+    }
   }
 
   if (!renderable) notFound();
 
-  const resolved = loadRenderablePage(renderable.site.id, path);
+  const resolved = loadRenderablePage(renderable.site.id, path, { preview });
   if (!resolved) notFound();
 
   const basePath = `/p/${renderable.site.slug}`;

@@ -13,9 +13,12 @@ const DEVICE_WIDTH: Record<PreviewDevice, string> = {
 export function LivePreview({
   src,
   title = "Live preview",
+  refreshToken = 0,
 }: {
   src: string;
   title?: string;
+  /** Bump after save so the iframe reloads the latest page. */
+  refreshToken?: number;
 }) {
   const [device, setDevice] = useState<PreviewDevice>("desktop");
   const [key, setKey] = useState(0);
@@ -66,7 +69,7 @@ export function LivePreview({
           }}
         >
           <iframe
-            key={`${src}-${key}-${device}`}
+            key={`${src}-${refreshToken}-${key}-${device}`}
             title={title}
             src={src}
             className="h-full w-full border-0 bg-white"
