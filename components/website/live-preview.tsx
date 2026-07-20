@@ -10,6 +10,12 @@ const DEVICE_WIDTH: Record<PreviewDevice, string> = {
   mobile: "390px",
 };
 
+const DEVICE_HEIGHT: Record<PreviewDevice, string> = {
+  desktop: "640px",
+  tablet: "700px",
+  mobile: "700px",
+};
+
 export function LivePreview({
   src,
   title = "Live preview",
@@ -41,6 +47,7 @@ export function LivePreview({
               key={id}
               type="button"
               onClick={() => setDevice(id)}
+              aria-pressed={device === id}
               className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
                 device === id
                   ? "bg-white text-zinc-900 shadow-sm"
@@ -59,17 +66,17 @@ export function LivePreview({
           Refresh
         </button>
       </div>
-      <div className="flex justify-center overflow-auto p-4">
+      <div className="flex justify-center overflow-x-auto p-4">
         <div
-          className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition-all duration-300"
+          className="shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition-[width,height] duration-300 ease-in-out"
           style={{
             width: DEVICE_WIDTH[device],
-            maxWidth: "100%",
-            height: device === "desktop" ? "640px" : "700px",
+            maxWidth: device === "desktop" ? "100%" : undefined,
+            height: DEVICE_HEIGHT[device],
           }}
         >
           <iframe
-            key={`${src}-${refreshToken}-${key}-${device}`}
+            key={`${src}-${refreshToken}-${key}`}
             title={title}
             src={src}
             className="h-full w-full border-0 bg-white"

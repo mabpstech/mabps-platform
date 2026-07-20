@@ -408,9 +408,7 @@ export function PageBuilder({
         </div>
       ) : null}
 
-      <div
-        className={`grid gap-4 ${showPreview ? "xl:grid-cols-[16rem_minmax(0,1fr)_22rem]" : "lg:grid-cols-[16rem_minmax(0,1fr)]"}`}
-      >
+      <div className="grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
         <aside className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-3">
           <div className="space-y-2 px-1">
             <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
@@ -516,16 +514,15 @@ export function PageBuilder({
           )}
         </div>
 
-        {showPreview ? (
-          <div className="xl:sticky xl:top-20 xl:self-start">
-            <LivePreview
-              src={previewPath}
-              title="Live preview"
-              refreshToken={previewToken}
-            />
-          </div>
-        ) : null}
       </div>
+
+      {showPreview ? (
+        <LivePreview
+          src={previewPath}
+          title="Live preview"
+          refreshToken={previewToken}
+        />
+      ) : null}
 
       <Toast
         message={toast?.message ?? null}
