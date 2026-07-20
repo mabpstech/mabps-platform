@@ -1,6 +1,6 @@
 import { SectionRenderer } from "@/components/website/public/section-renderer";
 import { SiteChrome } from "@/components/website/public/site-chrome";
-import { mediaPublicUrl } from "@/lib/website/public";
+import { mediaPublicUrl } from "@/lib/website/media-url";
 import type {
   WebsiteBlogPost,
   WebsiteFormWithFields,

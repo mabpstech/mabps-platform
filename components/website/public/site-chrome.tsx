@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { mediaPublicUrl } from "@/lib/website/public";
+import { mediaPublicUrl } from "@/lib/website/media-url";
 import type {
   WebsiteFooter,
   WebsiteHeader,

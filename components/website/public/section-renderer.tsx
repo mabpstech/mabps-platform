@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PublicForm } from "@/components/website/public/public-form";
-import { mediaPublicUrl } from "@/lib/website/public";
+import { mediaPublicUrl } from "@/lib/website/media-url";
 import type {
   WebsiteBlogPost,
   WebsiteFormWithFields,

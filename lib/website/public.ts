@@ -102,7 +102,3 @@ export function loadPublicForm(
   if (!form || form.status !== "active") return null;
   return getFormWithFields(form.id);
 }
-
-export function mediaPublicUrl(mediaId: string): string {
-  return `/api/website/media/file/${mediaId}`;
-}
