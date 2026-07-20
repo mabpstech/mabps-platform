@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { GlobalNav } from "@/components/app/global-nav";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { WorkspaceSwitcher } from "@/components/auth/workspace-switcher";
 import { requireSession } from "@/lib/auth/session";
@@ -6,6 +7,33 @@ import {
   ensureActiveWorkspace,
   getUserWorkspaces,
 } from "@/lib/auth/workspace";
+
+const CORE_NAV = [
+  { href: "/dashboard", label: "Dashboard" },
+] as const;
+
+const WORKSPACE_NAV = [
+  { href: "/analytics", label: "Analytics" },
+  { href: "/website", label: "Website" },
+  { href: "/crm", label: "CRM" },
+  { href: "/ai", label: "AI" },
+  { href: "/whatsapp", label: "WhatsApp" },
+  { href: "/email", label: "Email" },
+  { href: "/notifications", label: "Notifications" },
+  { href: "/deployment", label: "Deployment" },
+  { href: "/guardian", label: "Guardian" },
+  { href: "/chatbot", label: "Chatbot" },
+  { href: "/knowledge", label: "Knowledge" },
+  { href: "/memory", label: "Memory" },
+  { href: "/automation", label: "Automation" },
+  { href: "/marketplace", label: "Marketplace" },
+  { href: "/settings/workspace", label: "Workspace" },
+  { href: "/settings/workspace/billing", label: "Billing" },
+] as const;
+
+const ACCOUNT_NAV = [
+  { href: "/settings/account", label: "Account" },
+] as const;
 
 export default async function AppLayout({
   children,
@@ -18,82 +46,26 @@ export default async function AppLayout({
     ? await ensureActiveWorkspace(session)
     : null;
 
+  const navItems = [
+    ...CORE_NAV,
+    ...(activeWorkspace ? WORKSPACE_NAV : []),
+    ...ACCOUNT_NAV,
+  ];
+
   return (
     <div className="flex min-h-full flex-1 flex-col bg-zinc-50">
-      <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-4">
-          <div className="flex items-center gap-6">
-            <Link href="/dashboard" className="text-lg font-semibold text-zinc-900">
+      <header className="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/90 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-3.5">
+          <div className="flex min-w-0 items-center gap-5">
+            <Link
+              href="/dashboard"
+              className="shrink-0 text-lg font-semibold tracking-tight text-zinc-900 transition-opacity duration-200 hover:opacity-70"
+            >
               MABPS
             </Link>
-            <nav className="hidden items-center gap-4 text-sm text-zinc-600 sm:flex">
-              <Link href="/dashboard" className="hover:text-zinc-900">
-                Dashboard
-              </Link>
-              {activeWorkspace ? (
-                <>
-                  <Link href="/analytics" className="hover:text-zinc-900">
-                    Analytics
-                  </Link>
-                  <Link href="/website" className="hover:text-zinc-900">
-                    Website
-                  </Link>
-                  <Link href="/crm" className="hover:text-zinc-900">
-                    CRM
-                  </Link>
-                  <Link href="/ai" className="hover:text-zinc-900">
-                    AI
-                  </Link>
-                  <Link href="/whatsapp" className="hover:text-zinc-900">
-                    WhatsApp
-                  </Link>
-                  <Link href="/email" className="hover:text-zinc-900">
-                    Email
-                  </Link>
-                  <Link href="/notifications" className="hover:text-zinc-900">
-                    Notifications
-                  </Link>
-                  <Link href="/deployment" className="hover:text-zinc-900">
-                    Deployment
-                  </Link>
-                  <Link href="/guardian" className="hover:text-zinc-900">
-                    Guardian
-                  </Link>
-                  <Link href="/chatbot" className="hover:text-zinc-900">
-                    Chatbot
-                  </Link>
-                  <Link href="/knowledge" className="hover:text-zinc-900">
-                    Knowledge
-                  </Link>
-                  <Link href="/memory" className="hover:text-zinc-900">
-                    Memory
-                  </Link>
-                  <Link href="/automation" className="hover:text-zinc-900">
-                    Automation
-                  </Link>
-                  <Link href="/marketplace" className="hover:text-zinc-900">
-                    Marketplace
-                  </Link>
-                  <Link
-                    href="/settings/workspace"
-                    className="hover:text-zinc-900"
-                  >
-                    Workspace
-                  </Link>
-                  <Link
-                    href="/settings/workspace/billing"
-                    className="hover:text-zinc-900"
-                  >
-                    Billing
-                  </Link>
-                </>
-              ) : null}
-              <Link href="/settings/account" className="hover:text-zinc-900">
-                Account
-              </Link>
-            </nav>
+            <GlobalNav items={[...navItems]} />
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3">
             {workspaces.length ? (
               <WorkspaceSwitcher
                 workspaces={workspaces}
