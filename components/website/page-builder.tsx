@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
 import {
   authButtonClassName,
   authInputClassName,
@@ -32,6 +39,63 @@ function toDraft(sections: WebsiteSection[]): DraftSection[] {
     ...section,
     clientKey: section.id,
   }));
+}
+
+/**
+ * Apply server-assigned IDs onto the local draft without replacing content.
+ * Keeps clientKey stable so selection and focused inputs survive autosave.
+ */
+function mergeSavedSections(
+  local: DraftSection[],
+  saved: WebsiteSection[],
+): DraftSection[] {
+  const savedById = new Map(saved.map((section) => [section.id, section]));
+  const usedSavedIds = new Set<string>();
+
+  const withExistingIds = local.map((section) => {
+    if (section.id.startsWith("new-")) return section;
+    const serverSection = savedById.get(section.id);
+    if (!serverSection) return section;
+    usedSavedIds.add(serverSection.id);
+    return {
+      ...section,
+      id: serverSection.id,
+      clientKey: section.clientKey,
+      sortOrder: serverSection.sortOrder,
+      updatedAt: serverSection.updatedAt,
+    };
+  });
+
+  const unmatchedSaved = saved.filter((section) => !usedSavedIds.has(section.id));
+  let unmatchedIndex = 0;
+
+  return withExistingIds.map((section) => {
+    if (!section.id.startsWith("new-")) return section;
+    const serverSection = unmatchedSaved[unmatchedIndex];
+    if (!serverSection) return section;
+    unmatchedIndex += 1;
+    return {
+      ...section,
+      id: serverSection.id,
+      clientKey: section.clientKey,
+      sortOrder: serverSection.sortOrder,
+      updatedAt: serverSection.updatedAt,
+    };
+  });
+}
+
+function htmlToPlain(html: string): string {
+  return html
+    .replace(/<p>/gi, "")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\n$/, "");
+}
+
+function plainToHtml(plain: string): string {
+  const paragraphs = plain.split("\n").map((line) => `<p>${line}</p>`);
+  return paragraphs.join("") || "<p></p>";
 }
 
 export function PageBuilder({
@@ -70,6 +134,19 @@ export function PageBuilder({
   const [previewToken, setPreviewToken] = useState(0);
   const hydrated = useRef(false);
   const skipDirty = useRef(false);
+  const savingRef = useRef(false);
+  const editVersionRef = useRef(0);
+  const titleRef = useRef(title);
+  const slugRef = useRef(slug);
+  const seoTitleRef = useRef(seoTitle);
+  const seoDescriptionRef = useRef(seoDescription);
+  const sectionsRef = useRef(sections);
+
+  titleRef.current = title;
+  slugRef.current = slug;
+  seoTitleRef.current = seoTitle;
+  seoDescriptionRef.current = seoDescription;
+  sectionsRef.current = sections;
 
   const selected = useMemo(
     () => sections.find((section) => section.clientKey === selectedId) ?? null,
@@ -85,6 +162,104 @@ export function PageBuilder({
     return `${path}?preview=1`;
   }, [page.pageType, page.slug, siteSlug]);
 
+  const saveAll = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (!canManage || savingRef.current) return;
+      savingRef.current = true;
+      const versionAtStart = editVersionRef.current;
+      const snapshotTitle = titleRef.current;
+      const snapshotSlug = slugRef.current;
+      const snapshotSeoTitle = seoTitleRef.current;
+      const snapshotSeoDescription = seoDescriptionRef.current;
+      const snapshotSections = sectionsRef.current;
+
+      setSaveState("saving");
+      try {
+        const metaResponse = await fetch(
+          `/api/website/sites/${siteId}/pages/${page.id}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: snapshotTitle,
+              slug: snapshotSlug,
+              seoTitle: snapshotSeoTitle || null,
+              seoDescription: snapshotSeoDescription || null,
+            }),
+          },
+        );
+        const metaData = (await metaResponse.json()) as { error?: string };
+        if (!metaResponse.ok) {
+          throw new Error(metaData.error || "Unable to save page settings.");
+        }
+
+        const sectionsResponse = await fetch(
+          `/api/website/sites/${siteId}/pages/${page.id}/sections`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sections: snapshotSections.map((section) => ({
+                id: section.id.startsWith("new-") ? undefined : section.id,
+                type: section.type,
+                content: section.content,
+                settings: section.settings,
+              })),
+            }),
+          },
+        );
+        const sectionsData = (await sectionsResponse.json()) as {
+          error?: string;
+          sections?: WebsiteSection[];
+        };
+        if (!sectionsResponse.ok) {
+          throw new Error(sectionsData.error || "Unable to save sections.");
+        }
+
+        const editedDuringSave = editVersionRef.current !== versionAtStart;
+
+        if (sectionsData.sections) {
+          // ID remap only — never clobber in-progress content from the response.
+          // Skip dirty tracking when nothing changed during the request.
+          if (!editedDuringSave) {
+            skipDirty.current = true;
+          }
+          setSections((current) =>
+            mergeSavedSections(current, sectionsData.sections!),
+          );
+        }
+
+        if (editedDuringSave) {
+          // Debounced effect will schedule another save for the newer draft.
+          setSaveState("dirty");
+        } else {
+          setSaveState("saved");
+          setPreviewToken((current) => current + 1);
+          if (!silent) {
+            setToast({ message: "Page saved ✓", tone: "success" });
+            router.refresh();
+          }
+          window.setTimeout(() => {
+            setSaveState((current) =>
+              current === "saved" ? "idle" : current,
+            );
+          }, 1800);
+        }
+      } catch (err) {
+        setSaveState("error");
+        setToast({
+          message: err instanceof Error ? err.message : "Unable to save page.",
+          tone: "error",
+        });
+      } finally {
+        savingRef.current = false;
+      }
+    },
+    [canManage, page.id, router, siteId],
+  );
+
+  // Debounce autosave on content changes so every keystroke resets the timer
+  // and saveAll always reads the latest values via refs.
   useEffect(() => {
     if (!hydrated.current) {
       hydrated.current = true;
@@ -94,17 +269,16 @@ export function PageBuilder({
       skipDirty.current = false;
       return;
     }
-    setSaveState((current) => (current === "saving" ? current : "dirty"));
-  }, [title, slug, seoTitle, seoDescription, sections]);
+    if (!canManage) return;
 
-  useEffect(() => {
-    if (saveState !== "dirty" || !canManage) return;
+    editVersionRef.current += 1;
+    setSaveState((current) => (current === "saving" ? current : "dirty"));
+
     const timer = window.setTimeout(() => {
       void saveAll({ silent: true });
     }, 2500);
     return () => window.clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [saveState, canManage]);
+  }, [title, slug, seoTitle, seoDescription, sections, canManage, saveAll]);
 
   function reorder(fromId: string, toId: string) {
     setSections((current) => {
@@ -119,10 +293,10 @@ export function PageBuilder({
   }
 
   function updateSelectedContent(key: string, value: unknown) {
-    if (!selected) return;
+    if (!selectedId) return;
     setSections((current) =>
       current.map((section) =>
-        section.clientKey === selected.clientKey
+        section.clientKey === selectedId
           ? {
               ...section,
               content: { ...section.content, [key]: value },
@@ -156,95 +330,6 @@ export function PageBuilder({
     );
     setSelectedId(null);
   }
-
-  const saveAll = useCallback(
-    async ({ silent = false }: { silent?: boolean } = {}) => {
-      if (!canManage) return;
-      setSaveState("saving");
-      try {
-        const metaResponse = await fetch(
-          `/api/website/sites/${siteId}/pages/${page.id}`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              title,
-              slug,
-              seoTitle: seoTitle || null,
-              seoDescription: seoDescription || null,
-            }),
-          },
-        );
-        const metaData = (await metaResponse.json()) as { error?: string };
-        if (!metaResponse.ok) {
-          throw new Error(metaData.error || "Unable to save page settings.");
-        }
-
-        const keepSelected = selectedId;
-        const sectionsResponse = await fetch(
-          `/api/website/sites/${siteId}/pages/${page.id}/sections`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              sections: sections.map((section) => ({
-                id: section.id.startsWith("new-") ? undefined : section.id,
-                type: section.type,
-                content: section.content,
-                settings: section.settings,
-              })),
-            }),
-          },
-        );
-        const sectionsData = (await sectionsResponse.json()) as {
-          error?: string;
-          sections?: WebsiteSection[];
-        };
-        if (!sectionsResponse.ok) {
-          throw new Error(sectionsData.error || "Unable to save sections.");
-        }
-
-        if (sectionsData.sections) {
-          const draft = toDraft(sectionsData.sections);
-          skipDirty.current = true;
-          setSections(draft);
-          const stillThere = draft.find(
-            (section) =>
-              section.clientKey === keepSelected ||
-              section.id === keepSelected,
-          );
-          setSelectedId(stillThere?.clientKey ?? draft[0]?.clientKey ?? null);
-        }
-        setSaveState("saved");
-        setPreviewToken((current) => current + 1);
-        if (!silent) {
-          setToast({ message: "Page saved ✓", tone: "success" });
-        }
-        router.refresh();
-        window.setTimeout(() => {
-          setSaveState((current) => (current === "saved" ? "idle" : current));
-        }, 1800);
-      } catch (err) {
-        setSaveState("error");
-        setToast({
-          message: err instanceof Error ? err.message : "Unable to save page.",
-          tone: "error",
-        });
-      }
-    },
-    [
-      canManage,
-      page.id,
-      router,
-      sections,
-      selectedId,
-      seoDescription,
-      seoTitle,
-      siteId,
-      slug,
-      title,
-    ],
-  );
 
   return (
     <div className="space-y-4">
@@ -294,44 +379,32 @@ export function PageBuilder({
 
       {showSettings ? (
         <div className="grid gap-4 rounded-2xl border border-zinc-200 bg-white p-5 sm:grid-cols-2">
-          <div>
-            <label className={authLabelClassName}>Page title</label>
-            <input
-              className={authInputClassName}
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              disabled={!canManage}
-            />
-          </div>
-          <div>
-            <label className={authLabelClassName}>Page address</label>
-            <input
-              className={authInputClassName}
-              value={slug}
-              onChange={(event) => setSlug(event.target.value)}
-              disabled={!canManage || page.pageType === "home"}
-            />
-          </div>
-          <div>
-            <label className={authLabelClassName}>Search title</label>
-            <input
-              className={authInputClassName}
-              value={seoTitle}
-              onChange={(event) => setSeoTitle(event.target.value)}
-              disabled={!canManage}
-              placeholder="Shown in Google results"
-            />
-          </div>
-          <div>
-            <label className={authLabelClassName}>Search description</label>
-            <input
-              className={authInputClassName}
-              value={seoDescription}
-              onChange={(event) => setSeoDescription(event.target.value)}
-              disabled={!canManage}
-              placeholder="Short summary for search engines"
-            />
-          </div>
+          <Field
+            label="Page title"
+            value={title}
+            onChange={setTitle}
+            disabled={!canManage}
+          />
+          <Field
+            label="Page address"
+            value={slug}
+            onChange={setSlug}
+            disabled={!canManage || page.pageType === "home"}
+          />
+          <Field
+            label="Search title"
+            value={seoTitle}
+            onChange={setSeoTitle}
+            disabled={!canManage}
+            placeholder="Shown in Google results"
+          />
+          <Field
+            label="Search description"
+            value={seoDescription}
+            onChange={setSeoDescription}
+            disabled={!canManage}
+            placeholder="Short summary for search engines"
+          />
         </div>
       ) : null}
 
@@ -433,6 +506,7 @@ export function PageBuilder({
             </div>
           ) : (
             <SectionInspector
+              key={selected.clientKey}
               siteId={siteId}
               section={selected}
               canManage={canManage}
@@ -491,29 +565,11 @@ function SectionInspector({
     return (
       <div className="space-y-4">
         <InspectorHeading type={section.type} />
-        <div>
-          <label className={authLabelClassName}>Content</label>
-          <textarea
-            className={`${authInputClassName} min-h-48`}
-            value={String(section.content.html ?? "")
-              .replace(/<p>/g, "")
-              .replace(/<\/p>/g, "\n")
-              .replace(/<[^>]+>/g, "")}
-            onChange={(event) => {
-              const paragraphs = event.target.value
-                .split(/\n+/)
-                .filter(Boolean)
-                .map((line) => `<p>${line}</p>`)
-                .join("");
-              onChange("html", paragraphs || "<p></p>");
-            }}
-            disabled={!canManage}
-            placeholder="Write your story…"
-          />
-          <p className="mt-1 text-xs text-zinc-500">
-            Plain text is fine — we format it into paragraphs for you.
-          </p>
-        </div>
+        <RichTextField
+          value={String(section.content.html ?? "")}
+          onChange={(html) => onChange("html", html)}
+          disabled={!canManage}
+        />
         <RemoveButton canManage={canManage} onRemove={onRemove} />
       </div>
     );
@@ -812,6 +868,68 @@ function InspectorHeading({ type }: { type: SectionType }) {
   );
 }
 
+/** Keeps a local draft while focused so parent/autosave updates cannot overwrite typing. */
+function StableTextInput({
+  value,
+  onChange,
+  disabled,
+  placeholder,
+  multiline,
+  className,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  multiline?: boolean;
+  className?: string;
+}) {
+  const [draft, setDraft] = useState(value);
+  const focusedRef = useRef(false);
+
+  useEffect(() => {
+    if (!focusedRef.current) {
+      setDraft(value);
+    }
+  }, [value]);
+
+  function handleChange(next: string) {
+    setDraft(next);
+    onChange(next);
+  }
+
+  function handleBlur() {
+    focusedRef.current = false;
+    // Flush the focused draft so a stale parent value cannot stick after blur.
+    if (draft !== value) {
+      onChange(draft);
+    } else {
+      setDraft(value);
+    }
+  }
+
+  const sharedProps = {
+    className: className ?? (multiline
+      ? `${authInputClassName} min-h-24`
+      : authInputClassName),
+    value: draft,
+    onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      handleChange(event.target.value),
+    onFocus: () => {
+      focusedRef.current = true;
+    },
+    onBlur: handleBlur,
+    disabled,
+    placeholder,
+  };
+
+  return multiline ? (
+    <textarea {...sharedProps} />
+  ) : (
+    <input {...sharedProps} />
+  );
+}
+
 function Field({
   label,
   value,
@@ -830,23 +948,67 @@ function Field({
   return (
     <div>
       <label className={authLabelClassName}>{label}</label>
-      {multiline ? (
-        <textarea
-          className={`${authInputClassName} min-h-24`}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          disabled={disabled}
-          placeholder={placeholder}
-        />
-      ) : (
-        <input
-          className={authInputClassName}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          disabled={disabled}
-          placeholder={placeholder}
-        />
-      )}
+      <StableTextInput
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        placeholder={placeholder}
+        multiline={multiline}
+      />
+    </div>
+  );
+}
+
+function RichTextField({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  onChange: (html: string) => void;
+  disabled?: boolean;
+}) {
+  const [draft, setDraft] = useState(() => htmlToPlain(value));
+  const focusedRef = useRef(false);
+
+  useEffect(() => {
+    if (!focusedRef.current) {
+      setDraft(htmlToPlain(value));
+    }
+  }, [value]);
+
+  function handleChange(next: string) {
+    setDraft(next);
+    onChange(plainToHtml(next));
+  }
+
+  function handleBlur() {
+    focusedRef.current = false;
+    const html = plainToHtml(draft);
+    if (html !== value) {
+      onChange(html);
+    } else {
+      setDraft(htmlToPlain(value));
+    }
+  }
+
+  return (
+    <div>
+      <label className={authLabelClassName}>Content</label>
+      <textarea
+        className={`${authInputClassName} min-h-48`}
+        value={draft}
+        onChange={(event) => handleChange(event.target.value)}
+        onFocus={() => {
+          focusedRef.current = true;
+        }}
+        onBlur={handleBlur}
+        disabled={disabled}
+        placeholder="Write your story…"
+      />
+      <p className="mt-1 text-xs text-zinc-500">
+        Plain text is fine — we format it into paragraphs for you.
+      </p>
     </div>
   );
 }
@@ -889,30 +1051,30 @@ function ItemsEditor({
       </div>
       {normalized.map((item, index) => (
         <div
-          key={index}
+          key={`item-${index}`}
           className="space-y-2 rounded-xl border border-zinc-200 p-3"
         >
-          <input
-            className={authInputClassName}
+          <StableTextInput
             value={item.title}
             disabled={!canManage}
-            onChange={(event) => {
+            onChange={(title) => {
               const next = [...normalized];
-              next[index] = { ...next[index], title: event.target.value };
+              next[index] = { ...next[index], title };
               onChange(next);
             }}
             placeholder="Title"
           />
-          <textarea
-            className={`${authInputClassName} min-h-16`}
+          <StableTextInput
             value={item.description}
             disabled={!canManage}
-            onChange={(event) => {
+            onChange={(description) => {
               const next = [...normalized];
-              next[index] = { ...next[index], description: event.target.value };
+              next[index] = { ...next[index], description };
               onChange(next);
             }}
             placeholder="Description"
+            multiline
+            className={`${authInputClassName} min-h-16`}
           />
           {canManage ? (
             <button
