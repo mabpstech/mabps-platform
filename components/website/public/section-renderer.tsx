@@ -68,63 +68,12 @@ export function SectionRenderer({
     >
       <div className="mx-auto max-w-5xl">
         {section.type === "hero" ? (
-          <div className={`flex flex-col gap-4 ${align}`}>
-            {content.eyebrow ? (
-              <p
-                className="text-sm uppercase tracking-[0.18em]"
-                style={{ color: theme.mutedColor }}
-              >
-                {String(content.eyebrow)}
-              </p>
-            ) : null}
-            <h1
-              className="max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl"
-              style={{ fontFamily: theme.fontHeading }}
-            >
-              {String(content.heading ?? "")}
-            </h1>
-            {content.subheading ? (
-              <p
-                className="max-w-2xl text-lg"
-                style={{ color: theme.mutedColor }}
-              >
-                {String(content.subheading)}
-              </p>
-            ) : null}
-            <div className="mt-2 flex flex-wrap gap-3">
-              {content.primaryLabel ? (
-                <Link
-                  href={hrefWithBase(
-                    basePath,
-                    String(content.primaryHref || "/"),
-                  )}
-                  className="px-4 py-2 text-sm font-medium text-white"
-                  style={{
-                    background: theme.primaryColor,
-                    borderRadius: theme.borderRadius,
-                  }}
-                >
-                  {String(content.primaryLabel)}
-                </Link>
-              ) : null}
-              {content.secondaryLabel ? (
-                <Link
-                  href={hrefWithBase(
-                    basePath,
-                    String(content.secondaryHref || "/"),
-                  )}
-                  className="border px-4 py-2 text-sm font-medium"
-                  style={{
-                    borderColor: theme.primaryColor,
-                    color: theme.primaryColor,
-                    borderRadius: theme.borderRadius,
-                  }}
-                >
-                  {String(content.secondaryLabel)}
-                </Link>
-              ) : null}
-            </div>
-          </div>
+          <HeroBlock
+            content={content}
+            theme={theme}
+            basePath={basePath}
+            align={align}
+          />
         ) : null}
 
         {section.type === "richText" ? (
@@ -357,4 +306,142 @@ function asArray(value: unknown): Array<Record<string, unknown>> {
 
 function asStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.map(String) : [];
+}
+
+function HeroBlock({
+  content,
+  theme,
+  basePath,
+  align,
+}: {
+  content: Record<string, unknown>;
+  theme: WebsiteTheme;
+  basePath: string;
+  align: string;
+}) {
+  const desktopId =
+    (typeof content.desktopMediaId === "string" && content.desktopMediaId) ||
+    (typeof content.backgroundMediaId === "string" &&
+      content.backgroundMediaId) ||
+    null;
+  const mobileId =
+    typeof content.mobileMediaId === "string" ? content.mobileMediaId : null;
+  const videoUrl =
+    typeof content.backgroundVideoUrl === "string"
+      ? content.backgroundVideoUrl.trim()
+      : "";
+  const overlay = Math.min(80, Math.max(0, Number(content.overlay ?? 0)));
+  const heightClass =
+    content.height === "sm"
+      ? "min-h-[280px] py-12"
+      : content.height === "lg"
+        ? "min-h-[560px] py-24"
+        : content.height === "xl"
+          ? "min-h-[72vh] py-28"
+          : "min-h-[420px] py-16";
+  const animationClass =
+    content.animation === "rise"
+      ? "animate-[fadeRise_700ms_ease-out]"
+      : content.animation === "fade"
+        ? "animate-[fadeIn_700ms_ease-out]"
+        : "";
+  const hasMedia = Boolean(desktopId || mobileId || videoUrl);
+  const textColor = hasMedia ? "#ffffff" : theme.textColor;
+  const mutedColor = hasMedia ? "rgba(255,255,255,0.85)" : theme.mutedColor;
+
+  return (
+    <div
+      className={`relative overflow-hidden rounded-2xl ${heightClass}`}
+      style={{ borderRadius: theme.borderRadius }}
+    >
+      {videoUrl ? (
+        <video
+          className="absolute inset-0 h-full w-full object-cover"
+          autoPlay
+          muted
+          loop
+          playsInline
+          poster={desktopId ? mediaPublicUrl(desktopId) : undefined}
+        >
+          <source src={videoUrl} />
+        </video>
+      ) : null}
+      {desktopId ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={mediaPublicUrl(desktopId)}
+          alt=""
+          className={`absolute inset-0 h-full w-full object-cover ${mobileId ? "hidden sm:block" : ""}`}
+        />
+      ) : null}
+      {mobileId ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={mediaPublicUrl(mobileId)}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover sm:hidden"
+        />
+      ) : null}
+      {hasMedia && overlay > 0 ? (
+        <div
+          className="absolute inset-0"
+          style={{ background: `rgba(0,0,0,${overlay / 100})` }}
+        />
+      ) : null}
+      <div
+        className={`relative z-10 flex h-full flex-col justify-center gap-4 px-6 sm:px-10 ${align} ${animationClass}`}
+        style={{ color: textColor }}
+      >
+        {content.eyebrow ? (
+          <p
+            className="text-sm uppercase tracking-[0.18em]"
+            style={{ color: mutedColor }}
+          >
+            {String(content.eyebrow)}
+          </p>
+        ) : null}
+        <h1
+          className="max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl"
+          style={{ fontFamily: theme.fontHeading }}
+        >
+          {String(content.heading ?? "")}
+        </h1>
+        {content.subheading ? (
+          <p className="max-w-2xl text-lg" style={{ color: mutedColor }}>
+            {String(content.subheading)}
+          </p>
+        ) : null}
+        <div className="mt-2 flex flex-wrap gap-3">
+          {content.primaryLabel ? (
+            <Link
+              href={hrefWithBase(basePath, String(content.primaryHref || "/"))}
+              className="px-4 py-2 text-sm font-medium text-white"
+              style={{
+                background: theme.primaryColor,
+                borderRadius: theme.borderRadius,
+              }}
+            >
+              {String(content.primaryLabel)}
+            </Link>
+          ) : null}
+          {content.secondaryLabel ? (
+            <Link
+              href={hrefWithBase(
+                basePath,
+                String(content.secondaryHref || "/"),
+              )}
+              className="border px-4 py-2 text-sm font-medium"
+              style={{
+                borderColor: hasMedia ? "#ffffff" : theme.primaryColor,
+                color: hasMedia ? "#ffffff" : theme.primaryColor,
+                borderRadius: theme.borderRadius,
+              }}
+            >
+              {String(content.secondaryLabel)}
+            </Link>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
 }

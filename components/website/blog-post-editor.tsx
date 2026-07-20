@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   authButtonClassName,
-  authErrorClassName,
   authInputClassName,
   authLabelClassName,
   authSecondaryButtonClassName,
-  authSuccessClassName,
 } from "@/lib/auth/styles";
+import { MediaPicker } from "@/components/website/media-picker";
+import { StatusBadge } from "@/components/website/ui/empty-state";
+import { Toast } from "@/components/website/ui/toast";
 import type { WebsiteBlogPost } from "@/lib/website/types";
 
 export function BlogPostEditor({
@@ -24,15 +25,15 @@ export function BlogPostEditor({
 }) {
   const router = useRouter();
   const [form, setForm] = useState(post);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    tone: "success" | "error";
+  } | null>(null);
 
   async function save(status?: WebsiteBlogPost["status"]) {
     if (!canManage) return;
     setPending(true);
-    setError(null);
-    setMessage(null);
     try {
       const response = await fetch(
         `/api/website/sites/${siteId}/blog/${post.id}`,
@@ -58,10 +59,17 @@ export function BlogPostEditor({
       };
       if (!response.ok) throw new Error(data.error || "Unable to save post.");
       if (data.post) setForm(data.post);
-      setMessage(status === "published" ? "Post published." : "Post saved.");
+      setToast({
+        message:
+          status === "published" ? "Post published ✓" : "Post saved ✓",
+        tone: "success",
+      });
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save post.");
+      setToast({
+        message: err instanceof Error ? err.message : "Unable to save post.",
+        tone: "error",
+      });
     } finally {
       setPending(false);
     }
@@ -71,8 +79,12 @@ export function BlogPostEditor({
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-zinc-900">Edit post</h1>
-          <p className="mt-1 text-sm text-zinc-500">Status: {form.status}</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+            Edit post
+          </h1>
+          <div className="mt-2">
+            <StatusBadge status={form.status} />
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
@@ -86,7 +98,7 @@ export function BlogPostEditor({
               <button
                 type="button"
                 className={`${authSecondaryButtonClassName} !w-auto px-3`}
-                onClick={() => save("draft")}
+                onClick={() => void save("draft")}
                 disabled={pending}
               >
                 Save draft
@@ -94,7 +106,7 @@ export function BlogPostEditor({
               <button
                 type="button"
                 className={`${authButtonClassName} !w-auto px-4`}
-                onClick={() => save("published")}
+                onClick={() => void save("published")}
                 disabled={pending}
               >
                 {pending ? "Saving…" : "Publish"}
@@ -103,10 +115,8 @@ export function BlogPostEditor({
           ) : null}
         </div>
       </div>
-      {error ? <p className={authErrorClassName}>{error}</p> : null}
-      {message ? <p className={authSuccessClassName}>{message}</p> : null}
 
-      <div className="grid gap-4 rounded-xl border border-zinc-200 bg-white p-6">
+      <div className="grid gap-4 rounded-2xl border border-zinc-200 bg-white p-6">
         <div>
           <label className={authLabelClassName}>Title</label>
           <input
@@ -119,7 +129,7 @@ export function BlogPostEditor({
           />
         </div>
         <div>
-          <label className={authLabelClassName}>Slug</label>
+          <label className={authLabelClassName}>Post address</label>
           <input
             className={authInputClassName}
             value={form.slug}
@@ -130,7 +140,7 @@ export function BlogPostEditor({
           />
         </div>
         <div>
-          <label className={authLabelClassName}>Excerpt</label>
+          <label className={authLabelClassName}>Short summary</label>
           <textarea
             className={`${authInputClassName} min-h-20`}
             value={form.excerpt ?? ""}
@@ -146,7 +156,7 @@ export function BlogPostEditor({
         <div>
           <label className={authLabelClassName}>Content</label>
           <textarea
-            className={`${authInputClassName} min-h-64 font-mono text-sm`}
+            className={`${authInputClassName} min-h-64`}
             value={form.content}
             onChange={(event) =>
               setForm((current) => ({
@@ -172,22 +182,24 @@ export function BlogPostEditor({
               disabled={!canManage || pending}
             />
           </div>
-          <div>
-            <label className={authLabelClassName}>Cover media ID</label>
-            <input
-              className={authInputClassName}
-              value={form.coverMediaId ?? ""}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  coverMediaId: event.target.value || null,
-                }))
-              }
-              disabled={!canManage || pending}
-            />
-          </div>
+          <MediaPicker
+            siteId={siteId}
+            value={form.coverMediaId}
+            onChange={(coverMediaId) =>
+              setForm((current) => ({ ...current, coverMediaId }))
+            }
+            disabled={!canManage || pending}
+            label="Cover image"
+            hint="cover"
+          />
         </div>
       </div>
+
+      <Toast
+        message={toast?.message ?? null}
+        tone={toast?.tone ?? "info"}
+        onDismiss={() => setToast(null)}
+      />
     </div>
   );
 }

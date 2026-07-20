@@ -91,6 +91,13 @@ function rowToTheme(row: Record<string, unknown>): WebsiteTheme {
 }
 
 function rowToHeader(row: Record<string, unknown>): WebsiteHeader {
+  const extras = parseJson<{
+    logoSize?: "sm" | "md" | "lg";
+    announcementText?: string | null;
+    announcementEnabled?: boolean;
+    showSearch?: boolean;
+    showCart?: boolean;
+  }>(row.uxExtras, {});
   return {
     id: String(row.id),
     siteId: String(row.siteId),
@@ -103,6 +110,11 @@ function rowToHeader(row: Record<string, unknown>): WebsiteHeader {
     ctaLabel: row.ctaLabel ? String(row.ctaLabel) : null,
     ctaHref: row.ctaHref ? String(row.ctaHref) : null,
     ctaStyle: (row.ctaStyle as ButtonStyle) || "primary",
+    logoSize: extras.logoSize === "sm" || extras.logoSize === "lg" ? extras.logoSize : "md",
+    announcementText: extras.announcementText ?? null,
+    announcementEnabled: Boolean(extras.announcementEnabled),
+    showSearch: Boolean(extras.showSearch),
+    showCart: Boolean(extras.showCart),
     createdAt: String(row.createdAt),
     updatedAt: String(row.updatedAt),
   };
@@ -275,6 +287,18 @@ function rowToSubmission(row: Record<string, unknown>): WebsiteFormSubmission {
 
 export function ensureWebsiteReady(): void {
   migrateWebsiteSchema();
+  ensureWebsiteHeaderExtrasColumn();
+}
+
+function ensureWebsiteHeaderExtrasColumn(): void {
+  const columns = sqlite
+    .prepare(`PRAGMA table_info("website_header")`)
+    .all() as Array<{ name: string }>;
+  if (!columns.some((column) => column.name === "uxExtras")) {
+    sqlite.exec(
+      `ALTER TABLE "website_header" ADD COLUMN "uxExtras" text not null default '{}'`,
+    );
+  }
 }
 
 export function getSiteById(siteId: string): WebsiteSite | null {
@@ -781,12 +805,19 @@ export function updateHeader(
   if (!existing) throw new Error("Header not found.");
   const timestamp = nowIso();
   const next = { ...existing, ...input };
+  const uxExtras = JSON.stringify({
+    logoSize: next.logoSize ?? "md",
+    announcementText: next.announcementText ?? null,
+    announcementEnabled: Boolean(next.announcementEnabled),
+    showSearch: Boolean(next.showSearch),
+    showCart: Boolean(next.showCart),
+  });
   sqlite
     .prepare(
       `UPDATE "website_header" SET
         "logoText" = ?, "logoMediaId" = ?, "showLogo" = ?, "sticky" = ?,
         "backgroundColor" = ?, "textColor" = ?, "ctaLabel" = ?, "ctaHref" = ?,
-        "ctaStyle" = ?, "updatedAt" = ?
+        "ctaStyle" = ?, "uxExtras" = ?, "updatedAt" = ?
       WHERE "siteId" = ?`,
     )
     .run(
@@ -799,6 +830,7 @@ export function updateHeader(
       next.ctaLabel,
       next.ctaHref,
       next.ctaStyle,
+      uxExtras,
       timestamp,
       siteId,
     );

@@ -1,14 +1,14 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import {
-  authButtonClassName,
-  authErrorClassName,
   authInputClassName,
   authLabelClassName,
-  authSuccessClassName,
 } from "@/lib/auth/styles";
+import { MediaPicker } from "@/components/website/media-picker";
+import { SaveBar, type SaveState } from "@/components/website/ui/save-bar";
+import { Toast } from "@/components/website/ui/toast";
 import type { WebsiteSeo } from "@/lib/website/types";
 
 export function SeoEditor({
@@ -22,15 +22,25 @@ export function SeoEditor({
 }) {
   const router = useRouter();
   const [form, setForm] = useState(seo);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(Boolean(seo.jsonLd));
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [toast, setToast] = useState<{
+    message: string;
+    tone: "success" | "error";
+  } | null>(null);
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    if (!hydrated.current) {
+      hydrated.current = true;
+      return;
+    }
+    setSaveState((current) => (current === "saving" ? current : "dirty"));
+  }, [form]);
 
   async function save() {
     if (!canManage) return;
-    setPending(true);
-    setError(null);
-    setMessage(null);
+    setSaveState("saving");
     try {
       const response = await fetch(`/api/website/sites/${siteId}/seo`, {
         method: "PUT",
@@ -43,41 +53,43 @@ export function SeoEditor({
       };
       if (!response.ok) throw new Error(data.error || "Unable to save SEO.");
       if (data.seo) setForm(data.seo);
-      setMessage("SEO settings saved.");
+      setSaveState("saved");
+      setToast({ message: "Search settings saved ✓", tone: "success" });
       router.refresh();
+      window.setTimeout(() => {
+        setSaveState((current) => (current === "saved" ? "idle" : current));
+      }, 1600);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save SEO.");
-    } finally {
-      setPending(false);
+      setSaveState("error");
+      setToast({
+        message: err instanceof Error ? err.message : "Unable to save SEO.",
+        tone: "error",
+      });
     }
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-zinc-900">SEO settings</h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            Defaults for titles, descriptions, robots, and structured data.
-          </p>
-        </div>
-        {canManage ? (
-          <button
-            type="button"
-            className={`${authButtonClassName} !w-auto px-4`}
-            onClick={save}
-            disabled={pending}
-          >
-            {pending ? "Saving…" : "Save SEO"}
-          </button>
-        ) : null}
-      </div>
-      {error ? <p className={authErrorClassName}>{error}</p> : null}
-      {message ? <p className={authSuccessClassName}>{message}</p> : null}
+      {canManage ? (
+        <SaveBar
+          state={saveState}
+          onSave={() => void save()}
+          label="Save search settings"
+        />
+      ) : null}
 
-      <div className="grid gap-4 rounded-xl border border-zinc-200 bg-white p-6 sm:grid-cols-2">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+          Search & SEO
+        </h1>
+        <p className="mt-1 text-sm text-zinc-500">
+          Help customers find your website on Google and social media.
+        </p>
+      </div>
+
+      <div className="grid gap-4 rounded-2xl border border-zinc-200 bg-white p-6 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className={authLabelClassName}>Default title</label>
+          <label className={authLabelClassName}>Default page title</label>
           <input
             className={authInputClassName}
             value={form.defaultTitle ?? ""}
@@ -87,7 +99,8 @@ export function SeoEditor({
                 defaultTitle: event.target.value || null,
               }))
             }
-            disabled={!canManage || pending}
+            disabled={!canManage}
+            placeholder="Your Business | Tagline"
           />
         </div>
         <div className="sm:col-span-2">
@@ -101,25 +114,24 @@ export function SeoEditor({
                 defaultDescription: event.target.value || null,
               }))
             }
-            disabled={!canManage || pending}
+            disabled={!canManage}
+            placeholder="A short summary of what you offer"
           />
         </div>
-        <div>
-          <label className={authLabelClassName}>OG image media ID</label>
-          <input
-            className={authInputClassName}
-            value={form.ogImageMediaId ?? ""}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                ogImageMediaId: event.target.value || null,
-              }))
+        <div className="sm:col-span-2">
+          <MediaPicker
+            siteId={siteId}
+            value={form.ogImageMediaId}
+            onChange={(ogImageMediaId) =>
+              setForm((current) => ({ ...current, ogImageMediaId }))
             }
-            disabled={!canManage || pending}
+            disabled={!canManage}
+            label="Social share image"
+            hint="og"
           />
         </div>
         <div>
-          <label className={authLabelClassName}>Twitter handle</label>
+          <label className={authLabelClassName}>X / Twitter handle</label>
           <input
             className={authInputClassName}
             value={form.twitterHandle ?? ""}
@@ -129,22 +141,27 @@ export function SeoEditor({
                 twitterHandle: event.target.value || null,
               }))
             }
-            disabled={!canManage || pending}
+            disabled={!canManage}
+            placeholder="@yourbrand"
           />
         </div>
         <div>
-          <label className={authLabelClassName}>Robots</label>
-          <input
+          <label className={authLabelClassName}>Search engine visibility</label>
+          <select
             className={authInputClassName}
             value={form.robots}
             onChange={(event) =>
               setForm((current) => ({ ...current, robots: event.target.value }))
             }
-            disabled={!canManage || pending}
-          />
+            disabled={!canManage}
+          >
+            <option value="index,follow">Show in search results</option>
+            <option value="noindex,nofollow">Hide from search results</option>
+            <option value="index,nofollow">Show, but don’t follow links</option>
+          </select>
         </div>
-        <div>
-          <label className={authLabelClassName}>Canonical base URL</label>
+        <div className="sm:col-span-2">
+          <label className={authLabelClassName}>Preferred website URL</label>
           <input
             className={authInputClassName}
             value={form.canonicalBaseUrl ?? ""}
@@ -154,24 +171,46 @@ export function SeoEditor({
                 canonicalBaseUrl: event.target.value || null,
               }))
             }
-            disabled={!canManage || pending}
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <label className={authLabelClassName}>JSON-LD</label>
-          <textarea
-            className={`${authInputClassName} min-h-32 font-mono text-xs`}
-            value={form.jsonLd ?? ""}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                jsonLd: event.target.value || null,
-              }))
-            }
-            disabled={!canManage || pending}
+            disabled={!canManage}
+            placeholder="https://www.yourdomain.com"
           />
         </div>
       </div>
+
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+        <button
+          type="button"
+          className="text-sm font-medium text-zinc-700 hover:text-zinc-900"
+          onClick={() => setShowAdvanced((value) => !value)}
+        >
+          {showAdvanced ? "Hide advanced options" : "Show advanced options"}
+        </button>
+        {showAdvanced ? (
+          <div className="mt-4">
+            <label className={authLabelClassName}>
+              Structured data (optional)
+            </label>
+            <textarea
+              className={`${authInputClassName} min-h-32 font-mono text-xs`}
+              value={form.jsonLd ?? ""}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  jsonLd: event.target.value || null,
+                }))
+              }
+              disabled={!canManage}
+              placeholder="Paste JSON-LD only if your SEO specialist provided it"
+            />
+          </div>
+        ) : null}
+      </div>
+
+      <Toast
+        message={toast?.message ?? null}
+        tone={toast?.tone ?? "info"}
+        onDismiss={() => setToast(null)}
+      />
     </div>
   );
 }

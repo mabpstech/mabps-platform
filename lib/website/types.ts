@@ -95,6 +95,12 @@ export type WebsiteHeader = {
   ctaLabel: string | null;
   ctaHref: string | null;
   ctaStyle: ButtonStyle;
+  /** Optional UX extras — additive, backward compatible. */
+  logoSize?: "sm" | "md" | "lg";
+  announcementText?: string | null;
+  announcementEnabled?: boolean;
+  showSearch?: boolean;
+  showCart?: boolean;
   createdAt: string;
   updatedAt: string;
 };

@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS "website_header" (
   "ctaLabel" text,
   "ctaHref" text,
   "ctaStyle" text not null default 'primary',
+  "uxExtras" text not null default '{}',
   "createdAt" text not null,
   "updatedAt" text not null
 );

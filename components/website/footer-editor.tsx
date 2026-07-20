@@ -1,15 +1,20 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import {
   authButtonClassName,
-  authErrorClassName,
   authInputClassName,
   authLabelClassName,
-  authSuccessClassName,
+  authSecondaryButtonClassName,
 } from "@/lib/auth/styles";
-import type { WebsiteFooter } from "@/lib/website/types";
+import { SaveBar, type SaveState } from "@/components/website/ui/save-bar";
+import { Toast } from "@/components/website/ui/toast";
+import type {
+  FooterColumn,
+  FooterSocialLink,
+  WebsiteFooter,
+} from "@/lib/website/types";
 
 export function FooterEditor({
   siteId,
@@ -22,28 +27,29 @@ export function FooterEditor({
 }) {
   const router = useRouter();
   const [form, setForm] = useState(footer);
-  const [socialJson, setSocialJson] = useState(
-    JSON.stringify(footer.socialLinks, null, 2),
+  const [socialLinks, setSocialLinks] = useState<FooterSocialLink[]>(
+    footer.socialLinks,
   );
-  const [columnsJson, setColumnsJson] = useState(
-    JSON.stringify(footer.columns, null, 2),
-  );
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [columns, setColumns] = useState<FooterColumn[]>(footer.columns);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [toast, setToast] = useState<{
+    message: string;
+    tone: "success" | "error";
+  } | null>(null);
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    if (!hydrated.current) {
+      hydrated.current = true;
+      return;
+    }
+    setSaveState((current) => (current === "saving" ? current : "dirty"));
+  }, [form, socialLinks, columns]);
 
   async function save() {
     if (!canManage) return;
-    setPending(true);
-    setError(null);
-    setMessage(null);
+    setSaveState("saving");
     try {
-      const socialLinks = JSON.parse(socialJson);
-      const columns = JSON.parse(columnsJson);
-      if (!Array.isArray(socialLinks) || !Array.isArray(columns)) {
-        throw new Error("Social links and columns must be JSON arrays.");
-      }
-
       const response = await fetch(`/api/website/sites/${siteId}/footer`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -60,42 +66,40 @@ export function FooterEditor({
       if (!response.ok) throw new Error(data.error || "Unable to save footer.");
       if (data.footer) {
         setForm(data.footer);
-        setSocialJson(JSON.stringify(data.footer.socialLinks, null, 2));
-        setColumnsJson(JSON.stringify(data.footer.columns, null, 2));
+        setSocialLinks(data.footer.socialLinks);
+        setColumns(data.footer.columns);
       }
-      setMessage("Footer saved.");
+      setSaveState("saved");
+      setToast({ message: "Footer saved ✓", tone: "success" });
       router.refresh();
+      window.setTimeout(() => {
+        setSaveState((current) => (current === "saved" ? "idle" : current));
+      }, 1600);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save footer.");
-    } finally {
-      setPending(false);
+      setSaveState("error");
+      setToast({
+        message: err instanceof Error ? err.message : "Unable to save footer.",
+        tone: "error",
+      });
     }
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-zinc-900">Footer</h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            Copyright, social links, and footer columns.
-          </p>
-        </div>
-        {canManage ? (
-          <button
-            type="button"
-            className={`${authButtonClassName} !w-auto px-4`}
-            onClick={save}
-            disabled={pending}
-          >
-            {pending ? "Saving…" : "Save footer"}
-          </button>
-        ) : null}
-      </div>
-      {error ? <p className={authErrorClassName}>{error}</p> : null}
-      {message ? <p className={authSuccessClassName}>{message}</p> : null}
+      {canManage ? (
+        <SaveBar state={saveState} onSave={() => void save()} label="Save footer" />
+      ) : null}
 
-      <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+          Footer
+        </h1>
+        <p className="mt-1 text-sm text-zinc-500">
+          Copyright, social links, and helpful link columns.
+        </p>
+      </div>
+
+      <section className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-6">
         <div>
           <label className={authLabelClassName}>Copyright text</label>
           <input
@@ -107,7 +111,7 @@ export function FooterEditor({
                 copyrightText: event.target.value || null,
               }))
             }
-            disabled={!canManage || pending}
+            disabled={!canManage}
           />
         </div>
         <label className="flex items-center gap-2 text-sm text-zinc-700">
@@ -120,31 +124,215 @@ export function FooterEditor({
                 showSocial: event.target.checked,
               }))
             }
-            disabled={!canManage || pending}
+            disabled={!canManage}
           />
-          Show social links
+          Show social icons
         </label>
-        <div>
-          <label className={authLabelClassName}>
-            Social links JSON
-          </label>
-          <textarea
-            className={`${authInputClassName} min-h-28 font-mono text-xs`}
-            value={socialJson}
-            onChange={(event) => setSocialJson(event.target.value)}
-            disabled={!canManage || pending}
-          />
+      </section>
+
+      <section className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-zinc-900">Social links</h2>
+          {canManage ? (
+            <button
+              type="button"
+              className="text-xs font-medium text-zinc-600 hover:text-zinc-900"
+              onClick={() =>
+                setSocialLinks((current) => [
+                  ...current,
+                  { label: "Instagram", href: "https://" },
+                ])
+              }
+            >
+              Add link
+            </button>
+          ) : null}
         </div>
-        <div>
-          <label className={authLabelClassName}>Columns JSON</label>
-          <textarea
-            className={`${authInputClassName} min-h-40 font-mono text-xs`}
-            value={columnsJson}
-            onChange={(event) => setColumnsJson(event.target.value)}
-            disabled={!canManage || pending}
-          />
+        {socialLinks.length === 0 ? (
+          <p className="text-sm text-zinc-500">No social links yet.</p>
+        ) : (
+          socialLinks.map((link, index) => (
+            <div key={index} className="grid gap-2 sm:grid-cols-[1fr_1.4fr_auto]">
+              <input
+                className={authInputClassName}
+                value={link.label}
+                disabled={!canManage}
+                placeholder="Platform"
+                onChange={(event) => {
+                  const next = [...socialLinks];
+                  next[index] = { ...next[index], label: event.target.value };
+                  setSocialLinks(next);
+                }}
+              />
+              <input
+                className={authInputClassName}
+                value={link.href}
+                disabled={!canManage}
+                placeholder="https://"
+                onChange={(event) => {
+                  const next = [...socialLinks];
+                  next[index] = { ...next[index], href: event.target.value };
+                  setSocialLinks(next);
+                }}
+              />
+              {canManage ? (
+                <button
+                  type="button"
+                  className={`${authSecondaryButtonClassName} !w-auto px-3 text-red-700`}
+                  onClick={() =>
+                    setSocialLinks((current) =>
+                      current.filter((_, i) => i !== index),
+                    )
+                  }
+                >
+                  Remove
+                </button>
+              ) : null}
+            </div>
+          ))
+        )}
+      </section>
+
+      <section className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-zinc-900">Link columns</h2>
+          {canManage ? (
+            <button
+              type="button"
+              className="text-xs font-medium text-zinc-600 hover:text-zinc-900"
+              onClick={() =>
+                setColumns((current) => [
+                  ...current,
+                  {
+                    title: "Company",
+                    links: [{ label: "About", href: "/about" }],
+                  },
+                ])
+              }
+            >
+              Add column
+            </button>
+          ) : null}
         </div>
-      </div>
+        {columns.map((column, columnIndex) => (
+          <div
+            key={columnIndex}
+            className="space-y-3 rounded-xl border border-zinc-200 p-4"
+          >
+            <div className="flex items-center gap-2">
+              <input
+                className={authInputClassName}
+                value={column.title}
+                disabled={!canManage}
+                placeholder="Column title"
+                onChange={(event) => {
+                  const next = [...columns];
+                  next[columnIndex] = {
+                    ...next[columnIndex],
+                    title: event.target.value,
+                  };
+                  setColumns(next);
+                }}
+              />
+              {canManage ? (
+                <button
+                  type="button"
+                  className="text-xs text-red-600"
+                  onClick={() =>
+                    setColumns((current) =>
+                      current.filter((_, i) => i !== columnIndex),
+                    )
+                  }
+                >
+                  Remove column
+                </button>
+              ) : null}
+            </div>
+            {column.links.map((link, linkIndex) => (
+              <div
+                key={linkIndex}
+                className="grid gap-2 sm:grid-cols-[1fr_1.4fr_auto]"
+              >
+                <input
+                  className={authInputClassName}
+                  value={link.label}
+                  disabled={!canManage}
+                  placeholder="Link label"
+                  onChange={(event) => {
+                    const next = [...columns];
+                    const links = [...next[columnIndex].links];
+                    links[linkIndex] = {
+                      ...links[linkIndex],
+                      label: event.target.value,
+                    };
+                    next[columnIndex] = { ...next[columnIndex], links };
+                    setColumns(next);
+                  }}
+                />
+                <input
+                  className={authInputClassName}
+                  value={link.href}
+                  disabled={!canManage}
+                  placeholder="/page"
+                  onChange={(event) => {
+                    const next = [...columns];
+                    const links = [...next[columnIndex].links];
+                    links[linkIndex] = {
+                      ...links[linkIndex],
+                      href: event.target.value,
+                    };
+                    next[columnIndex] = { ...next[columnIndex], links };
+                    setColumns(next);
+                  }}
+                />
+                {canManage ? (
+                  <button
+                    type="button"
+                    className="text-xs text-red-600"
+                    onClick={() => {
+                      const next = [...columns];
+                      next[columnIndex] = {
+                        ...next[columnIndex],
+                        links: next[columnIndex].links.filter(
+                          (_, i) => i !== linkIndex,
+                        ),
+                      };
+                      setColumns(next);
+                    }}
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+            ))}
+            {canManage ? (
+              <button
+                type="button"
+                className={`${authButtonClassName} !w-auto px-3 py-1.5 text-xs`}
+                onClick={() => {
+                  const next = [...columns];
+                  next[columnIndex] = {
+                    ...next[columnIndex],
+                    links: [
+                      ...next[columnIndex].links,
+                      { label: "New link", href: "/" },
+                    ],
+                  };
+                  setColumns(next);
+                }}
+              >
+                Add link
+              </button>
+            ) : null}
+          </div>
+        ))}
+      </section>
+
+      <Toast
+        message={toast?.message ?? null}
+        tone={toast?.tone ?? "info"}
+        onDismiss={() => setToast(null)}
+      />
     </div>
   );
 }

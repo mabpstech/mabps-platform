@@ -122,9 +122,11 @@ export function NavigationEditor({
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-zinc-900">Navigation</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+            Menu
+          </h1>
           <p className="mt-1 text-sm text-zinc-500">
-            Drag to reorder menu items. Link to a page or custom href.
+            Drag to reorder. Link each item to a page or a custom URL.
           </p>
         </div>
         <div className="flex gap-2">
@@ -200,7 +202,7 @@ export function NavigationEditor({
                 />
               </div>
               <div>
-                <label className={authLabelClassName}>Href</label>
+                <label className={authLabelClassName}>Custom link</label>
                 <input
                   className={authInputClassName}
                   value={item.href}
@@ -214,10 +216,11 @@ export function NavigationEditor({
                     )
                   }
                   disabled={!canManage || pending}
+                  placeholder="/about"
                 />
               </div>
               <div>
-                <label className={authLabelClassName}>Page</label>
+                <label className={authLabelClassName}>Link to page</label>
                 <select
                   className={authInputClassName}
                   value={item.pageId}
@@ -232,7 +235,7 @@ export function NavigationEditor({
                   }
                   disabled={!canManage || pending}
                 >
-                  <option value="">Custom href</option>
+                  <option value="">Use custom link</option>
                   {pages.map((page) => (
                     <option key={page.id} value={page.id}>
                       {page.title}

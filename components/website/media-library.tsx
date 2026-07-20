@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   authButtonClassName,
-  authErrorClassName,
   authSecondaryButtonClassName,
-  authSuccessClassName,
 } from "@/lib/auth/styles";
+import { EmptyState } from "@/components/website/ui/empty-state";
+import { Toast } from "@/components/website/ui/toast";
 import type { WebsiteMedia } from "@/lib/website/types";
 
 export function MediaLibrary({
@@ -20,17 +20,16 @@ export function MediaLibrary({
   canManage: boolean;
 }) {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    tone: "success" | "error";
+  } | null>(null);
 
-  async function upload(event: React.ChangeEvent<HTMLInputElement>) {
+  async function uploadFile(file: File) {
     if (!canManage) return;
-    const file = event.target.files?.[0];
-    if (!file) return;
     setPending(true);
-    setError(null);
-    setMessage(null);
     try {
       const body = new FormData();
       body.append("file", file);
@@ -41,28 +40,34 @@ export function MediaLibrary({
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error || "Upload failed.");
-      setMessage("Upload complete.");
+      setToast({ message: "Upload complete ✓", tone: "success" });
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed.");
+      setToast({
+        message: err instanceof Error ? err.message : "Upload failed.",
+        tone: "error",
+      });
     } finally {
       setPending(false);
-      event.target.value = "";
     }
   }
 
   async function remove(mediaId: string) {
     if (!canManage) return;
-    if (!window.confirm("Delete this media file?")) return;
+    if (!window.confirm("Delete this file from your library?")) return;
     const response = await fetch(
       `/api/website/sites/${siteId}/media/${mediaId}`,
       { method: "DELETE" },
     );
     const data = (await response.json()) as { error?: string };
     if (!response.ok) {
-      setError(data.error || "Unable to delete media.");
+      setToast({
+        message: data.error || "Unable to delete media.",
+        tone: "error",
+      });
       return;
     }
+    setToast({ message: "File deleted.", tone: "success" });
     router.refresh();
   }
 
@@ -70,9 +75,11 @@ export function MediaLibrary({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-zinc-900">Media library</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+            Media
+          </h1>
           <p className="mt-1 text-sm text-zinc-500">
-            Upload images and files for pages, blog covers, and theme assets.
+            Upload logos, photos, and files for your pages and posts.
           </p>
         </div>
         {canManage ? (
@@ -81,7 +88,11 @@ export function MediaLibrary({
             <input
               type="file"
               className="hidden"
-              onChange={upload}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void uploadFile(file);
+                event.target.value = "";
+              }}
               disabled={pending}
               accept="image/*,application/pdf,video/mp4,video/webm"
             />
@@ -89,19 +100,45 @@ export function MediaLibrary({
         ) : null}
       </div>
 
-      {error ? <p className={authErrorClassName}>{error}</p> : null}
-      {message ? <p className={authSuccessClassName}>{message}</p> : null}
+      {canManage ? (
+        <div
+          onDragOver={(event) => {
+            event.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(event) => {
+            event.preventDefault();
+            setDragOver(false);
+            const file = event.dataTransfer.files?.[0];
+            if (file) void uploadFile(file);
+          }}
+          className={`rounded-2xl border border-dashed px-6 py-10 text-center transition ${
+            dragOver
+              ? "border-zinc-900 bg-zinc-50"
+              : "border-zinc-300 bg-white"
+          }`}
+        >
+          <p className="text-sm font-medium text-zinc-900">
+            Drag & drop files here
+          </p>
+          <p className="mt-1 text-xs text-zinc-500">
+            Logos 512×512 · Heroes 1920×1080 · Products 1200×1200
+          </p>
+        </div>
+      ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {media.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-zinc-300 p-8 text-sm text-zinc-500 sm:col-span-2 lg:col-span-3">
-            No media uploaded yet.
-          </div>
-        ) : (
-          media.map((item) => (
+      {media.length === 0 ? (
+        <EmptyState
+          title="Your media library is empty"
+          description="Upload images for logos, heroes, products, and blog covers. You’ll pick them visually — no technical IDs needed."
+        />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {media.map((item) => (
             <div
               key={item.id}
-              className="overflow-hidden rounded-xl border border-zinc-200 bg-white"
+              className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:shadow-md"
             >
               {item.mimeType.startsWith("image/") ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -112,15 +149,12 @@ export function MediaLibrary({
                 />
               ) : (
                 <div className="flex h-40 items-center justify-center bg-zinc-50 text-sm text-zinc-500">
-                  {item.mimeType}
+                  {item.mimeType.startsWith("video/") ? "Video" : "Document"}
                 </div>
               )}
               <div className="space-y-2 p-3">
                 <p className="truncate text-sm font-medium text-zinc-900">
                   {item.originalName}
-                </p>
-                <p className="truncate font-mono text-xs text-zinc-500">
-                  {item.id}
                 </p>
                 <p className="text-xs text-zinc-400">
                   {(item.sizeBytes / 1024).toFixed(1)} KB
@@ -138,7 +172,7 @@ export function MediaLibrary({
                     <button
                       type="button"
                       className={`${authSecondaryButtonClassName} !w-auto px-2 py-1 text-xs text-red-700`}
-                      onClick={() => remove(item.id)}
+                      onClick={() => void remove(item.id)}
                     >
                       Delete
                     </button>
@@ -146,9 +180,15 @@ export function MediaLibrary({
                 </div>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
+
+      <Toast
+        message={toast?.message ?? null}
+        tone={toast?.tone ?? "info"}
+        onDismiss={() => setToast(null)}
+      />
     </div>
   );
 }

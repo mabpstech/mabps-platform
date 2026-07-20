@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { mediaPublicUrl } from "@/lib/website/public";
 import type {
   WebsiteFooter,
@@ -12,6 +15,12 @@ function resolveHref(basePath: string, href: string | null): string {
   if (href.startsWith("http")) return href;
   const path = href.startsWith("/") ? href : `/${href}`;
   return `${basePath}${path}`;
+}
+
+function logoHeight(size?: WebsiteHeader["logoSize"]): string {
+  if (size === "sm") return "h-6";
+  if (size === "lg") return "h-12";
+  return "h-8";
 }
 
 export function SiteChrome({
@@ -31,6 +40,7 @@ export function SiteChrome({
   siteName: string;
   children: React.ReactNode;
 }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const headerBg = header.backgroundColor || theme.backgroundColor;
   const headerFg = header.textColor || theme.textColor;
   const footerBg = footer.backgroundColor || theme.secondaryColor;
@@ -46,6 +56,16 @@ export function SiteChrome({
       }}
     >
       {theme.customCss ? <style>{theme.customCss}</style> : null}
+
+      {header.announcementEnabled && header.announcementText ? (
+        <div
+          className="px-4 py-2 text-center text-xs font-medium text-white"
+          style={{ background: theme.primaryColor }}
+        >
+          {header.announcementText}
+        </div>
+      ) : null}
+
       <header
         className={header.sticky ? "sticky top-0 z-20 border-b" : "border-b"}
         style={{
@@ -58,12 +78,14 @@ export function SiteChrome({
           <div className="flex items-center gap-3">
             {header.showLogo ? (
               header.logoMediaId ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={mediaPublicUrl(header.logoMediaId)}
-                  alt={header.logoText || siteName}
-                  className="h-8 w-auto"
-                />
+                <Link href={basePath || "/"}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={mediaPublicUrl(header.logoMediaId)}
+                    alt={header.logoText || siteName}
+                    className={`${logoHeight(header.logoSize)} w-auto`}
+                  />
+                </Link>
               ) : (
                 <Link
                   href={basePath || "/"}
@@ -75,7 +97,8 @@ export function SiteChrome({
               )
             ) : null}
           </div>
-          <nav className="hidden items-center gap-4 text-sm md:flex">
+
+          <nav className="hidden items-center gap-5 text-sm md:flex">
             {navigation.map((item) => (
               <Link
                 key={item.id}
@@ -88,19 +111,74 @@ export function SiteChrome({
               </Link>
             ))}
           </nav>
-          {header.ctaLabel ? (
-            <Link
-              href={resolveHref(basePath, header.ctaHref)}
-              className="px-3 py-1.5 text-sm font-medium text-white"
-              style={{
-                background: theme.primaryColor,
-                borderRadius: theme.borderRadius,
-              }}
+
+          <div className="flex items-center gap-2">
+            {header.showSearch ? (
+              <span
+                className="hidden rounded-md border px-2 py-1 text-xs opacity-70 sm:inline"
+                title="Search"
+              >
+                Search
+              </span>
+            ) : null}
+            {header.showCart ? (
+              <span
+                className="hidden rounded-md border px-2 py-1 text-xs opacity-70 sm:inline"
+                title="Cart"
+              >
+                Cart
+              </span>
+            ) : null}
+            {header.ctaLabel ? (
+              <Link
+                href={resolveHref(basePath, header.ctaHref)}
+                className="hidden px-3 py-1.5 text-sm font-medium sm:inline-flex"
+                style={ctaStyle(header, theme)}
+              >
+                {header.ctaLabel}
+              </Link>
+            ) : null}
+            <button
+              type="button"
+              className="rounded-md border px-2.5 py-1.5 text-xs font-medium md:hidden"
+              style={{ borderColor: "rgba(0,0,0,0.12)", color: headerFg }}
+              onClick={() => setMobileOpen((open) => !open)}
+              aria-expanded={mobileOpen}
+              aria-label="Open menu"
             >
-              {header.ctaLabel}
-            </Link>
-          ) : null}
+              Menu
+            </button>
+          </div>
         </div>
+
+        {mobileOpen ? (
+          <div className="border-t px-6 py-4 md:hidden" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
+            <nav className="flex flex-col gap-3 text-sm">
+              {navigation.map((item) => (
+                <Link
+                  key={item.id}
+                  href={resolveHref(basePath, item.href)}
+                  target={item.openInNewTab ? "_blank" : undefined}
+                  rel={item.openInNewTab ? "noreferrer" : undefined}
+                  onClick={() => setMobileOpen(false)}
+                  className="opacity-90"
+                >
+                  {item.label}
+                </Link>
+              ))}
+              {header.ctaLabel ? (
+                <Link
+                  href={resolveHref(basePath, header.ctaHref)}
+                  onClick={() => setMobileOpen(false)}
+                  className="mt-1 inline-flex w-fit px-3 py-1.5 text-sm font-medium"
+                  style={ctaStyle(header, theme)}
+                >
+                  {header.ctaLabel}
+                </Link>
+              ) : null}
+            </nav>
+          </div>
+        ) : null}
       </header>
 
       <main>{children}</main>
@@ -147,4 +225,27 @@ export function SiteChrome({
       </footer>
     </div>
   );
+}
+
+function ctaStyle(header: WebsiteHeader, theme: WebsiteTheme) {
+  if (header.ctaStyle === "outline") {
+    return {
+      background: "transparent",
+      color: theme.primaryColor,
+      border: `1px solid ${theme.primaryColor}`,
+      borderRadius: theme.borderRadius,
+    };
+  }
+  if (header.ctaStyle === "secondary") {
+    return {
+      background: theme.secondaryColor,
+      color: "#fff",
+      borderRadius: theme.borderRadius,
+    };
+  }
+  return {
+    background: theme.primaryColor,
+    color: "#fff",
+    borderRadius: theme.borderRadius,
+  };
 }

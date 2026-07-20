@@ -10,7 +10,18 @@ import {
   authLabelClassName,
   authSecondaryButtonClassName,
 } from "@/lib/auth/styles";
+import { EmptyState, StatusBadge } from "@/components/website/ui/empty-state";
 import type { WebsitePage } from "@/lib/website/types";
+
+const PAGE_TYPE_LABELS: Record<string, string> = {
+  home: "Home",
+  about: "About",
+  contact: "Contact",
+  products: "Products",
+  collections: "Collections",
+  blog: "Blog",
+  custom: "Custom",
+};
 
 export function PagesManager({
   siteId,
@@ -72,9 +83,11 @@ export function PagesManager({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-zinc-900">Pages</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+          Pages
+        </h1>
         <p className="mt-1 text-sm text-zinc-500">
-          Home, About, Contact, Products, Collections, Blog, and custom pages.
+          Edit each page of your website. Start with Home for the best first impression.
         </p>
       </div>
 
@@ -83,16 +96,17 @@ export function PagesManager({
       {canManage ? (
         <form
           onSubmit={createPage}
-          className="flex flex-wrap items-end gap-3 rounded-xl border border-zinc-200 bg-white p-4"
+          className="flex flex-wrap items-end gap-3 rounded-2xl border border-zinc-200 bg-white p-5"
         >
           <div className="min-w-[16rem] flex-1">
-            <label className={authLabelClassName}>New page title</label>
+            <label className={authLabelClassName}>New page name</label>
             <input
               className={authInputClassName}
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               required
               disabled={pending}
+              placeholder="Services"
             />
           </div>
           <button
@@ -100,49 +114,60 @@ export function PagesManager({
             className={`${authButtonClassName} !w-auto px-4`}
             disabled={pending}
           >
-            {pending ? "Creating…" : "Create page"}
+            {pending ? "Creating…" : "Add page"}
           </button>
         </form>
       ) : null}
 
-      <div className="space-y-3">
-        {pages.map((page) => (
-          <div
-            key={page.id}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white p-4"
-          >
-            <div>
-              <Link
-                href={`/website/${siteId}/pages/${page.id}`}
-                className="font-medium text-zinc-900 hover:underline"
-              >
-                {page.title}
-              </Link>
-              <p className="mt-1 text-sm text-zinc-500">
-                /{page.slug === "home" ? "" : page.slug} · {page.pageType} ·{" "}
-                {page.status}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Link
-                href={`/website/${siteId}/pages/${page.id}`}
-                className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5`}
-              >
-                Open builder
-              </Link>
-              {canManage && page.pageType !== "home" ? (
-                <button
-                  type="button"
-                  className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5 text-red-700`}
-                  onClick={() => removePage(page.id)}
+      {pages.length === 0 ? (
+        <EmptyState
+          title="No pages yet"
+          description="Add your first page to start building your website."
+        />
+      ) : (
+        <div className="grid gap-3">
+          {pages.map((page) => (
+            <div
+              key={page.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white p-5 transition hover:shadow-sm"
+            >
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href={`/website/${siteId}/pages/${page.id}`}
+                    className="font-semibold text-zinc-900 hover:underline"
+                  >
+                    {page.title}
+                  </Link>
+                  <StatusBadge status={page.status} />
+                </div>
+                <p className="mt-1 text-sm text-zinc-500">
+                  {page.slug === "home" ? "Homepage" : `/${page.slug}`}
+                  {" · "}
+                  {PAGE_TYPE_LABELS[page.pageType] || page.pageType}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Link
+                  href={`/website/${siteId}/pages/${page.id}`}
+                  className={`${authButtonClassName} !w-auto px-3 py-1.5 text-xs`}
                 >
-                  Delete
-                </button>
-              ) : null}
+                  Edit
+                </Link>
+                {canManage && page.pageType !== "home" ? (
+                  <button
+                    type="button"
+                    className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5 text-xs text-red-700`}
+                    onClick={() => void removePage(page.id)}
+                  >
+                    Delete
+                  </button>
+                ) : null}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

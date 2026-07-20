@@ -70,6 +70,25 @@ export async function PUT(request: Request, context: RouteContext) {
             ? body.ctaHref
             : undefined,
       ctaStyle: isButtonStyle(body.ctaStyle) ? body.ctaStyle : undefined,
+      logoSize:
+        body.logoSize === "sm" ||
+        body.logoSize === "md" ||
+        body.logoSize === "lg"
+          ? body.logoSize
+          : undefined,
+      announcementText:
+        body.announcementText === null
+          ? null
+          : typeof body.announcementText === "string"
+            ? body.announcementText
+            : undefined,
+      announcementEnabled:
+        typeof body.announcementEnabled === "boolean"
+          ? body.announcementEnabled
+          : undefined,
+      showSearch:
+        typeof body.showSearch === "boolean" ? body.showSearch : undefined,
+      showCart: typeof body.showCart === "boolean" ? body.showCart : undefined,
     });
 
     return NextResponse.json({ header });
