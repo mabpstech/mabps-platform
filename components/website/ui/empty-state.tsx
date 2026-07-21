@@ -4,26 +4,32 @@ export function EmptyState({
   title,
   description,
   action,
+  icon,
 }: {
   title: string;
   description: string;
   action?: React.ReactNode;
+  icon?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 bg-gradient-to-b from-white to-zinc-50 px-6 py-16 text-center">
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-500">
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          aria-hidden
-        >
-          <rect x="3" y="4" width="18" height="14" rx="2" />
-          <path d="M3 10h18" />
-        </svg>
+      <div className="mb-5">
+        {icon ?? (
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-500">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              aria-hidden
+            >
+              <rect x="3" y="4" width="18" height="14" rx="2" />
+              <path d="M3 10h18" />
+            </svg>
+          </div>
+        )}
       </div>
       <h3 className="text-base font-semibold text-zinc-900">{title}</h3>
       <p className="mt-2 max-w-md text-sm leading-relaxed text-zinc-500">
