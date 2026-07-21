@@ -36,6 +36,9 @@ export function PagesManager({
   const [title, setTitle] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [selectedPageId, setSelectedPageId] = useState<string | null>(
+    () => pages[0]?.id ?? null,
+  );
 
   async function createPage(event: React.FormEvent) {
     event.preventDefault();
@@ -125,47 +128,70 @@ export function PagesManager({
           description="Add your first page to start building your website."
         />
       ) : (
-        <div className="grid gap-3">
-          {pages.map((page) => (
-            <div
-              key={page.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white p-5 transition hover:shadow-sm"
-            >
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
+        <div className="grid gap-2.5">
+          {pages.map((page) => {
+            const selected = selectedPageId === page.id;
+            return (
+              <div
+                key={page.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedPageId(page.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelectedPageId(page.id);
+                  }
+                }}
+                className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-2xl border border-zinc-200 border-l-4 py-4 pl-4 pr-5 transition ${
+                  selected
+                    ? "border-l-zinc-900 bg-zinc-50 shadow-sm"
+                    : "border-l-transparent bg-white hover:bg-zinc-50/70"
+                }`}
+              >
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <Link
+                      href={`/website/${siteId}/pages/${page.id}`}
+                      className={`truncate text-zinc-900 hover:underline ${
+                        selected ? "font-bold" : "font-semibold"
+                      }`}
+                      onClick={() => setSelectedPageId(page.id)}
+                    >
+                      {page.title}
+                    </Link>
+                    <StatusBadge status={page.status} />
+                  </div>
+                  <p className="text-sm leading-5 text-zinc-500">
+                    {page.slug === "home" ? "Homepage" : `/${page.slug}`}
+                    {" · "}
+                    {PAGE_TYPE_LABELS[page.pageType] || page.pageType}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
                   <Link
                     href={`/website/${siteId}/pages/${page.id}`}
-                    className="font-semibold text-zinc-900 hover:underline"
+                    className={`${authButtonClassName} !w-auto px-3 py-1.5 text-xs`}
+                    onClick={() => setSelectedPageId(page.id)}
                   >
-                    {page.title}
+                    Edit
                   </Link>
-                  <StatusBadge status={page.status} />
+                  {canManage && page.pageType !== "home" ? (
+                    <button
+                      type="button"
+                      className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5 text-xs text-red-700`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void removePage(page.id);
+                      }}
+                    >
+                      Delete
+                    </button>
+                  ) : null}
                 </div>
-                <p className="mt-1 text-sm text-zinc-500">
-                  {page.slug === "home" ? "Homepage" : `/${page.slug}`}
-                  {" · "}
-                  {PAGE_TYPE_LABELS[page.pageType] || page.pageType}
-                </p>
               </div>
-              <div className="flex gap-2">
-                <Link
-                  href={`/website/${siteId}/pages/${page.id}`}
-                  className={`${authButtonClassName} !w-auto px-3 py-1.5 text-xs`}
-                >
-                  Edit
-                </Link>
-                {canManage && page.pageType !== "home" ? (
-                  <button
-                    type="button"
-                    className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5 text-xs text-red-700`}
-                    onClick={() => void removePage(page.id)}
-                  >
-                    Delete
-                  </button>
-                ) : null}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

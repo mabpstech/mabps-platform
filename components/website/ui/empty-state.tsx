@@ -60,11 +60,11 @@ export function StatusBadge({
   const map: Record<string, { label: string; className: string }> = {
     draft: {
       label: "Draft",
-      className: "bg-amber-50 text-amber-800 ring-amber-200",
+      className: "bg-zinc-100 text-zinc-600 ring-zinc-200",
     },
     published: {
-      label: "Live",
-      className: "bg-emerald-50 text-emerald-800 ring-emerald-200",
+      label: "Published",
+      className: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     },
     unpublished: {
       label: "Unpublished",
