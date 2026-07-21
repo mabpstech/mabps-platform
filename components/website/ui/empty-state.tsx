@@ -61,20 +61,34 @@ export function LoadingSkeleton({ rows = 3 }: { rows?: number }) {
 export function StatusBadge({
   status,
 }: {
-  status: "draft" | "published" | "unpublished" | string;
+  status:
+    | "draft"
+    | "publishing"
+    | "published"
+    | "failed"
+    | "unpublished"
+    | string;
 }) {
   const map: Record<string, { label: string; className: string }> = {
     draft: {
       label: "Draft",
       className: "bg-zinc-100 text-zinc-600 ring-zinc-200",
     },
+    publishing: {
+      label: "Publishing...",
+      className: "bg-sky-50 text-sky-700 ring-sky-200",
+    },
     published: {
-      label: "Published",
+      label: "Live",
       className: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     },
+    failed: {
+      label: "Failed",
+      className: "bg-rose-50 text-rose-700 ring-rose-200",
+    },
     unpublished: {
-      label: "Unpublished",
-      className: "bg-zinc-100 text-zinc-700 ring-zinc-200",
+      label: "Draft",
+      className: "bg-zinc-100 text-zinc-600 ring-zinc-200",
     },
   };
   const item = map[status] ?? {
