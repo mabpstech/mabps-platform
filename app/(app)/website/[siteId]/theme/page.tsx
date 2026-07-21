@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ThemeEditor } from "@/components/website/theme-editor";
+import { ThemeStudio } from "@/components/website/theme/theme-studio";
 import { isWorkspaceManager } from "@/lib/auth/permissions";
 import { requireWebsiteWorkspace } from "@/lib/website/access";
 import { getSiteById, getThemeBySiteId } from "@/lib/website/repository";
@@ -16,9 +16,10 @@ export default async function SiteThemePage({ params }: PageProps) {
   if (!site || !theme || site.workspaceId !== workspace.id) notFound();
 
   return (
-    <ThemeEditor
+    <ThemeStudio
       siteId={siteId}
       theme={theme}
+      siteName={site.name}
       canManage={isWorkspaceManager(role)}
     />
   );

@@ -10,6 +10,11 @@ import {
 } from "@/lib/website/defaults";
 import { migrateWebsiteSchema } from "@/lib/website/migrate";
 import { mediaKindFromMime } from "@/lib/website/media-kind";
+import {
+  coreFieldsFromTokens,
+  normalizeThemeTokens,
+} from "@/lib/website/theme/normalize";
+import type { ThemeTokens } from "@/lib/website/theme/types";
 import type {
   BlogStatus,
   ButtonStyle,
@@ -75,9 +80,7 @@ function rowToSite(row: Record<string, unknown>): WebsiteSite {
 }
 
 function rowToTheme(row: Record<string, unknown>): WebsiteTheme {
-  return {
-    id: String(row.id),
-    siteId: String(row.siteId),
+  const legacy = {
     primaryColor: String(row.primaryColor),
     secondaryColor: String(row.secondaryColor),
     backgroundColor: String(row.backgroundColor),
@@ -89,7 +92,25 @@ function rowToTheme(row: Record<string, unknown>): WebsiteTheme {
     buttonStyle: row.buttonStyle as ButtonStyle,
     logoMediaId: row.logoMediaId ? String(row.logoMediaId) : null,
     faviconMediaId: row.faviconMediaId ? String(row.faviconMediaId) : null,
+  };
+  const tokens = normalizeThemeTokens(parseJson(row.tokens, {}), legacy);
+  const core = coreFieldsFromTokens(tokens);
+  return {
+    id: String(row.id),
+    siteId: String(row.siteId),
+    primaryColor: core.primaryColor,
+    secondaryColor: core.secondaryColor,
+    backgroundColor: core.backgroundColor,
+    textColor: core.textColor,
+    mutedColor: core.mutedColor,
+    fontHeading: core.fontHeading,
+    fontBody: core.fontBody,
+    borderRadius: core.borderRadius,
+    buttonStyle: core.buttonStyle,
+    logoMediaId: core.logoMediaId,
+    faviconMediaId: core.faviconMediaId,
     customCss: row.customCss ? String(row.customCss) : null,
+    tokens,
     createdAt: String(row.createdAt),
     updatedAt: String(row.updatedAt),
   };
@@ -314,6 +335,7 @@ function rowToSubmission(row: Record<string, unknown>): WebsiteFormSubmission {
 export function ensureWebsiteReady(): void {
   migrateWebsiteSchema();
   ensureWebsiteHeaderExtrasColumn();
+  ensureWebsiteThemeTokensColumn();
   ensureMediaDamColumns();
 }
 
@@ -324,6 +346,17 @@ function ensureWebsiteHeaderExtrasColumn(): void {
   if (!columns.some((column) => column.name === "uxExtras")) {
     sqlite.exec(
       `ALTER TABLE "website_header" ADD COLUMN "uxExtras" text not null default '{}'`,
+    );
+  }
+}
+
+function ensureWebsiteThemeTokensColumn(): void {
+  const columns = sqlite
+    .prepare(`PRAGMA table_info("website_theme")`)
+    .all() as Array<{ name: string }>;
+  if (!columns.some((column) => column.name === "tokens")) {
+    sqlite.exec(
+      `ALTER TABLE "website_theme" ADD COLUMN "tokens" text not null default '{}'`,
     );
   }
 }
@@ -423,9 +456,9 @@ function insertTheme(siteId: string, timestamp: string): WebsiteTheme {
       `INSERT INTO "website_theme" (
         "id", "siteId", "primaryColor", "secondaryColor", "backgroundColor",
         "textColor", "mutedColor", "fontHeading", "fontBody", "borderRadius",
-        "buttonStyle", "logoMediaId", "faviconMediaId", "customCss",
+        "buttonStyle", "logoMediaId", "faviconMediaId", "customCss", "tokens",
         "createdAt", "updatedAt"
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       id,
@@ -442,6 +475,7 @@ function insertTheme(siteId: string, timestamp: string): WebsiteTheme {
       DEFAULT_THEME.logoMediaId,
       DEFAULT_THEME.faviconMediaId,
       DEFAULT_THEME.customCss,
+      JSON.stringify(DEFAULT_THEME.tokens),
       timestamp,
       timestamp,
     );
@@ -821,29 +855,105 @@ export function updateTheme(
   if (!existing) throw new Error("Theme not found.");
 
   const timestamp = nowIso();
-  const next = { ...existing, ...input, updatedAt: timestamp };
+  let tokens: ThemeTokens = existing.tokens;
+
+  if (input.tokens) {
+    tokens = normalizeThemeTokens(input.tokens, {
+      primaryColor: existing.primaryColor,
+      secondaryColor: existing.secondaryColor,
+      backgroundColor: existing.backgroundColor,
+      textColor: existing.textColor,
+      mutedColor: existing.mutedColor,
+      fontHeading: existing.fontHeading,
+      fontBody: existing.fontBody,
+      borderRadius: existing.borderRadius,
+      buttonStyle: existing.buttonStyle,
+      logoMediaId: existing.logoMediaId,
+      faviconMediaId: existing.faviconMediaId,
+    });
+  } else {
+    // Keep tokens in sync when legacy core fields are patched (wizard, old clients).
+    const patched = { ...existing, ...input };
+    tokens = normalizeThemeTokens(
+      {
+        ...existing.tokens,
+        brand: {
+          ...existing.tokens.brand,
+          logoMediaId:
+            input.logoMediaId !== undefined
+              ? input.logoMediaId
+              : existing.tokens.brand.logoMediaId,
+          faviconMediaId:
+            input.faviconMediaId !== undefined
+              ? input.faviconMediaId
+              : existing.tokens.brand.faviconMediaId,
+        },
+        colors: {
+          ...existing.tokens.colors,
+          primary: patched.primaryColor,
+          secondary: patched.secondaryColor,
+          background: patched.backgroundColor,
+          textPrimary: patched.textColor,
+          muted: patched.mutedColor,
+        },
+        typography: {
+          ...existing.tokens.typography,
+          headingFont: patched.fontHeading,
+          bodyFont: patched.fontBody,
+        },
+        borders: {
+          ...existing.tokens.borders,
+          globalRadius: patched.borderRadius,
+        },
+        buttons: {
+          ...existing.tokens.buttons,
+          defaultVariant: patched.buttonStyle,
+        },
+        presetId: null,
+      },
+      {
+        primaryColor: patched.primaryColor,
+        secondaryColor: patched.secondaryColor,
+        backgroundColor: patched.backgroundColor,
+        textColor: patched.textColor,
+        mutedColor: patched.mutedColor,
+        fontHeading: patched.fontHeading,
+        fontBody: patched.fontBody,
+        borderRadius: patched.borderRadius,
+        buttonStyle: patched.buttonStyle,
+        logoMediaId: patched.logoMediaId,
+        faviconMediaId: patched.faviconMediaId,
+      },
+    );
+  }
+
+  const core = coreFieldsFromTokens(tokens);
+  const customCss =
+    input.customCss !== undefined ? input.customCss : existing.customCss;
+
   sqlite
     .prepare(
       `UPDATE "website_theme" SET
         "primaryColor" = ?, "secondaryColor" = ?, "backgroundColor" = ?,
         "textColor" = ?, "mutedColor" = ?, "fontHeading" = ?, "fontBody" = ?,
         "borderRadius" = ?, "buttonStyle" = ?, "logoMediaId" = ?,
-        "faviconMediaId" = ?, "customCss" = ?, "updatedAt" = ?
+        "faviconMediaId" = ?, "customCss" = ?, "tokens" = ?, "updatedAt" = ?
       WHERE "siteId" = ?`,
     )
     .run(
-      next.primaryColor,
-      next.secondaryColor,
-      next.backgroundColor,
-      next.textColor,
-      next.mutedColor,
-      next.fontHeading,
-      next.fontBody,
-      next.borderRadius,
-      next.buttonStyle,
-      next.logoMediaId,
-      next.faviconMediaId,
-      next.customCss,
+      core.primaryColor,
+      core.secondaryColor,
+      core.backgroundColor,
+      core.textColor,
+      core.mutedColor,
+      core.fontHeading,
+      core.fontBody,
+      core.borderRadius,
+      core.buttonStyle,
+      core.logoMediaId,
+      core.faviconMediaId,
+      customCss,
+      JSON.stringify(tokens),
       timestamp,
       siteId,
     );

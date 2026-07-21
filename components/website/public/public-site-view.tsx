@@ -66,6 +66,14 @@ export function PublicSiteView({
       {ogImageId ? (
         <meta property="og:image" content={mediaPublicUrl(ogImageId)} />
       ) : null}
+      {theme.faviconMediaId || theme.tokens.brand.faviconMediaId ? (
+        <link
+          rel="icon"
+          href={mediaPublicUrl(
+            theme.faviconMediaId || theme.tokens.brand.faviconMediaId!,
+          )}
+        />
+      ) : null}
       {seo.jsonLd ? (
         <script
           type="application/ld+json"

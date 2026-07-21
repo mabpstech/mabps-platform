@@ -148,7 +148,12 @@ export function PublicForm({
         type="submit"
         disabled={pending}
         className="px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-        style={{ background: primaryColor, borderRadius }}
+        style={{
+          background: `var(--site-color-primary, ${primaryColor})`,
+          borderRadius: `var(--site-radius-button, ${borderRadius})`,
+          fontFamily: "var(--site-font-button, inherit)",
+          boxShadow: "var(--site-shadow-button, none)",
+        }}
       >
         {pending ? "Sending…" : "Submit"}
       </button>

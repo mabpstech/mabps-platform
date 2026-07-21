@@ -17,6 +17,7 @@ const MEDIA_ID_KEYS = new Set([
   "backgroundMediaId",
   "logoMediaId",
   "faviconMediaId",
+  "brandImageMediaId",
   "ogImageMediaId",
   "seoOgImageMediaId",
   "coverMediaId",
@@ -77,6 +78,11 @@ export function findMediaUsages(siteId: string, mediaId: string): MediaUsageRef[
       kind: "theme",
       label: "Website favicon",
       field: "faviconMediaId",
+    });
+    pushUsage(usages, theme.tokens.brand.brandImageMediaId ?? "", mediaId, {
+      kind: "theme",
+      label: "Brand image",
+      field: "brandImageMediaId",
     });
   }
 

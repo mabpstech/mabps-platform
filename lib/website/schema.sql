@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS "website_theme" (
   "logoMediaId" text,
   "faviconMediaId" text,
   "customCss" text,
+  "tokens" text not null default '{}',
   "createdAt" text not null,
   "updatedAt" text not null
 );

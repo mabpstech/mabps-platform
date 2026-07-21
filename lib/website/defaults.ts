@@ -5,20 +5,25 @@ import type {
   PageType,
   SectionType,
 } from "@/lib/website/types";
+import { DEFAULT_THEME_TOKENS } from "@/lib/website/theme/defaults";
+import { coreFieldsFromTokens } from "@/lib/website/theme/normalize";
+
+const defaultCore = coreFieldsFromTokens(DEFAULT_THEME_TOKENS);
 
 export const DEFAULT_THEME = {
-  primaryColor: "#18181b",
-  secondaryColor: "#3f3f46",
-  backgroundColor: "#ffffff",
-  textColor: "#18181b",
-  mutedColor: "#71717a",
-  fontHeading: "Georgia, 'Times New Roman', serif",
-  fontBody: "ui-sans-serif, system-ui, sans-serif",
-  borderRadius: "0.5rem",
-  buttonStyle: "primary" as ButtonStyle,
+  primaryColor: defaultCore.primaryColor,
+  secondaryColor: defaultCore.secondaryColor,
+  backgroundColor: defaultCore.backgroundColor,
+  textColor: defaultCore.textColor,
+  mutedColor: defaultCore.mutedColor,
+  fontHeading: defaultCore.fontHeading,
+  fontBody: defaultCore.fontBody,
+  borderRadius: defaultCore.borderRadius,
+  buttonStyle: defaultCore.buttonStyle as ButtonStyle,
   logoMediaId: null as string | null,
   faviconMediaId: null as string | null,
   customCss: null as string | null,
+  tokens: DEFAULT_THEME_TOKENS,
 };
 
 export const DEFAULT_HEADER = {

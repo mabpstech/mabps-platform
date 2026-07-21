@@ -8,15 +8,15 @@ import {
   getThemeBySiteId,
   listSitesForWorkspace,
 } from "@/lib/website/repository";
+import { detectPresetId, getThemePreset, presetDisplayName } from "@/lib/website/theme";
 
-function themeDisplayName(primaryColor: string): string {
-  const map: Record<string, string> = {
-    "#18181b": "Ink",
-    "#0f4c5c": "Ocean",
-    "#9a3412": "Ember",
-    "#14532d": "Forest",
-  };
-  return map[primaryColor.toLowerCase()] || "Custom";
+function themeDisplayName(theme: NonNullable<ReturnType<typeof getThemeBySiteId>>): string {
+  const presetId = detectPresetId(theme.tokens) || theme.tokens.presetId;
+  if (presetId) {
+    const preset = getThemePreset(presetId);
+    if (preset) return preset.name;
+  }
+  return presetDisplayName(theme.primaryColor);
 }
 
 export default async function SitesPage() {
@@ -33,7 +33,7 @@ export default async function SitesPage() {
       logoMediaId: header?.logoMediaId ?? theme?.logoMediaId ?? null,
       logoText: header?.logoText ?? null,
       primaryColor: theme?.primaryColor ?? "#18181b",
-      themeName: theme ? themeDisplayName(theme.primaryColor) : "Custom",
+      themeName: theme ? themeDisplayName(theme) : "Custom",
     };
   });
   const limits = getWorkspaceLimits(workspace.id);

@@ -33,6 +33,8 @@ export type SectionType = (typeof SECTION_TYPES)[number];
 export const BUTTON_STYLES = ["primary", "secondary", "outline"] as const;
 export type ButtonStyle = (typeof BUTTON_STYLES)[number];
 
+export type { ThemeTokens } from "@/lib/website/theme/types";
+
 export const FORM_FIELD_TYPES = [
   "text",
   "email",
@@ -79,6 +81,8 @@ export type WebsiteTheme = {
   logoMediaId: string | null;
   faviconMediaId: string | null;
   customCss: string | null;
+  /** Extended Theme Studio design tokens. Always normalized on read. */
+  tokens: import("@/lib/website/theme/types").ThemeTokens;
   createdAt: string;
   updatedAt: string;
 };

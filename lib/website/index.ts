@@ -25,6 +25,14 @@ export { mediaPublicUrl } from "@/lib/website/media-url";
 export { mediaKindFromMime, formatBytes } from "@/lib/website/media-kind";
 export { findMediaUsages } from "@/lib/website/media-usage";
 export {
+  DEFAULT_THEME_TOKENS,
+  THEME_PRESETS,
+  presetDisplayName,
+  themeTokensToCssVars,
+  themeTokensToStyleTag,
+  validateThemeContrast,
+} from "@/lib/website/theme";
+export {
   listWorkspaceSites,
   createWorkspaceSite,
   updateWorkspaceSite,

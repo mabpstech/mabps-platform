@@ -9,6 +9,10 @@ import {
   authSecondaryButtonClassName,
 } from "@/lib/auth/styles";
 import { slugifyName } from "@/components/website/ui/labels";
+import {
+  LEGACY_WIZARD_PRESET_MAP,
+  getThemePreset,
+} from "@/lib/website/theme";
 import type { WebsiteSite } from "@/lib/website/types";
 
 const CATEGORIES = [
@@ -41,7 +45,7 @@ const TEMPLATES = [
 const THEMES = [
   {
     id: "ink",
-    label: "Ink",
+    label: "Minimal White",
     primaryColor: "#18181b",
     secondaryColor: "#3f3f46",
     backgroundColor: "#ffffff",
@@ -49,27 +53,27 @@ const THEMES = [
   },
   {
     id: "ocean",
-    label: "Ocean",
-    primaryColor: "#0f4c5c",
-    secondaryColor: "#1a6b7a",
-    backgroundColor: "#f7fbfc",
-    accent: "#0f4c5c",
+    label: "Modern Blue",
+    primaryColor: "#1d4ed8",
+    secondaryColor: "#1e3a8a",
+    backgroundColor: "#f8fafc",
+    accent: "#38bdf8",
   },
   {
     id: "ember",
-    label: "Ember",
+    label: "Restaurant Earth",
     primaryColor: "#9a3412",
-    secondaryColor: "#c2410c",
+    secondaryColor: "#7c2d12",
     backgroundColor: "#fffaf7",
-    accent: "#9a3412",
+    accent: "#ea580c",
   },
   {
     id: "forest",
-    label: "Forest",
-    primaryColor: "#14532d",
-    secondaryColor: "#166534",
+    label: "Nature Green",
+    primaryColor: "#166534",
+    secondaryColor: "#14532d",
     backgroundColor: "#f7fbf8",
-    accent: "#14532d",
+    accent: "#65a30d",
   },
 ] as const;
 
@@ -142,16 +146,22 @@ export function CreateSiteWizard({
         throw new Error(data.error || "Unable to create website.");
       }
 
+      const presetId = LEGACY_WIZARD_PRESET_MAP[selectedTheme.id];
+      const preset = presetId ? getThemePreset(presetId) : undefined;
       await fetch(`/api/website/sites/${data.site.id}/theme`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          primaryColor: selectedTheme.primaryColor,
-          secondaryColor: selectedTheme.secondaryColor,
-          backgroundColor: selectedTheme.backgroundColor,
-          textColor: "#18181b",
-          mutedColor: "#71717a",
-        }),
+        body: JSON.stringify(
+          preset
+            ? { tokens: preset.tokens }
+            : {
+                primaryColor: selectedTheme.primaryColor,
+                secondaryColor: selectedTheme.secondaryColor,
+                backgroundColor: selectedTheme.backgroundColor,
+                textColor: "#18181b",
+                mutedColor: "#71717a",
+              },
+        ),
       });
 
       await fetch(`/api/website/sites/${data.site.id}/header`, {

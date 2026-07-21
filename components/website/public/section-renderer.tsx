@@ -417,8 +417,10 @@ function HeroBlock({
               href={hrefWithBase(basePath, String(content.primaryHref || "/"))}
               className="px-4 py-2 text-sm font-medium text-white"
               style={{
-                background: theme.primaryColor,
-                borderRadius: theme.borderRadius,
+                background: "var(--site-color-primary, " + theme.primaryColor + ")",
+                borderRadius: "var(--site-radius-button, " + theme.borderRadius + ")",
+                fontFamily: "var(--site-font-button, " + theme.fontBody + ")",
+                boxShadow: "var(--site-shadow-button, none)",
               }}
             >
               {String(content.primaryLabel)}
@@ -432,9 +434,14 @@ function HeroBlock({
               )}
               className="border px-4 py-2 text-sm font-medium"
               style={{
-                borderColor: hasMedia ? "#ffffff" : theme.primaryColor,
-                color: hasMedia ? "#ffffff" : theme.primaryColor,
-                borderRadius: theme.borderRadius,
+                borderColor: hasMedia
+                  ? "#ffffff"
+                  : `var(--site-color-primary, ${theme.primaryColor})`,
+                color: hasMedia
+                  ? "#ffffff"
+                  : `var(--site-color-primary, ${theme.primaryColor})`,
+                borderRadius: `var(--site-radius-button, ${theme.borderRadius})`,
+                fontFamily: `var(--site-font-button, ${theme.fontBody})`,
               }}
             >
               {String(content.secondaryLabel)}

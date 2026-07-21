@@ -17,7 +17,7 @@ const GROUPS = [
   {
     title: "Design",
     links: [
-      { href: "/theme", label: "Theme" },
+      { href: "/theme", label: "Theme Studio" },
       { href: "/header", label: "Header" },
       { href: "/footer", label: "Footer" },
       { href: "/navigation", label: "Menu" },
