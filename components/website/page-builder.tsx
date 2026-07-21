@@ -687,6 +687,12 @@ function SectionInspector({
   );
 }
 
+const HERO_FIELD_LIMITS = {
+  eyebrow: 48,
+  heading: 80,
+  subheading: 160,
+} as const;
+
 function HeroInspector({
   siteId,
   content,
@@ -700,154 +706,338 @@ function HeroInspector({
   onChange: (key: string, value: unknown) => void;
   onRemove: () => void;
 }) {
+  const desktopMediaId =
+    typeof content.desktopMediaId === "string"
+      ? content.desktopMediaId
+      : typeof content.backgroundMediaId === "string"
+        ? content.backgroundMediaId
+        : null;
+  const mobileMediaId =
+    typeof content.mobileMediaId === "string" ? content.mobileMediaId : null;
+  const previewMediaId = desktopMediaId ?? mobileMediaId;
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <InspectorHeading type="hero" />
-      <Field
-        label="Small label"
-        value={String(content.eyebrow ?? "")}
-        onChange={(value) => onChange("eyebrow", value)}
-        disabled={!canManage}
-      />
-      <Field
-        label="Headline"
-        value={String(content.heading ?? "")}
-        onChange={(value) => onChange("heading", value)}
-        disabled={!canManage}
-      />
-      <Field
-        label="Supporting text"
-        value={String(content.subheading ?? "")}
-        onChange={(value) => onChange("subheading", value)}
-        disabled={!canManage}
-        multiline
-      />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          label="Primary button text"
-          value={String(content.primaryLabel ?? "")}
-          onChange={(value) => onChange("primaryLabel", value)}
+      <HeroEditorCard
+        title="Content"
+        description="The message visitors see first."
+        defaultOpen
+      >
+        <HeroField
+          label="Small label"
+          value={String(content.eyebrow ?? "")}
+          onChange={(value) => onChange("eyebrow", value)}
           disabled={!canManage}
+          helper="Short label above the headline."
+          maxLength={HERO_FIELD_LIMITS.eyebrow}
         />
-        <Field
-          label="Primary button link"
-          value={String(content.primaryHref ?? "")}
-          onChange={(value) => onChange("primaryHref", value)}
+        <HeroField
+          label="Headline"
+          value={String(content.heading ?? "")}
+          onChange={(value) => onChange("heading", value)}
           disabled={!canManage}
-          placeholder="/contact"
+          helper="Main message visitors see first."
+          maxLength={HERO_FIELD_LIMITS.heading}
         />
-        <Field
-          label="Secondary button text"
-          value={String(content.secondaryLabel ?? "")}
-          onChange={(value) => onChange("secondaryLabel", value)}
+        <HeroField
+          label="Supporting text"
+          value={String(content.subheading ?? "")}
+          onChange={(value) => onChange("subheading", value)}
           disabled={!canManage}
+          helper="One or two sentences that clarify your offer."
+          maxLength={HERO_FIELD_LIMITS.subheading}
+          multiline
         />
-        <Field
-          label="Secondary button link"
-          value={String(content.secondaryHref ?? "")}
-          onChange={(value) => onChange("secondaryHref", value)}
-          disabled={!canManage}
-          placeholder="/about"
-        />
-      </div>
+      </HeroEditorCard>
 
-      <MediaPicker
-        siteId={siteId}
-        value={
-          typeof content.desktopMediaId === "string"
-            ? content.desktopMediaId
-            : typeof content.backgroundMediaId === "string"
-              ? content.backgroundMediaId
-              : null
-        }
-        onChange={(mediaId) => {
-          onChange("desktopMediaId", mediaId);
-          onChange("backgroundMediaId", mediaId);
-        }}
-        disabled={!canManage}
-        label="Desktop / background image"
-        hint="hero"
-      />
-      <MediaPicker
-        siteId={siteId}
-        value={
-          typeof content.mobileMediaId === "string"
-            ? content.mobileMediaId
-            : null
-        }
-        onChange={(mediaId) => onChange("mobileMediaId", mediaId)}
-        disabled={!canManage}
-        label="Mobile image"
-        hint="banner"
-      />
-      <Field
-        label="Background video URL"
-        value={String(content.backgroundVideoUrl ?? "")}
-        onChange={(value) => onChange("backgroundVideoUrl", value)}
-        disabled={!canManage}
-        placeholder="https://…"
-      />
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className={authLabelClassName}>Text alignment</label>
-          <select
-            className={authInputClassName}
-            value={String(content.align ?? "center")}
-            onChange={(event) => onChange("align", event.target.value)}
+      <HeroEditorCard
+        title="Buttons"
+        description="Primary and secondary calls to action."
+        defaultOpen
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <HeroField
+            label="Primary button text"
+            value={String(content.primaryLabel ?? "")}
+            onChange={(value) => onChange("primaryLabel", value)}
             disabled={!canManage}
-          >
-            <option value="left">Left</option>
-            <option value="center">Center</option>
-            <option value="right">Right</option>
-          </select>
-        </div>
-        <div>
-          <label className={authLabelClassName}>Section height</label>
-          <select
-            className={authInputClassName}
-            value={String(content.height ?? "md")}
-            onChange={(event) => onChange("height", event.target.value)}
-            disabled={!canManage}
-          >
-            <option value="sm">Compact</option>
-            <option value="md">Standard</option>
-            <option value="lg">Tall</option>
-            <option value="xl">Full impact</option>
-          </select>
-        </div>
-        <div>
-          <label className={authLabelClassName}>Dark overlay</label>
-          <input
-            type="range"
-            min={0}
-            max={80}
-            value={Number(content.overlay ?? 40)}
-            onChange={(event) => onChange("overlay", Number(event.target.value))}
-            disabled={!canManage}
-            className="mt-3 w-full"
+            helper="Main action label, e.g. Get started."
           />
-          <p className="mt-1 text-xs text-zinc-500">
-            {Number(content.overlay ?? 40)}% — improves text readability on images
+          <HeroField
+            label="Primary button link"
+            value={String(content.primaryHref ?? "")}
+            onChange={(value) => onChange("primaryHref", value)}
+            disabled={!canManage}
+            placeholder="/contact"
+            helper="Where the primary button should go."
+          />
+          <HeroField
+            label="Secondary button text"
+            value={String(content.secondaryLabel ?? "")}
+            onChange={(value) => onChange("secondaryLabel", value)}
+            disabled={!canManage}
+            helper="Optional secondary action."
+          />
+          <HeroField
+            label="Secondary button link"
+            value={String(content.secondaryHref ?? "")}
+            onChange={(value) => onChange("secondaryHref", value)}
+            disabled={!canManage}
+            placeholder="/about"
+            helper="Where the secondary button should go."
+          />
+        </div>
+      </HeroEditorCard>
+
+      <HeroEditorCard
+        title="Background"
+        description="Imagery and video behind your hero content."
+        defaultOpen
+      >
+        {previewMediaId ? (
+          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/api/website/media/file/${previewMediaId}`}
+              alt=""
+              className="h-28 w-full object-cover"
+            />
+            <p className="border-t border-zinc-200 bg-white px-3 py-2 text-[11px] text-zinc-500">
+              Live preview · {desktopMediaId ? "Desktop" : "Mobile"} image
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/60 px-3 py-6 text-center text-[11px] text-zinc-500">
+            Select a background image to see a live thumbnail here.
+          </div>
+        )}
+
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50/40 p-3.5">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+            Desktop
+          </p>
+          <MediaPicker
+            siteId={siteId}
+            value={desktopMediaId}
+            onChange={(mediaId) => {
+              onChange("desktopMediaId", mediaId);
+              onChange("backgroundMediaId", mediaId);
+            }}
+            disabled={!canManage}
+            label="Desktop background image"
+            hint="hero"
+          />
+          <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+            Wide image for laptop and desktop screens.
           </p>
         </div>
-        <div>
-          <label className={authLabelClassName}>Animation</label>
-          <select
-            className={authInputClassName}
-            value={String(content.animation ?? "fade")}
-            onChange={(event) => onChange("animation", event.target.value)}
+
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50/40 p-3.5">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+            Mobile
+          </p>
+          <MediaPicker
+            siteId={siteId}
+            value={mobileMediaId}
+            onChange={(mediaId) => onChange("mobileMediaId", mediaId)}
             disabled={!canManage}
-          >
-            <option value="none">None</option>
-            <option value="fade">Fade in</option>
-            <option value="rise">Rise up</option>
-          </select>
+            label="Mobile background image"
+            hint="banner"
+          />
+          <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+            Optional taller crop optimized for phones. Falls back to desktop if empty.
+          </p>
         </div>
-      </div>
+
+        <HeroField
+          label="Background video URL"
+          value={String(content.backgroundVideoUrl ?? "")}
+          onChange={(value) => onChange("backgroundVideoUrl", value)}
+          disabled={!canManage}
+          placeholder="https://…"
+          helper="Optional. When set, video plays behind the content on supported devices."
+        />
+      </HeroEditorCard>
+
+      <HeroEditorCard
+        title="Layout"
+        description="Alignment, height, overlay, and entrance motion."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className={authLabelClassName}>Text alignment</label>
+            <select
+              className={authInputClassName}
+              value={String(content.align ?? "center")}
+              onChange={(event) => onChange("align", event.target.value)}
+              disabled={!canManage}
+            >
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </select>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-zinc-500">
+              How headline and buttons align on the banner.
+            </p>
+          </div>
+          <div>
+            <label className={authLabelClassName}>Section height</label>
+            <select
+              className={authInputClassName}
+              value={String(content.height ?? "md")}
+              onChange={(event) => onChange("height", event.target.value)}
+              disabled={!canManage}
+            >
+              <option value="sm">Compact</option>
+              <option value="md">Standard</option>
+              <option value="lg">Tall</option>
+              <option value="xl">Full impact</option>
+            </select>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-zinc-500">
+              Controls vertical presence of the hero.
+            </p>
+          </div>
+          <div>
+            <label className={authLabelClassName}>Dark overlay</label>
+            <input
+              type="range"
+              min={0}
+              max={80}
+              value={Number(content.overlay ?? 40)}
+              onChange={(event) =>
+                onChange("overlay", Number(event.target.value))
+              }
+              disabled={!canManage}
+              className="mt-3 w-full"
+            />
+            <p className="mt-1.5 text-[11px] leading-relaxed text-zinc-500">
+              {Number(content.overlay ?? 40)}% — improves text readability on
+              images.
+            </p>
+          </div>
+          <div>
+            <label className={authLabelClassName}>Animation</label>
+            <select
+              className={authInputClassName}
+              value={String(content.animation ?? "fade")}
+              onChange={(event) => onChange("animation", event.target.value)}
+              disabled={!canManage}
+            >
+              <option value="none">None</option>
+              <option value="fade">Fade in</option>
+              <option value="rise">Rise up</option>
+            </select>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-zinc-500">
+              Subtle entrance motion when the section appears.
+            </p>
+          </div>
+        </div>
+      </HeroEditorCard>
 
       <RemoveButton canManage={canManage} onRemove={onRemove} />
+    </div>
+  );
+}
+
+function HeroEditorCard({
+  title,
+  description,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  description?: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition hover:bg-zinc-50/80"
+        aria-expanded={open}
+      >
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold tracking-tight text-zinc-900">
+            {title}
+          </h3>
+          {description ? (
+            <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-500">
+              {description}
+            </p>
+          ) : null}
+        </div>
+        <span
+          className={`shrink-0 text-xs text-zinc-400 transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+          aria-hidden
+        >
+          ▾
+        </span>
+      </button>
+      {open ? (
+        <div className="space-y-4 border-t border-zinc-100 px-4 pb-4 pt-3.5">
+          {children}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function HeroField({
+  label,
+  value,
+  onChange,
+  disabled,
+  placeholder,
+  multiline,
+  helper,
+  maxLength,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  multiline?: boolean;
+  helper?: string;
+  maxLength?: number;
+}) {
+  const count = value.length;
+  const over = maxLength != null && count > maxLength;
+
+  return (
+    <div>
+      <div className="mb-1.5 flex items-baseline justify-between gap-3">
+        <label className={`${authLabelClassName} !mb-0`}>{label}</label>
+        {maxLength != null ? (
+          <span
+            className={`text-[11px] tabular-nums ${
+              over ? "font-medium text-amber-600" : "text-zinc-400"
+            }`}
+          >
+            {count}/{maxLength}
+          </span>
+        ) : null}
+      </div>
+      <StableTextInput
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        placeholder={placeholder}
+        multiline={multiline}
+      />
+      {helper ? (
+        <p className="mt-1.5 text-[11px] leading-relaxed text-zinc-500">
+          {helper}
+        </p>
+      ) : null}
     </div>
   );
 }
