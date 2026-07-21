@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type DragEvent,
 } from "react";
 import {
   authButtonClassName,
@@ -123,6 +124,10 @@ export function PageBuilder({
     initialSections[0]?.id ?? null,
   );
   const [dragId, setDragId] = useState<string | null>(null);
+  const [dropIndicator, setDropIndicator] = useState<{
+    targetId: string;
+    position: "before" | "after";
+  } | null>(null);
   const [addType, setAddType] = useState<SectionType>("hero");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [toast, setToast] = useState<{
@@ -280,15 +285,52 @@ export function PageBuilder({
     return () => window.clearTimeout(timer);
   }, [title, slug, seoTitle, seoDescription, sections, canManage, saveAll]);
 
-  function reorder(fromId: string, toId: string) {
+  function reorder(
+    fromId: string,
+    targetId: string,
+    position: "before" | "after" = "before",
+  ) {
     setSections((current) => {
       const fromIndex = current.findIndex((item) => item.clientKey === fromId);
-      const toIndex = current.findIndex((item) => item.clientKey === toId);
-      if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return current;
+      let toIndex = current.findIndex((item) => item.clientKey === targetId);
+      if (fromIndex < 0 || toIndex < 0) return current;
+      if (fromId === targetId) return current;
+
       const next = [...current];
       const [moved] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, moved);
+      if (fromIndex < toIndex) toIndex -= 1;
+      const insertIndex = position === "before" ? toIndex : toIndex + 1;
+      next.splice(insertIndex, 0, moved);
       return next.map((item, index) => ({ ...item, sortOrder: index }));
+    });
+  }
+
+  function clearDragState() {
+    setDragId(null);
+    setDropIndicator(null);
+  }
+
+  function handleSectionDragOver(
+    event: DragEvent<HTMLLIElement>,
+    clientKey: string,
+  ) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    if (!dragId || dragId === clientKey) {
+      setDropIndicator(null);
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const position =
+      event.clientY < rect.top + rect.height / 2 ? "before" : "after";
+    setDropIndicator((current) => {
+      if (
+        current?.targetId === clientKey &&
+        current.position === position
+      ) {
+        return current;
+      }
+      return { targetId: clientKey, position };
     });
   }
 
@@ -323,12 +365,53 @@ export function PageBuilder({
     setSelectedId(clientKey);
   }
 
+  function duplicateSection(clientKey: string) {
+    setSections((current) => {
+      const index = current.findIndex((item) => item.clientKey === clientKey);
+      if (index < 0) return current;
+      const source = current[index];
+      const newKey = `new-${crypto.randomUUID()}`;
+      const copy: DraftSection = {
+        ...source,
+        id: newKey,
+        clientKey: newKey,
+        content: structuredClone(source.content),
+        settings: { ...source.settings },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const next = [...current];
+      next.splice(index + 1, 0, copy);
+      return next.map((item, i) => ({ ...item, sortOrder: i }));
+    });
+  }
+
+  function toggleSectionHidden(clientKey: string) {
+    setSections((current) =>
+      current.map((section) =>
+        section.clientKey === clientKey
+          ? {
+              ...section,
+              settings: {
+                ...section.settings,
+                hidden: !section.settings.hidden,
+              },
+            }
+          : section,
+      ),
+    );
+  }
+
+  function deleteSection(clientKey: string) {
+    setSections((current) =>
+      current.filter((section) => section.clientKey !== clientKey),
+    );
+    setSelectedId((current) => (current === clientKey ? null : current));
+  }
+
   function removeSelected() {
     if (!selected) return;
-    setSections((current) =>
-      current.filter((section) => section.clientKey !== selected.clientKey),
-    );
-    setSelectedId(null);
+    deleteSection(selected.clientKey);
   }
 
   return (
@@ -412,7 +495,7 @@ export function PageBuilder({
         <aside className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-3">
           <div className="space-y-2 px-1">
             <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-              Sections
+              Sections ({sections.length})
             </p>
             <select
               className={authInputClassName}
@@ -442,25 +525,81 @@ export function PageBuilder({
           <ul className="space-y-1.5">
             {sections.map((section, index) => {
               const active = selectedId === section.clientKey;
+              const hidden = Boolean(section.settings.hidden);
+              const isDragging = dragId === section.clientKey;
+              const showBefore =
+                dropIndicator?.targetId === section.clientKey &&
+                dropIndicator.position === "before";
+              const showAfter =
+                dropIndicator?.targetId === section.clientKey &&
+                dropIndicator.position === "after";
+
               return (
                 <li
                   key={section.clientKey}
                   draggable={canManage}
-                  onDragStart={() => setDragId(section.clientKey)}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={() => {
-                    if (dragId) reorder(dragId, section.clientKey);
-                    setDragId(null);
+                  onDragStart={(event) => {
+                    event.dataTransfer.effectAllowed = "move";
+                    event.dataTransfer.setData("text/plain", section.clientKey);
+                    setDragId(section.clientKey);
                   }}
+                  onDragOver={(event) =>
+                    handleSectionDragOver(event, section.clientKey)
+                  }
+                  onDragLeave={(event) => {
+                    if (
+                      !event.currentTarget.contains(
+                        event.relatedTarget as Node | null,
+                      )
+                    ) {
+                      setDropIndicator((current) =>
+                        current?.targetId === section.clientKey
+                          ? null
+                          : current,
+                      );
+                    }
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    if (dragId && dropIndicator) {
+                      reorder(
+                        dragId,
+                        dropIndicator.targetId,
+                        dropIndicator.position,
+                      );
+                    } else if (dragId) {
+                      reorder(dragId, section.clientKey, "before");
+                    }
+                    clearDragState();
+                  }}
+                  onDragEnd={clearDragState}
                   onClick={() => setSelectedId(section.clientKey)}
-                  className={`cursor-pointer rounded-xl border px-3 py-3 transition ${
-                    active
-                      ? "border-zinc-900 bg-zinc-900 text-white shadow-sm"
-                      : "border-transparent bg-zinc-50 text-zinc-900 hover:border-zinc-200 hover:bg-white"
-                  }`}
+                  className={`group relative cursor-pointer rounded-xl border px-3 py-3 transition-[transform,box-shadow,border-color,background-color,opacity,color] duration-100 ease-out ${
+                    isDragging
+                      ? "z-10 scale-[1.02] border-zinc-300 bg-white opacity-90 shadow-[0_10px_28px_rgba(15,23,42,0.14)]"
+                      : active
+                        ? "border-zinc-900 bg-zinc-900 text-white shadow-sm"
+                        : "border-transparent bg-zinc-50 text-zinc-900 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-white hover:shadow-sm"
+                  } ${hidden && !isDragging ? "opacity-50" : ""}`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
+                  <div
+                    aria-hidden
+                    className={`pointer-events-none absolute inset-x-3 -top-1 h-0.5 rounded-full bg-zinc-900 transition-all duration-150 ease-out ${
+                      showBefore
+                        ? "scale-x-100 opacity-100"
+                        : "scale-x-50 opacity-0"
+                    }`}
+                  />
+                  <div
+                    aria-hidden
+                    className={`pointer-events-none absolute inset-x-3 -bottom-1 h-0.5 rounded-full bg-zinc-900 transition-all duration-150 ease-out ${
+                      showAfter
+                        ? "scale-x-100 opacity-100"
+                        : "scale-x-50 opacity-0"
+                    }`}
+                  />
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
                       <p className="text-[11px] uppercase tracking-wide opacity-60">
                         {index + 1}
                       </p>
@@ -476,11 +615,45 @@ export function PageBuilder({
                             "Empty section",
                         )}
                       </p>
+                      {hidden ? (
+                        <p
+                          className={`mt-1 text-[11px] font-medium ${active ? "text-zinc-300" : "text-zinc-500"}`}
+                        >
+                          👁 Hidden
+                        </p>
+                      ) : null}
                     </div>
-                    <span className={`text-xs ${active ? "text-zinc-400" : "text-zinc-300"}`}>
+                    <span
+                      className={`mt-0.5 shrink-0 text-xs ${active ? "text-zinc-400" : "text-zinc-300"}`}
+                      aria-hidden
+                    >
                       ⋮⋮
                     </span>
                   </div>
+                  {canManage ? (
+                    <div
+                      className="mt-2 flex flex-wrap gap-1"
+                      onClick={(event) => event.stopPropagation()}
+                      onMouseDown={(event) => event.stopPropagation()}
+                    >
+                      <SectionQuickAction
+                        active={active}
+                        label="Duplicate"
+                        onClick={() => duplicateSection(section.clientKey)}
+                      />
+                      <SectionQuickAction
+                        active={active}
+                        label={hidden ? "Show" : "Hide"}
+                        onClick={() => toggleSectionHidden(section.clientKey)}
+                      />
+                      <SectionQuickAction
+                        active={active}
+                        label="Delete"
+                        danger
+                        onClick={() => deleteSection(section.clientKey)}
+                      />
+                    </div>
+                  ) : null}
                 </li>
               );
             })}
@@ -1275,6 +1448,36 @@ function ItemsEditor({
         </div>
       ))}
     </div>
+  );
+}
+
+function SectionQuickAction({
+  label,
+  onClick,
+  active,
+  danger = false,
+}: {
+  label: string;
+  onClick: () => void;
+  active: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-colors duration-100 ${
+        danger
+          ? active
+            ? "text-red-300 hover:bg-white/10 hover:text-red-200"
+            : "text-red-600 hover:bg-red-50"
+          : active
+            ? "text-zinc-300 hover:bg-white/10 hover:text-white"
+            : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
