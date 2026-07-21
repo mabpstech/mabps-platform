@@ -206,6 +206,38 @@ export type WebsiteBlogPost = {
   updatedAt: string;
 };
 
+export type MediaVariantSize = "thumbnail" | "medium" | "large" | "original";
+
+export type MediaVariant = {
+  storagePath: string;
+  width: number;
+  height: number;
+  sizeBytes: number;
+  mimeType: string;
+};
+
+export type MediaVariants = Partial<Record<MediaVariantSize, MediaVariant>>;
+
+export type MediaKind =
+  | "image"
+  | "video"
+  | "audio"
+  | "document"
+  | "svg"
+  | "icon"
+  | "other";
+
+export type WebsiteMediaFolder = {
+  id: string;
+  workspaceId: string;
+  siteId: string;
+  name: string;
+  parentId: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type WebsiteMedia = {
   id: string;
   workspaceId: string;
@@ -218,8 +250,47 @@ export type WebsiteMedia = {
   height: number | null;
   alt: string | null;
   storagePath: string;
+  folderId: string | null;
+  favorited: boolean;
+  lastUsedAt: string | null;
+  uploadedByUserId: string | null;
+  uploadedByName: string | null;
+  variants: MediaVariants;
   createdAt: string;
   updatedAt: string;
+};
+
+export type MediaUsageRef = {
+  kind:
+    | "website"
+    | "hero"
+    | "product"
+    | "page"
+    | "blog"
+    | "email"
+    | "ai"
+    | "crm"
+    | "theme"
+    | "header"
+    | "seo"
+    | "section";
+  label: string;
+  field: string;
+  pageId?: string;
+  pageTitle?: string;
+  postId?: string;
+  postTitle?: string;
+};
+
+export type MediaListQuery = {
+  q?: string;
+  kind?: MediaKind | "all";
+  folderId?: string | null | "unfiled";
+  favorited?: boolean;
+  recent?: "uploaded" | "used";
+  sort?: "newest" | "oldest" | "name" | "size" | "used";
+  limit?: number;
+  offset?: number;
 };
 
 export type WebsiteForm = {

@@ -9,6 +9,7 @@ import {
   slugify,
 } from "@/lib/website/defaults";
 import { migrateWebsiteSchema } from "@/lib/website/migrate";
+import { mediaKindFromMime } from "@/lib/website/media-kind";
 import type {
   BlogStatus,
   ButtonStyle,
@@ -16,6 +17,9 @@ import type {
   FooterSocialLink,
   FormFieldType,
   FormStatus,
+  MediaKind,
+  MediaListQuery,
+  MediaVariants,
   PageStatus,
   PageType,
   SectionSettings,
@@ -29,6 +33,7 @@ import type {
   WebsiteFormWithFields,
   WebsiteHeader,
   WebsiteMedia,
+  WebsiteMediaFolder,
   WebsiteNavItem,
   WebsitePage,
   WebsiteSection,
@@ -235,6 +240,27 @@ function rowToMedia(row: Record<string, unknown>): WebsiteMedia {
     height: row.height == null ? null : Number(row.height),
     alt: row.alt ? String(row.alt) : null,
     storagePath: String(row.storagePath),
+    folderId: row.folderId ? String(row.folderId) : null,
+    favorited: Number(row.favorited ?? 0) === 1,
+    lastUsedAt: row.lastUsedAt ? String(row.lastUsedAt) : null,
+    uploadedByUserId: row.uploadedByUserId
+      ? String(row.uploadedByUserId)
+      : null,
+    uploadedByName: row.uploadedByName ? String(row.uploadedByName) : null,
+    variants: parseJson<MediaVariants>(row.variants, {}),
+    createdAt: String(row.createdAt),
+    updatedAt: String(row.updatedAt),
+  };
+}
+
+function rowToMediaFolder(row: Record<string, unknown>): WebsiteMediaFolder {
+  return {
+    id: String(row.id),
+    workspaceId: String(row.workspaceId),
+    siteId: String(row.siteId),
+    name: String(row.name),
+    parentId: row.parentId ? String(row.parentId) : null,
+    sortOrder: Number(row.sortOrder ?? 0),
     createdAt: String(row.createdAt),
     updatedAt: String(row.updatedAt),
   };
@@ -288,6 +314,7 @@ function rowToSubmission(row: Record<string, unknown>): WebsiteFormSubmission {
 export function ensureWebsiteReady(): void {
   migrateWebsiteSchema();
   ensureWebsiteHeaderExtrasColumn();
+  ensureMediaDamColumns();
 }
 
 function ensureWebsiteHeaderExtrasColumn(): void {
@@ -298,6 +325,41 @@ function ensureWebsiteHeaderExtrasColumn(): void {
     sqlite.exec(
       `ALTER TABLE "website_header" ADD COLUMN "uxExtras" text not null default '{}'`,
     );
+  }
+}
+
+function ensureMediaDamColumns(): void {
+  const columns = sqlite
+    .prepare(`PRAGMA table_info("website_media")`)
+    .all() as Array<{ name: string }>;
+  const names = new Set(columns.map((column) => column.name));
+  const alters: string[] = [];
+  if (!names.has("folderId")) {
+    alters.push(`ALTER TABLE "website_media" ADD COLUMN "folderId" text`);
+  }
+  if (!names.has("favorited")) {
+    alters.push(
+      `ALTER TABLE "website_media" ADD COLUMN "favorited" integer not null default 0`,
+    );
+  }
+  if (!names.has("lastUsedAt")) {
+    alters.push(`ALTER TABLE "website_media" ADD COLUMN "lastUsedAt" text`);
+  }
+  if (!names.has("uploadedByUserId")) {
+    alters.push(
+      `ALTER TABLE "website_media" ADD COLUMN "uploadedByUserId" text`,
+    );
+  }
+  if (!names.has("uploadedByName")) {
+    alters.push(`ALTER TABLE "website_media" ADD COLUMN "uploadedByName" text`);
+  }
+  if (!names.has("variants")) {
+    alters.push(
+      `ALTER TABLE "website_media" ADD COLUMN "variants" text not null default '{}'`,
+    );
+  }
+  for (const statement of alters) {
+    sqlite.exec(statement);
   }
 }
 
@@ -1460,14 +1522,77 @@ export function deleteBlogPost(postId: string): void {
   sqlite.prepare(`DELETE FROM "website_blog_post" WHERE "id" = ?`).run(postId);
 }
 
-export function listMedia(siteId: string): WebsiteMedia[] {
+export function listMedia(
+  siteId: string,
+  query: MediaListQuery = {},
+): WebsiteMedia[] {
   ensureWebsiteReady();
   const rows = sqlite
     .prepare(
       `SELECT * FROM "website_media" WHERE "siteId" = ? ORDER BY "createdAt" DESC`,
     )
     .all(siteId) as Record<string, unknown>[];
-  return rows.map(rowToMedia);
+  let media = rows.map(rowToMedia);
+
+  if (query.folderId === "unfiled") {
+    media = media.filter((item) => !item.folderId);
+  } else if (query.folderId) {
+    media = media.filter((item) => item.folderId === query.folderId);
+  }
+
+  if (query.favorited) {
+    media = media.filter((item) => item.favorited);
+  }
+
+  if (query.kind && query.kind !== "all") {
+    media = media.filter(
+      (item) => mediaKindFromMime(item.mimeType, item.originalName) === query.kind,
+    );
+  }
+
+  if (query.q?.trim()) {
+    const q = query.q.trim().toLowerCase();
+    media = media.filter(
+      (item) =>
+        item.originalName.toLowerCase().includes(q) ||
+        (item.alt || "").toLowerCase().includes(q) ||
+        item.mimeType.toLowerCase().includes(q),
+    );
+  }
+
+  const sort = query.sort ?? (query.recent === "used" ? "used" : "newest");
+  media = [...media].sort((a, b) => {
+    if (sort === "oldest") {
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    }
+    if (sort === "name") {
+      return a.originalName.localeCompare(b.originalName);
+    }
+    if (sort === "size") {
+      return b.sizeBytes - a.sizeBytes;
+    }
+    if (sort === "used" || query.recent === "used") {
+      const aUsed = a.lastUsedAt ? new Date(a.lastUsedAt).getTime() : 0;
+      const bUsed = b.lastUsedAt ? new Date(b.lastUsedAt).getTime() : 0;
+      return bUsed - aUsed;
+    }
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
+  const offset = Math.max(0, query.offset ?? 0);
+  const limit = query.limit && query.limit > 0 ? query.limit : undefined;
+  if (limit != null) {
+    return media.slice(offset, offset + limit);
+  }
+  if (offset > 0) {
+    return media.slice(offset);
+  }
+  return media;
+}
+
+export function countMedia(siteId: string, query: MediaListQuery = {}): number {
+  return listMedia(siteId, { ...query, limit: undefined, offset: undefined })
+    .length;
 }
 
 export function getMediaById(mediaId: string): WebsiteMedia | null {
@@ -1499,6 +1624,10 @@ export function createMedia(input: {
   alt?: string | null;
   width?: number | null;
   height?: number | null;
+  folderId?: string | null;
+  uploadedByUserId?: string | null;
+  uploadedByName?: string | null;
+  variants?: MediaVariants;
 }): WebsiteMedia {
   ensureWebsiteReady();
   const timestamp = nowIso();
@@ -1508,8 +1637,9 @@ export function createMedia(input: {
       `INSERT INTO "website_media" (
         "id", "workspaceId", "siteId", "filename", "originalName", "mimeType",
         "sizeBytes", "width", "height", "alt", "storagePath",
-        "createdAt", "updatedAt"
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        "folderId", "favorited", "lastUsedAt", "uploadedByUserId", "uploadedByName",
+        "variants", "createdAt", "updatedAt"
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, null, ?, ?, ?, ?, ?)`,
     )
     .run(
       id,
@@ -1523,6 +1653,10 @@ export function createMedia(input: {
       input.height ?? null,
       input.alt ?? null,
       input.storagePath,
+      input.folderId ?? null,
+      input.uploadedByUserId ?? null,
+      input.uploadedByName ?? null,
+      JSON.stringify(input.variants ?? {}),
       timestamp,
       timestamp,
     );
@@ -1531,7 +1665,20 @@ export function createMedia(input: {
 
 export function updateMedia(
   mediaId: string,
-  input: Partial<{ alt: string | null }>,
+  input: Partial<{
+    alt: string | null;
+    originalName: string;
+    folderId: string | null;
+    favorited: boolean;
+    lastUsedAt: string | null;
+    width: number | null;
+    height: number | null;
+    sizeBytes: number;
+    mimeType: string;
+    filename: string;
+    storagePath: string;
+    variants: MediaVariants;
+  }>,
 ): WebsiteMedia {
   ensureWebsiteReady();
   const existing = getMediaById(mediaId);
@@ -1539,14 +1686,57 @@ export function updateMedia(
   const timestamp = nowIso();
   sqlite
     .prepare(
-      `UPDATE "website_media" SET "alt" = ?, "updatedAt" = ? WHERE "id" = ?`,
+      `UPDATE "website_media" SET
+        "alt" = ?,
+        "originalName" = ?,
+        "folderId" = ?,
+        "favorited" = ?,
+        "lastUsedAt" = ?,
+        "width" = ?,
+        "height" = ?,
+        "sizeBytes" = ?,
+        "mimeType" = ?,
+        "filename" = ?,
+        "storagePath" = ?,
+        "variants" = ?,
+        "updatedAt" = ?
+      WHERE "id" = ?`,
     )
     .run(
       input.alt === undefined ? existing.alt : input.alt,
+      input.originalName === undefined
+        ? existing.originalName
+        : input.originalName,
+      input.folderId === undefined ? existing.folderId : input.folderId,
+      input.favorited === undefined
+        ? existing.favorited
+          ? 1
+          : 0
+        : input.favorited
+          ? 1
+          : 0,
+      input.lastUsedAt === undefined ? existing.lastUsedAt : input.lastUsedAt,
+      input.width === undefined ? existing.width : input.width,
+      input.height === undefined ? existing.height : input.height,
+      input.sizeBytes === undefined ? existing.sizeBytes : input.sizeBytes,
+      input.mimeType === undefined ? existing.mimeType : input.mimeType,
+      input.filename === undefined ? existing.filename : input.filename,
+      input.storagePath === undefined
+        ? existing.storagePath
+        : input.storagePath,
+      JSON.stringify(
+        input.variants === undefined ? existing.variants : input.variants,
+      ),
       timestamp,
       mediaId,
     );
   return getMediaById(mediaId)!;
+}
+
+export function markMediaUsed(mediaId: string): WebsiteMedia | null {
+  const existing = getMediaById(mediaId);
+  if (!existing) return null;
+  return updateMedia(mediaId, { lastUsedAt: nowIso() });
 }
 
 export function deleteMedia(mediaId: string): WebsiteMedia {
@@ -1555,6 +1745,120 @@ export function deleteMedia(mediaId: string): WebsiteMedia {
   if (!existing) throw new Error("Media not found.");
   sqlite.prepare(`DELETE FROM "website_media" WHERE "id" = ?`).run(mediaId);
   return existing;
+}
+
+export function listMediaFolders(siteId: string): WebsiteMediaFolder[] {
+  ensureWebsiteReady();
+  const rows = sqlite
+    .prepare(
+      `SELECT * FROM "website_media_folder" WHERE "siteId" = ? ORDER BY "sortOrder" ASC, "name" ASC`,
+    )
+    .all(siteId) as Record<string, unknown>[];
+  return rows.map(rowToMediaFolder);
+}
+
+export function getMediaFolderById(
+  folderId: string,
+): WebsiteMediaFolder | null {
+  ensureWebsiteReady();
+  const row = sqlite
+    .prepare(`SELECT * FROM "website_media_folder" WHERE "id" = ?`)
+    .get(folderId) as Record<string, unknown> | undefined;
+  return row ? rowToMediaFolder(row) : null;
+}
+
+export function createMediaFolder(input: {
+  workspaceId: string;
+  siteId: string;
+  name: string;
+  parentId?: string | null;
+}): WebsiteMediaFolder {
+  ensureWebsiteReady();
+  const timestamp = nowIso();
+  const id = randomUUID();
+  const maxOrder = sqlite
+    .prepare(
+      `SELECT COALESCE(MAX("sortOrder"), 0) as maxOrder FROM "website_media_folder" WHERE "siteId" = ?`,
+    )
+    .get(input.siteId) as { maxOrder: number };
+  sqlite
+    .prepare(
+      `INSERT INTO "website_media_folder" (
+        "id", "workspaceId", "siteId", "name", "parentId", "sortOrder", "createdAt", "updatedAt"
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      id,
+      input.workspaceId,
+      input.siteId,
+      input.name.trim(),
+      input.parentId ?? null,
+      Number(maxOrder.maxOrder ?? 0) + 1,
+      timestamp,
+      timestamp,
+    );
+  return getMediaFolderById(id)!;
+}
+
+export function updateMediaFolder(
+  folderId: string,
+  input: Partial<{ name: string; parentId: string | null; sortOrder: number }>,
+): WebsiteMediaFolder {
+  ensureWebsiteReady();
+  const existing = getMediaFolderById(folderId);
+  if (!existing) throw new Error("Folder not found.");
+  const timestamp = nowIso();
+  sqlite
+    .prepare(
+      `UPDATE "website_media_folder" SET "name" = ?, "parentId" = ?, "sortOrder" = ?, "updatedAt" = ? WHERE "id" = ?`,
+    )
+    .run(
+      input.name === undefined ? existing.name : input.name.trim(),
+      input.parentId === undefined ? existing.parentId : input.parentId,
+      input.sortOrder === undefined ? existing.sortOrder : input.sortOrder,
+      timestamp,
+      folderId,
+    );
+  return getMediaFolderById(folderId)!;
+}
+
+export function deleteMediaFolder(folderId: string): WebsiteMediaFolder {
+  ensureWebsiteReady();
+  const existing = getMediaFolderById(folderId);
+  if (!existing) throw new Error("Folder not found.");
+  sqlite
+    .prepare(
+      `UPDATE "website_media" SET "folderId" = null, "updatedAt" = ? WHERE "folderId" = ?`,
+    )
+    .run(nowIso(), folderId);
+  sqlite
+    .prepare(`DELETE FROM "website_media_folder" WHERE "id" = ?`)
+    .run(folderId);
+  return existing;
+}
+
+export function seedDefaultMediaFolders(
+  workspaceId: string,
+  siteId: string,
+): WebsiteMediaFolder[] {
+  const existing = listMediaFolders(siteId);
+  if (existing.length > 0) return existing;
+  const defaults = [
+    "Logos",
+    "Hero Images",
+    "Products",
+    "Blog",
+    "Documents",
+    "Videos",
+    "Social Media",
+  ];
+  return defaults.map((name) =>
+    createMediaFolder({ workspaceId, siteId, name }),
+  );
+}
+
+export function mediaKind(media: WebsiteMedia): MediaKind {
+  return mediaKindFromMime(media.mimeType, media.originalName);
 }
 
 export function listForms(siteId: string): WebsiteForm[] {

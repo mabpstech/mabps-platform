@@ -9,6 +9,7 @@ import {
   getMediaById,
   getSiteById,
 } from "@/lib/website/repository";
+import type { MediaVariantSize } from "@/lib/website/types";
 
 type RouteContext = {
   params: Promise<{ mediaId: string }>;
@@ -18,8 +19,9 @@ type RouteContext = {
  * Public media file serving for published sites and authenticated previews.
  * Access is granted when the parent site is published, or when the caller
  * has a valid session for the site's owning workspace.
+ * Optional ?size=thumbnail|medium|large|original serves responsive variants.
  */
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   try {
     ensureWebsiteReady();
     const { mediaId } = await context.params;
@@ -52,14 +54,30 @@ export async function GET(_request: Request, context: RouteContext) {
       }
     }
 
-    const buffer = await readMediaFile(media.storagePath);
+    const url = new URL(request.url);
+    const sizeParam = url.searchParams.get("size") as MediaVariantSize | null;
+    let storagePath = media.storagePath;
+    let mimeType = media.mimeType;
+
+    if (sizeParam && sizeParam !== "original") {
+      const variant = media.variants?.[sizeParam];
+      if (variant?.storagePath) {
+        storagePath = variant.storagePath;
+        mimeType = variant.mimeType || mimeType;
+      } else if (media.variants?.thumbnail?.storagePath && sizeParam === "medium") {
+        storagePath = media.variants.thumbnail.storagePath;
+        mimeType = media.variants.thumbnail.mimeType || mimeType;
+      }
+    }
+
+    const buffer = await readMediaFile(storagePath);
     if (!buffer) {
       return NextResponse.json({ error: "File missing." }, { status: 404 });
     }
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
-        "Content-Type": media.mimeType,
+        "Content-Type": mimeType,
         "Content-Length": String(buffer.byteLength),
         "Cache-Control": published
           ? "public, max-age=31536000, immutable"
@@ -68,6 +86,9 @@ export async function GET(_request: Request, context: RouteContext) {
     });
   } catch (error) {
     console.error("[website/media]", error);
-    return NextResponse.json({ error: "Unable to serve file." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Unable to serve file." },
+      { status: 500 },
+    );
   }
 }

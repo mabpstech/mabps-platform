@@ -12,6 +12,7 @@ export {
   listSections,
   listBlogPosts,
   listMedia,
+  listMediaFolders,
   listForms,
   getFormWithFields,
   listNavItems,
@@ -20,6 +21,9 @@ export {
   getFooterBySiteId,
   getSeoBySiteId,
 } from "@/lib/website/repository";
+export { mediaPublicUrl } from "@/lib/website/media-url";
+export { mediaKindFromMime, formatBytes } from "@/lib/website/media-kind";
+export { findMediaUsages } from "@/lib/website/media-usage";
 export {
   listWorkspaceSites,
   createWorkspaceSite,

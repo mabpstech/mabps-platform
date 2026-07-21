@@ -137,6 +137,17 @@ CREATE TABLE IF NOT EXISTS "website_blog_post" (
   unique ("siteId", "slug")
 );
 
+CREATE TABLE IF NOT EXISTS "website_media_folder" (
+  "id" text not null primary key,
+  "workspaceId" text not null references "organization" ("id") on delete cascade,
+  "siteId" text not null references "website_site" ("id") on delete cascade,
+  "name" text not null,
+  "parentId" text,
+  "sortOrder" integer not null default 0,
+  "createdAt" text not null,
+  "updatedAt" text not null
+);
+
 CREATE TABLE IF NOT EXISTS "website_media" (
   "id" text not null primary key,
   "workspaceId" text not null references "organization" ("id") on delete cascade,
@@ -149,6 +160,12 @@ CREATE TABLE IF NOT EXISTS "website_media" (
   "height" integer,
   "alt" text,
   "storagePath" text not null,
+  "folderId" text,
+  "favorited" integer not null default 0,
+  "lastUsedAt" text,
+  "uploadedByUserId" text,
+  "uploadedByName" text,
+  "variants" text not null default '{}',
   "createdAt" text not null,
   "updatedAt" text not null
 );
@@ -200,6 +217,9 @@ CREATE INDEX IF NOT EXISTS "website_nav_item_siteId_idx" on "website_nav_item" (
 CREATE INDEX IF NOT EXISTS "website_blog_post_siteId_idx" on "website_blog_post" ("siteId");
 CREATE INDEX IF NOT EXISTS "website_media_siteId_idx" on "website_media" ("siteId");
 CREATE INDEX IF NOT EXISTS "website_media_workspaceId_idx" on "website_media" ("workspaceId");
+CREATE INDEX IF NOT EXISTS "website_media_folderId_idx" on "website_media" ("folderId");
+CREATE INDEX IF NOT EXISTS "website_media_favorited_idx" on "website_media" ("siteId", "favorited");
+CREATE INDEX IF NOT EXISTS "website_media_folder_siteId_idx" on "website_media_folder" ("siteId");
 CREATE INDEX IF NOT EXISTS "website_form_siteId_idx" on "website_form" ("siteId");
 CREATE INDEX IF NOT EXISTS "website_form_field_formId_idx" on "website_form_field" ("formId");
 CREATE INDEX IF NOT EXISTS "website_form_submission_formId_idx" on "website_form_submission" ("formId");

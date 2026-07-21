@@ -36,9 +36,16 @@ const ALLOWED_MIME = new Set([
   "image/webp",
   "image/gif",
   "image/svg+xml",
+  "image/x-icon",
+  "image/vnd.microsoft.icon",
   "application/pdf",
   "video/mp4",
   "video/webm",
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/wav",
+  "audio/ogg",
+  "audio/webm",
 ]);
 
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
@@ -66,15 +73,57 @@ export function extensionForMime(mimeType: string, originalName: string): string
       return ".gif";
     case "image/svg+xml":
       return ".svg";
+    case "image/x-icon":
+    case "image/vnd.microsoft.icon":
+      return ".ico";
     case "application/pdf":
       return ".pdf";
     case "video/mp4":
       return ".mp4";
     case "video/webm":
       return ".webm";
+    case "audio/mpeg":
+    case "audio/mp3":
+      return ".mp3";
+    case "audio/wav":
+      return ".wav";
+    case "audio/ogg":
+      return ".ogg";
+    case "audio/webm":
+      return ".weba";
     default:
       return "";
   }
+}
+
+export async function storeMediaBuffer(input: {
+  workspaceId: string;
+  siteId: string;
+  buffer: Buffer;
+  mimeType: string;
+  originalName: string;
+}): Promise<{
+  filename: string;
+  storagePath: string;
+  sizeBytes: number;
+  mimeType: string;
+  originalName: string;
+}> {
+  assertAllowedMedia(input.mimeType, input.buffer.byteLength);
+  const dir = await ensureSiteUploadDir(input.workspaceId, input.siteId);
+  const ext = extensionForMime(input.mimeType, input.originalName);
+  const filename = `${randomUUID()}${ext}`;
+  const storagePath = path.join(dir, filename);
+  await getMediaBlobStore().put(storagePath, input.buffer, {
+    contentType: input.mimeType,
+  });
+  return {
+    filename,
+    storagePath,
+    sizeBytes: input.buffer.byteLength,
+    mimeType: input.mimeType,
+    originalName: input.originalName || filename,
+  };
 }
 
 export async function storeMediaFile(input: {
@@ -87,26 +136,22 @@ export async function storeMediaFile(input: {
   sizeBytes: number;
   mimeType: string;
   originalName: string;
+  buffer: Buffer;
 }> {
   const mimeType = input.file.type || "application/octet-stream";
   const sizeBytes = input.file.size;
   assertAllowedMedia(mimeType, sizeBytes);
 
-  const dir = await ensureSiteUploadDir(input.workspaceId, input.siteId);
-  const ext = extensionForMime(mimeType, input.file.name);
-  const filename = `${randomUUID()}${ext}`;
-  const storagePath = path.join(dir, filename);
   const buffer = Buffer.from(await input.file.arrayBuffer());
-
-  await getMediaBlobStore().put(storagePath, buffer, { contentType: mimeType });
-
-  return {
-    filename,
-    storagePath,
-    sizeBytes,
+  const stored = await storeMediaBuffer({
+    workspaceId: input.workspaceId,
+    siteId: input.siteId,
+    buffer,
     mimeType,
-    originalName: input.file.name || filename,
-  };
+    originalName: input.file.name || "upload",
+  });
+
+  return { ...stored, buffer };
 }
 
 export async function readMediaFile(storagePath: string): Promise<Buffer | null> {
