@@ -32,58 +32,70 @@ export const FEATURES = [
   {
     id: "website-builder",
     title: "Website Builder",
-    description:
-      "Ship premium sites with Theme Studio, responsive preview, media library, and one-click publish — without fighting a template.",
+    description: "Build beautiful websites visually.",
+    href: "/platform#website-builder",
   },
   {
     id: "crm",
     title: "CRM",
-    description:
-      "Capture leads from your site, WhatsApp, and forms. Pipeline, customers, tasks, and notes stay in one workspace.",
+    description: "Manage customers and relationships.",
+    href: "/platform#crm",
   },
   {
     id: "ai-assistant",
     title: "AI Assistant",
-    description:
-      "Chat and voice assistants grounded in your knowledge base — answering customers with your brand voice and business data.",
-  },
-  {
-    id: "knowledge",
-    title: "Knowledge",
-    description:
-      "Index docs, pages, and policies so AI and your team always answer from the same source of truth.",
-  },
-  {
-    id: "memory",
-    title: "Memory",
-    description:
-      "Remember preferences, past conversations, and context across channels so every interaction feels personal.",
+    description: "Knowledge-aware business AI.",
+    href: "/platform#ai",
   },
   {
     id: "automation",
     title: "Automation",
-    description:
-      "Trigger workflows from forms, CRM stages, messages, and schedules. Conditions, actions, and results — visually.",
+    description: "Create workflows without coding.",
+    href: "/platform#automation",
   },
   {
     id: "analytics",
     title: "Analytics",
-    description:
-      "See website performance, conversations, revenue signals, and automation health in one clear view.",
+    description: "Track growth with actionable insights.",
+    href: "/platform#analytics",
+  },
+  {
+    id: "knowledge",
+    title: "Knowledge Base",
+    description: "Centralize business knowledge.",
+    href: "/platform#ai",
+  },
+  {
+    id: "memory",
+    title: "Memory",
+    description: "Persistent AI memory across conversations.",
+    href: "/platform#ai",
   },
   {
     id: "marketplace",
     title: "Marketplace",
-    description:
-      "Extend the platform with themes, plugins, and industry packs — installed into your workspace, not bolted on.",
+    description: "Install extensions and integrations.",
+    href: "/platform#marketplace",
   },
   {
     id: "deployment",
     title: "Deployment",
     description:
       "Publish sites, manage domains, and monitor health with deployment tooling built for operators, not just designers.",
+    href: "/platform#deployment",
   },
 ] as const;
+
+/** Homepage feature grid — excludes operator-only deployment detail. */
+export const HOME_FEATURES = FEATURES.filter((f) => f.id !== "deployment");
+
+export const ONE_PLATFORM = {
+  eyebrow: "One Platform",
+  title: "One unified MABPS Platform",
+  lead: "Stop stitching separate tools together. MABPS connects every module so your business runs on shared context — not disconnected silos.",
+  fragmented: ["Website Builder", "CRM", "Automation", "AI"] as const,
+  shared: ["users", "media", "analytics", "AI", "automation", "permissions"] as const,
+} as const;
 
 export const PLATFORM_FLOW = [
   { id: "website", label: "Website", detail: "Attract visitors with a branded site" },
@@ -95,58 +107,52 @@ export const PLATFORM_FLOW = [
 
 export const INDUSTRIES = [
   {
-    id: "jewellery",
-    title: "Jewellery",
+    id: "small-business",
+    title: "Small Business",
     description:
-      "Catalog-ready websites, WhatsApp enquiries, and CRM follow-ups for high-trust purchases.",
-  },
-  {
-    id: "restaurants",
-    title: "Restaurants",
-    description:
-      "Menus, reservations, and automated guest messaging — without juggling five apps.",
-  },
-  {
-    id: "retail",
-    title: "Retail",
-    description:
-      "Storefront, collections, and post-purchase automation that keeps customers coming back.",
-  },
-  {
-    id: "education",
-    title: "Education",
-    description:
-      "Course pages, enquiry forms, and AI answers for admissions and student support.",
-  },
-  {
-    id: "healthcare",
-    title: "Healthcare",
-    description:
-      "Professional sites, appointment flows, and compliant knowledge for patient questions.",
-  },
-  {
-    id: "real-estate",
-    title: "Real Estate",
-    description:
-      "Listings, lead capture, and automated nurturing for buyers and renters.",
+      "Launch a branded site, capture leads into CRM, and automate follow-ups — everything a growing company needs in one platform.",
   },
   {
     id: "agencies",
     title: "Agencies",
     description:
-      "Build and manage client sites at scale with themes, media, and deployment controls.",
+      "Build and manage client sites at scale with shared themes, media libraries, and deployment controls across workspaces.",
+  },
+  {
+    id: "retail",
+    title: "Retail",
+    description:
+      "Storefronts, collections, and post-purchase automation that keep customers coming back — without a stack of apps.",
+  },
+  {
+    id: "jewellery",
+    title: "Jewellery",
+    description:
+      "Catalog-ready websites, WhatsApp enquiries, and CRM follow-ups built for high-trust, high-consideration purchases.",
+  },
+  {
+    id: "restaurants",
+    title: "Restaurants",
+    description:
+      "Menus, reservations, and automated guest messaging — so your team spends less time juggling five tools.",
+  },
+  {
+    id: "education",
+    title: "Education",
+    description:
+      "Course pages, enquiry forms, and AI answers for admissions and student support from a shared knowledge base.",
+  },
+  {
+    id: "healthcare",
+    title: "Healthcare",
+    description:
+      "Professional sites, appointment flows, and grounded AI answers for patient questions — with permissions you control.",
   },
   {
     id: "creators",
     title: "Creators",
     description:
-      "Brand sites, audience CRM, and automations that turn attention into revenue.",
-  },
-  {
-    id: "small-business",
-    title: "Small Business",
-    description:
-      "Everything a growing company needs — website to WhatsApp — in one affordable platform.",
+      "Brand sites, audience CRM, and automations that turn attention into revenue without duct-taping tools together.",
   },
 ] as const;
 
