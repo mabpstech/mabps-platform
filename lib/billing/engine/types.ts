@@ -18,6 +18,32 @@ export const BILLING_PROVIDERS = [
 ] as const;
 export type BillingProviderId = (typeof BILLING_PROVIDERS)[number];
 
+/**
+ * Canonical subscription lifecycle states (provider-independent).
+ * Trial → Active → Past Due / Grace Period → Cancelled → Expired.
+ */
+export const SUBSCRIPTION_LIFECYCLE_STATUSES = [
+  "trialing",
+  "active",
+  "past_due",
+  "canceled",
+  "expired",
+  "grace_period",
+] as const;
+export type SubscriptionLifecycleStatus =
+  (typeof SUBSCRIPTION_LIFECYCLE_STATUSES)[number];
+
+/**
+ * Engine status includes lifecycle states plus provider interim statuses
+ * that adapters may surface before normalization.
+ */
+export type EngineSubscriptionStatus =
+  | SubscriptionLifecycleStatus
+  | "incomplete"
+  | "incomplete_expired"
+  | "unpaid"
+  | "paused";
+
 /** Typed product features gated by plan (separate from numeric usage limits). */
 export const BILLING_FEATURES = [
   "website_builder",
@@ -46,7 +72,7 @@ export type Subscription = {
   workspaceId: string;
   planId: PlanId;
   interval: BillingInterval;
-  status: SubscriptionStatus;
+  status: EngineSubscriptionStatus;
   provider: BillingProviderId;
   providerSubscriptionId: string | null;
   providerPriceId: string | null;
@@ -57,6 +83,8 @@ export type Subscription = {
   canceledAt: string | null;
   trialStart: string | null;
   trialEnd: string | null;
+  /** When set, paid access continues until this instant during grace. */
+  gracePeriodEnd: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -76,7 +104,7 @@ export type ResolvedPlan = {
   planId: PlanId;
   planName: string;
   interval: BillingInterval;
-  status: SubscriptionStatus;
+  status: EngineSubscriptionStatus;
   subscription: Subscription;
   limits: PlanLimits;
   features: FeatureEntitlementMap;
@@ -127,6 +155,21 @@ export function isBillingFeatureId(
   return (BILLING_FEATURES as readonly string[]).includes(value);
 }
 
+export function isSubscriptionLifecycleStatus(
+  value: string,
+): value is SubscriptionLifecycleStatus {
+  return (SUBSCRIPTION_LIFECYCLE_STATUSES as readonly string[]).includes(value);
+}
+
+/**
+ * Map a persisted / provider status into the engine status union.
+ */
+export function toEngineSubscriptionStatus(
+  status: SubscriptionStatus | EngineSubscriptionStatus,
+): EngineSubscriptionStatus {
+  return status;
+}
+
 /**
  * Map the persisted Stripe-shaped subscription into the engine entity.
  * When additional providers land, each adapter maps its own IDs here.
@@ -144,7 +187,7 @@ export function toEngineSubscription(
     workspaceId: row.workspaceId,
     planId: row.planId,
     interval: row.interval,
-    status: row.status,
+    status: toEngineSubscriptionStatus(row.status),
     provider: resolvedProvider,
     providerSubscriptionId: row.stripeSubscriptionId,
     providerPriceId: row.stripePriceId,
@@ -155,6 +198,7 @@ export function toEngineSubscription(
     canceledAt: row.canceledAt,
     trialStart: null,
     trialEnd: row.trialEnd,
+    gracePeriodEnd: null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

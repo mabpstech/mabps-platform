@@ -8,6 +8,20 @@ import {
   isSubscriptionTrialing,
 } from "@/lib/billing/engine/trial";
 import {
+  DEFAULT_GRACE_PERIOD_DAYS,
+  activateSubscription,
+  cancelSubscription,
+  enterGracePeriod,
+  expireSubscription,
+  getLifecycleStatus,
+  hasLifecycleAccess,
+  isFeatureAvailable,
+  isUsageLimitReached,
+  listLifecycleStatuses,
+  markPastDue,
+  startTrial,
+} from "@/lib/billing/engine/lifecycle";
+import {
   assertFeatureEntitlement,
   checkFeatureEntitlement,
   getFeatureEntitlements,
@@ -53,9 +67,12 @@ import {
 import {
   BILLING_FEATURES,
   BILLING_PROVIDERS,
+  SUBSCRIPTION_LIFECYCLE_STATUSES,
   isBillingFeatureId,
   isBillingProviderId,
+  isSubscriptionLifecycleStatus,
   toEngineSubscription,
+  toEngineSubscriptionStatus,
 } from "@/lib/billing/engine/types";
 import {
   getPaymentProvider,
@@ -72,11 +89,13 @@ import {
 export type {
   BillingFeatureId,
   BillingProviderId,
+  EngineSubscriptionStatus,
   FeatureEntitlementMap,
   PlanChangeKind,
   PlanChangePreparation,
   ResolvedPlan,
   Subscription,
+  SubscriptionLifecycleStatus,
   TrialConfig,
   UsageLimit,
   UsageLimitSnapshot,
@@ -118,6 +137,10 @@ export type {
   ProviderWebhookEvent,
 } from "@/lib/billing/engine/providers";
 
+export type {
+  LifecycleSubscription,
+} from "@/lib/billing/engine/lifecycle";
+
 export {
   // Plans
   PLAN_DISPLAY_NAMES,
@@ -156,6 +179,7 @@ export {
   resolvePlanId,
   tryResolveCurrentPlan,
   toEngineSubscription,
+  toEngineSubscriptionStatus,
   // Change plan
   prepareDowngrade,
   preparePlanChange,
@@ -168,6 +192,21 @@ export {
   hasActiveTrialAccess,
   isPlanTrialEligible,
   isSubscriptionTrialing,
+  // Lifecycle
+  SUBSCRIPTION_LIFECYCLE_STATUSES,
+  DEFAULT_GRACE_PERIOD_DAYS,
+  activateSubscription,
+  cancelSubscription,
+  enterGracePeriod,
+  expireSubscription,
+  getLifecycleStatus,
+  hasLifecycleAccess,
+  isFeatureAvailable,
+  isSubscriptionLifecycleStatus,
+  isUsageLimitReached,
+  listLifecycleStatuses,
+  markPastDue,
+  startTrial,
   // Providers
   BILLING_PROVIDERS,
   createPaymentProviderRegistry,
