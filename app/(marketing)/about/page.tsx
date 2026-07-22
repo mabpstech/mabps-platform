@@ -14,6 +14,33 @@ const VISION_NODES = [
   { id: "analytics", label: "Grow" },
 ] as const;
 
+const TRADITIONAL_TOOLS = [
+  "Website Builder",
+  "CRM",
+  "Email Marketing",
+  "Automation",
+  "Analytics",
+  "Knowledge Base",
+] as const;
+
+const MABPS_CAPABILITIES = [
+  "Website Builder",
+  "CRM",
+  "AI Assistant",
+  "Automation",
+  "Analytics",
+  "Knowledge",
+  "Media Library",
+  "Marketplace",
+] as const;
+
+const PLATFORM_PILLARS = [
+  "One Login",
+  "One Dashboard",
+  "One Team",
+  "One Platform",
+] as const;
+
 export const metadata = createPageMetadata({
   title: "About",
   description:
@@ -153,15 +180,108 @@ export default function AboutPage() {
         </MarketingContainer>
       </MarketingSection>
 
-      <section className="m-section">
-        <div className="m-container max-w-3xl">
-          <SectionHeading
-            eyebrow="Why MABPS"
-            title="Not many disconnected tools. One connected ecosystem."
-            lead="Most businesses are forced to stitch together website builders, CRMs, chat widgets, and automation apps that never share context. MABPS is built as a single platform philosophy: the site you publish, the customer you capture, the assistant that answers, and the workflow that follows should live together — elegant to use, powerful underneath."
-          />
-        </div>
-      </section>
+      <MarketingSection className="bg-white">
+        <MarketingContainer>
+          <div className="m-animate-in mx-auto max-w-3xl text-center">
+            <SectionHeading
+              align="center"
+              title="Why MABPS?"
+              lead="Stop managing disconnected tools. Run your entire business from one connected platform."
+            />
+          </div>
+
+          <div className="mt-14 grid gap-10 lg:mt-16 lg:grid-cols-2 lg:gap-12 xl:gap-16">
+            <div className="m-animate-in m-animate-in-delay-1">
+              <p className="mb-5 text-center text-sm font-semibold tracking-[0.14em] text-[var(--m-muted)] uppercase lg:text-left">
+                Traditional Business
+              </p>
+              <ul className="flex flex-col gap-3">
+                {TRADITIONAL_TOOLS.map((tool, index) => (
+                  <li
+                    key={tool}
+                    className="m-animate-in flex items-center gap-3 rounded-[var(--m-radius)] border border-dashed border-[var(--m-line)] bg-[var(--m-surface)]/60 px-4 py-3.5 opacity-80"
+                    style={{ animationDelay: `${180 + index * 60}ms` }}
+                  >
+                    <span
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--m-line)] bg-white text-[var(--m-muted)]"
+                      aria-hidden="true"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.75"
+                        strokeLinecap="round"
+                      >
+                        <path d="M8 8l8 8M16 8l-8 8" />
+                      </svg>
+                    </span>
+                    <span className="text-sm font-medium text-[var(--m-muted)]">
+                      {tool}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="m-animate-in m-animate-in-delay-2">
+              <p className="mb-5 text-center text-sm font-semibold tracking-[0.14em] text-[var(--m-accent)] uppercase lg:text-left">
+                One MABPS Platform
+              </p>
+              <div className="overflow-hidden rounded-[var(--m-radius-lg)] border border-[var(--m-line)] bg-[linear-gradient(165deg,#ffffff_0%,#f4f7ff_50%,#eef3ff_100%)] p-6 shadow-[var(--m-shadow-soft)] md:p-8">
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {MABPS_CAPABILITIES.map((capability, index) => (
+                    <li
+                      key={capability}
+                      className="m-animate-in flex items-center gap-3"
+                      style={{ animationDelay: `${240 + index * 50}ms` }}
+                    >
+                      <span
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--m-accent-soft)] text-[var(--m-accent)]"
+                        aria-hidden="true"
+                      >
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M5 12.5l4.5 4.5L19 7" />
+                        </svg>
+                      </span>
+                      <span className="text-sm font-semibold tracking-tight text-[var(--m-ink)]">
+                        {capability}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-8 border-t border-[var(--m-line)] pt-6">
+                  <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {PLATFORM_PILLARS.map((pillar, index) => (
+                      <li
+                        key={pillar}
+                        className="m-animate-in text-center"
+                        style={{ animationDelay: `${640 + index * 60}ms` }}
+                      >
+                        <span className="text-xs font-semibold tracking-[0.08em] text-[var(--m-accent)] uppercase sm:text-[0.7rem]">
+                          {pillar}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </MarketingContainer>
+      </MarketingSection>
 
       <section className="m-section bg-white">
         <div className="m-container">
