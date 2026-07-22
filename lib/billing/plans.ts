@@ -78,7 +78,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   },
   pro: {
     id: "pro",
-    name: "Pro",
+    name: "Professional",
     description: "Scale content, CRM, and automation across the team.",
     priceUsd: { monthly: 79, yearly: 790 },
     limits: {

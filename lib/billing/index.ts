@@ -15,3 +15,6 @@ export {
 } from "@/lib/billing/entitlements";
 export { isStripeConfigured } from "@/lib/billing/stripe";
 export { migrateBillingSchema } from "@/lib/billing/migrate";
+
+/** Gateway-agnostic Billing Engine domain (plans, entitlements, trials, adapters). */
+export * as billingEngine from "@/lib/billing/engine";
