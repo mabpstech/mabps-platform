@@ -1,4 +1,5 @@
 import type { BillingProviderId } from "@/lib/billing/engine/types";
+import { nullPaymentProvider } from "@/lib/billing/engine/providers/null";
 import type {
   PaymentProviderAdapter,
   PaymentProviderRegistry,
@@ -24,6 +25,11 @@ export function createPaymentProviderRegistry(): PaymentProviderRegistry {
       );
     },
     register(adapter) {
+      if (adapter.id === "none") {
+        throw new Error(
+          "Cannot register the null payment provider. Use nullPaymentProvider as a fallback instead.",
+        );
+      }
       adapters.set(adapter.id, adapter);
     },
   };
@@ -36,6 +42,18 @@ export function getPaymentProvider(
   id: Exclude<BillingProviderId, "none">,
 ): PaymentProviderAdapter | null {
   return paymentProviderRegistry.get(id);
+}
+
+/**
+ * Resolve a concrete adapter, or the null provider when none is registered.
+ */
+export function getPaymentProviderOrNull(
+  id?: BillingProviderId,
+): PaymentProviderAdapter {
+  if (!id || id === "none") {
+    return nullPaymentProvider;
+  }
+  return paymentProviderRegistry.get(id) ?? nullPaymentProvider;
 }
 
 export function listConfiguredPaymentProviders(): PaymentProviderAdapter[] {
@@ -59,12 +77,26 @@ export function resolveActivePaymentProviderId(
   return configured[0]?.id ?? "none";
 }
 
+export {
+  createNullPaymentProvider,
+  nullPaymentProvider,
+  NULL_PAYMENT_PROVIDER_MESSAGE,
+} from "@/lib/billing/engine/providers/null";
+
 export type {
   PaymentProviderAdapter,
   PaymentProviderRegistry,
   ProviderCancelInput,
   ProviderChangeSubscriptionInput,
   ProviderCheckoutInput,
+  ProviderCheckoutResult,
+  ProviderCustomerInput,
+  ProviderCustomerResult,
+  ProviderGetSubscriptionInput,
+  ProviderInvoice,
+  ProviderListInvoicesInput,
   ProviderPortalInput,
+  ProviderPortalResult,
+  ProviderSubscriptionSnapshot,
   ProviderWebhookEvent,
 } from "@/lib/billing/engine/providers/types";
