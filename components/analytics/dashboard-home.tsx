@@ -1,11 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   AnalyticsBarChart,
   formatMetricValue,
 } from "@/components/analytics/charts";
 import { MetricGrid } from "@/components/analytics/metric-grid";
+import {
+  FirstRunPanel,
+  isOnboardingSkipped,
+  markOnboardingSkipped,
+} from "@/components/onboarding/first-run";
 import type { AnalyticsOverview } from "@/lib/analytics/types";
 
 export function DashboardHome({
@@ -19,6 +25,17 @@ export function DashboardHome({
   userEmail: string;
   overview: AnalyticsOverview;
 }) {
+  const siteCount = overview.modules.website.sites;
+  const [skipped, setSkipped] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setSkipped(isOnboardingSkipped());
+    setReady(true);
+  }, []);
+
+  const showOnboarding = ready && siteCount === 0 && !skipped;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -42,58 +59,74 @@ export function DashboardHome({
         </Link>
       </div>
 
-      <MetricGrid cards={overview.cards.slice(0, 6)} />
+      {showOnboarding ? (
+        <FirstRunPanel
+          currentStep="website"
+          headingLevel={2}
+          encouragement="You are one step away from publishing your first website."
+          onSkip={() => {
+            markOnboardingSkipped();
+            setSkipped(true);
+          }}
+        />
+      ) : (
+        <>
+          <MetricGrid cards={overview.cards.slice(0, 6)} />
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-xl border border-zinc-200 bg-white p-4">
-          <h2 className="text-sm font-semibold text-zinc-900">Revenue trend</h2>
-          <div className="mt-4">
-            <AnalyticsBarChart
-              series={overview.series.revenue}
-              format="currency"
+          <div className="grid gap-4 lg:grid-cols-2">
+            <section className="rounded-xl border border-zinc-200 bg-white p-4">
+              <h2 className="text-sm font-semibold text-zinc-900">
+                Revenue trend
+              </h2>
+              <div className="mt-4">
+                <AnalyticsBarChart
+                  series={overview.series.revenue}
+                  format="currency"
+                />
+              </div>
+            </section>
+            <section className="rounded-xl border border-zinc-200 bg-white p-4">
+              <h2 className="text-sm font-semibold text-zinc-900">
+                Chat message volume
+              </h2>
+              <div className="mt-4">
+                <AnalyticsBarChart series={overview.series.messages} />
+              </div>
+            </section>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <StatLink
+              href="/ai"
+              label="AI Assistant"
+              value={`${overview.modules.billing.aiCredits} credits`}
+            />
+            <StatLink
+              href="/analytics/crm"
+              label="Open pipeline"
+              value={formatMetricValue(
+                overview.modules.crm.openDealValueCents,
+                "currency",
+              )}
+            />
+            <StatLink
+              href="/analytics/chatbot"
+              label="Conversations"
+              value={String(overview.modules.chatbot.conversations)}
+            />
+            <StatLink
+              href="/analytics/website"
+              label="Form submissions"
+              value={String(overview.modules.website.formSubmissions)}
+            />
+            <StatLink
+              href="/analytics/automation"
+              label="Automation successes"
+              value={String(overview.modules.automation.runsSucceeded)}
             />
           </div>
-        </section>
-        <section className="rounded-xl border border-zinc-200 bg-white p-4">
-          <h2 className="text-sm font-semibold text-zinc-900">
-            Chat message volume
-          </h2>
-          <div className="mt-4">
-            <AnalyticsBarChart series={overview.series.messages} />
-          </div>
-        </section>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <StatLink
-          href="/ai"
-          label="AI Assistant"
-          value={`${overview.modules.billing.aiCredits} credits`}
-        />
-        <StatLink
-          href="/analytics/crm"
-          label="Open pipeline"
-          value={formatMetricValue(
-            overview.modules.crm.openDealValueCents,
-            "currency",
-          )}
-        />
-        <StatLink
-          href="/analytics/chatbot"
-          label="Conversations"
-          value={String(overview.modules.chatbot.conversations)}
-        />
-        <StatLink
-          href="/analytics/website"
-          label="Form submissions"
-          value={String(overview.modules.website.formSubmissions)}
-        />
-        <StatLink
-          href="/analytics/automation"
-          label="Automation successes"
-          value={String(overview.modules.automation.runsSucceeded)}
-        />
-      </div>
+        </>
+      )}
     </div>
   );
 }

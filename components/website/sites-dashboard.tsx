@@ -1,13 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   authButtonClassName,
   authInputClassName,
   authSecondaryButtonClassName,
 } from "@/lib/auth/styles";
+import {
+  FirstRunPanel,
+  OnboardingEncouragement,
+} from "@/components/onboarding/first-run";
 import { CreateSiteWizard } from "@/components/website/create-site-wizard";
 import {
   EmptyState,
@@ -48,6 +52,17 @@ export function SitesDashboard({
     tone: "success" | "error";
   } | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!canManage || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("create") === "1") {
+      setWizardOpen(true);
+    }
+  }, [canManage]);
+
+  const hasUnpublished = sites.some((site) => site.status !== "published");
+  const hasPublished = sites.some((site) => site.status === "published");
 
   const limitLabel =
     sitesLimit < 0 ? "Unlimited" : `${sitesUsed} of ${sitesLimit}`;
@@ -196,20 +211,14 @@ export function SitesDashboard({
       ) : null}
 
       {sites.length === 0 ? (
-        <EmptyState
-          title="Create your first website"
-          description="Choose a name, pick a look, and launch a professional site in minutes — no technical skills needed."
-          action={
-            canManage ? (
-              <button
-                type="button"
-                className={`${authButtonClassName} !w-auto px-5`}
-                onClick={() => setWizardOpen(true)}
-              >
-                Create website
-              </button>
-            ) : null
+        <FirstRunPanel
+          currentStep="website"
+          headingLevel={2}
+          encouragement="You are one step away from publishing your first website."
+          onCreateWebsite={
+            canManage ? () => setWizardOpen(true) : undefined
           }
+          onSkip={() => router.push("/dashboard")}
         />
       ) : filtered.length === 0 ? (
         <EmptyState
@@ -226,7 +235,11 @@ export function SitesDashboard({
           }
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <>
+          {hasUnpublished && !hasPublished ? (
+            <OnboardingEncouragement message="You are one step away from publishing your first website." />
+          ) : null}
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((site) => (
             <article
               key={site.id}
@@ -357,7 +370,8 @@ export function SitesDashboard({
               </div>
             </article>
           ))}
-        </div>
+          </div>
+        </>
       )}
 
       <CreateSiteWizard
