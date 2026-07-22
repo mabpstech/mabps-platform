@@ -263,8 +263,8 @@ export const PRICING_PLANS = [
     id: "free",
     name: "Free",
     price: "$0",
-    period: "forever",
-    description: "Explore the platform and publish your first site.",
+    period: "/month",
+    description: "Perfect for trying MABPS.",
     cta: { label: "Start Free", href: "/signup" },
     highlighted: false,
     features: [
@@ -280,7 +280,7 @@ export const PRICING_PLANS = [
     name: "Starter",
     price: "$29",
     period: "/month",
-    description: "For solo founders launching a polished brand presence.",
+    description: "For solo businesses.",
     cta: { label: "Choose Starter", href: "/signup?plan=starter" },
     highlighted: false,
     features: [
@@ -296,7 +296,7 @@ export const PRICING_PLANS = [
     name: "Professional",
     price: "$79",
     period: "/month",
-    description: "For growing teams that need AI, automation, and analytics.",
+    description: "For growing businesses.",
     cta: { label: "Choose Professional", href: "/signup?plan=professional" },
     highlighted: true,
     features: [
@@ -304,26 +304,9 @@ export const PRICING_PLANS = [
       "AI assistant",
       "Knowledge + memory",
       "Automation workflows",
-      "WhatsApp channel",
       "Analytics suite",
+      "Marketplace access",
       "Priority support",
-    ],
-  },
-  {
-    id: "business",
-    name: "Business",
-    price: "$199",
-    period: "/month",
-    description: "For multi-brand operators and high-volume workspaces.",
-    cta: { label: "Choose Business", href: "/signup?plan=business" },
-    highlighted: false,
-    features: [
-      "Unlimited websites",
-      "Advanced automations",
-      "Team roles & invites",
-      "Deployment controls",
-      "Marketplace installs",
-      "Dedicated onboarding",
     ],
   },
   {
@@ -331,7 +314,7 @@ export const PRICING_PLANS = [
     name: "Enterprise",
     price: "Custom",
     period: "",
-    description: "Security, scale, and success programs for large organizations.",
+    description: "For large organizations.",
     cta: { label: "Contact Sales", href: "/contact?intent=enterprise" },
     highlighted: false,
     features: [
@@ -345,15 +328,62 @@ export const PRICING_PLANS = [
 ] as const;
 
 export const PRICING_COMPARISON = [
-  { feature: "Websites", free: "1", starter: "3", professional: "10", business: "Unlimited", enterprise: "Custom" },
-  { feature: "Theme Studio", free: "Basic", starter: "Full", professional: "Full", business: "Full", enterprise: "Full" },
-  { feature: "Custom domain", free: "—", starter: "Yes", professional: "Yes", business: "Yes", enterprise: "Yes" },
-  { feature: "CRM", free: "Limited", starter: "Yes", professional: "Yes", business: "Yes", enterprise: "Yes" },
-  { feature: "AI Assistant", free: "—", starter: "—", professional: "Yes", business: "Yes", enterprise: "Yes" },
-  { feature: "Automation", free: "—", starter: "—", professional: "Yes", business: "Advanced", enterprise: "Custom" },
-  { feature: "WhatsApp", free: "—", starter: "—", professional: "Yes", business: "Yes", enterprise: "Yes" },
-  { feature: "Analytics", free: "Basic", starter: "Basic", professional: "Full", business: "Full", enterprise: "Full" },
-  { feature: "Support", free: "Community", starter: "Email", professional: "Priority", business: "Dedicated", enterprise: "SLA" },
+  {
+    feature: "Website Builder",
+    free: "Basic",
+    starter: "Full",
+    professional: "Full",
+    enterprise: "Custom",
+  },
+  {
+    feature: "CRM",
+    free: "Limited",
+    starter: "Yes",
+    professional: "Yes",
+    enterprise: "Yes",
+  },
+  {
+    feature: "AI",
+    free: "—",
+    starter: "—",
+    professional: "Yes",
+    enterprise: "Yes",
+  },
+  {
+    feature: "Automation",
+    free: "—",
+    starter: "—",
+    professional: "Yes",
+    enterprise: "Custom",
+  },
+  {
+    feature: "Analytics",
+    free: "Basic",
+    starter: "Basic",
+    professional: "Full",
+    enterprise: "Full",
+  },
+  {
+    feature: "Knowledge",
+    free: "—",
+    starter: "—",
+    professional: "Yes",
+    enterprise: "Yes",
+  },
+  {
+    feature: "Marketplace",
+    free: "—",
+    starter: "—",
+    professional: "Yes",
+    enterprise: "Private",
+  },
+  {
+    feature: "Priority Support",
+    free: "—",
+    starter: "—",
+    professional: "Yes",
+    enterprise: "SLA",
+  },
 ] as const;
 
 export const FAQ_ITEMS = [
