@@ -48,22 +48,43 @@ export default function AboutPage() {
         </MarketingContainer>
       </MarketingSection>
 
-      <section className="m-section bg-white">
-        <div className="m-container grid gap-10 md:grid-cols-2 md:gap-16">
-          <div>
-            <SectionHeading
-              eyebrow="Mission"
-              title="Help businesses succeed through simple, powerful technology."
-            />
+      <MarketingSection className="bg-white">
+        <MarketingContainer>
+          <div className="grid items-center gap-12 md:grid-cols-[auto_1fr] md:gap-16 lg:gap-20">
+            <div
+              className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-[var(--m-surface)] ring-1 ring-[var(--m-line)] md:h-24 md:w-24"
+              aria-hidden="true"
+            >
+              <svg
+                viewBox="0 0 48 48"
+                fill="none"
+                className="h-10 w-10 text-[var(--m-ink)] md:h-12 md:w-12"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M24 6L40 15V33L24 42L8 33V15L24 6Z"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M24 22V42M24 22L8 15M24 22L40 15"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <div className="max-w-2xl">
+              <SectionHeading
+                title="Our Mission"
+                lead="Our mission is to help businesses of every size simplify operations through one unified platform. Instead of managing multiple disconnected tools, MABPS brings websites, AI, CRM, automation, analytics, and knowledge together into one seamless experience that is powerful, easy to use, and built for growth."
+              />
+            </div>
           </div>
-          <div>
-            <SectionHeading
-              eyebrow="Vision"
-              title="Become the most user-friendly business operating system for companies worldwide."
-            />
-          </div>
-        </div>
-      </section>
+        </MarketingContainer>
+      </MarketingSection>
 
       <section className="m-section">
         <div className="m-container max-w-3xl">
