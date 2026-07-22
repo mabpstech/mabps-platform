@@ -156,6 +156,61 @@ export type FeatureGateResult = {
   upgradePlan?: UpgradePlanId;
 };
 
+/**
+ * Provider-independent usage counters tracked per workspace.
+ * Semantic names map onto plan limits for enforcement.
+ */
+export const USAGE_TRACKING_METRICS = [
+  "websitesCreated",
+  "storageMb",
+  "aiRequests",
+  "automationRuns",
+  "teamMembers",
+  "mediaAssets",
+] as const;
+export type UsageTrackingMetric = (typeof USAGE_TRACKING_METRICS)[number];
+
+/** Counters that reset each billing month. */
+export const MONTHLY_USAGE_METRICS = [
+  "aiRequests",
+  "automationRuns",
+] as const satisfies readonly UsageTrackingMetric[];
+export type MonthlyUsageMetric = (typeof MONTHLY_USAGE_METRICS)[number];
+
+export type UsageTrackingSnapshot = Record<UsageTrackingMetric, number>;
+
+/**
+ * Structured usage record — shaped for future database persistence.
+ * Pure in-memory today (no repository / DB wiring).
+ */
+export type UsageRecord = {
+  id: string;
+  workspaceId: string;
+  /** UTC month key `YYYY-MM` for the active monthly window. */
+  periodKey: string;
+  counters: UsageTrackingSnapshot;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type UsageMutationResult = {
+  record: UsageRecord;
+  metric: UsageTrackingMetric;
+  previous: number;
+  current: number;
+  delta: number;
+};
+
+export type UsageLimitExceededResult = {
+  exceeded: boolean;
+  metric: UsageTrackingMetric;
+  current: number;
+  limit: number;
+  remaining: number | null;
+  unlimited: boolean;
+  reason?: string;
+};
+
 export function isBillingProviderId(
   value: string,
 ): value is BillingProviderId {
