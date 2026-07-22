@@ -143,7 +143,30 @@ function applySqlMigrations() {
     }
     const full = path.join(migrationsDir, file);
     const sql = fs.readFileSync(full, "utf8");
-    db.exec(sql);
+    // Statement-at-a-time so ADD COLUMN is idempotent when baseline schema
+    // already includes the same columns (fresh DBs after schema.sql updates).
+    const statements = sql
+      .split(";")
+      .map((part) => part.trim())
+      .filter((part) => part.length > 0 && !part.split("\n").every((line) => {
+        const trimmed = line.trim();
+        return trimmed.length === 0 || trimmed.startsWith("--");
+      }));
+    for (const statement of statements) {
+      try {
+        db.exec(statement);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (
+          /duplicate column name/i.test(message) ||
+          /already exists/i.test(message)
+        ) {
+          console.log(`  reconciled ${id}: ${message}`);
+          continue;
+        }
+        throw error;
+      }
+    }
     record(id, checksum(sql));
     console.log(`applied ${id}`);
   }
