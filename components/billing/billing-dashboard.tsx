@@ -2,6 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import type {
+  ResolvedPlan,
+  UpgradePlanId,
+  UsageLimit,
+} from "@/lib/billing/engine/types";
 import {
   BILLING_INTERVALS,
   formatLimit,
@@ -11,9 +16,7 @@ import {
   type BillingInterval,
   type PlanId,
 } from "@/lib/billing/plans";
-import type { BillingInvoice, WorkspaceSubscription } from "@/lib/billing/types";
-import type { PlanLimits } from "@/lib/billing/plans";
-import type { UsageSnapshot } from "@/lib/billing/types";
+import type { BillingInvoice, UsageMetric } from "@/lib/billing/types";
 import {
   authButtonClassName,
   authErrorClassName,
@@ -21,15 +24,38 @@ import {
   authSuccessClassName,
 } from "@/lib/auth/styles";
 
+export type UpgradeRecommendation = {
+  planId: UpgradePlanId;
+  planName: string;
+  reason: string;
+};
+
 type BillingDashboardProps = {
-  subscription: WorkspaceSubscription;
-  usage: UsageSnapshot;
-  limits: PlanLimits;
+  resolved: ResolvedPlan;
+  upgradeRecommendation: UpgradeRecommendation | null;
   invoices: BillingInvoice[];
   canManage: boolean;
   stripeConfigured: boolean;
   checkoutStatus?: string | null;
 };
+
+const USAGE_LABELS: Record<UsageMetric, string> = {
+  members: "Members",
+  sites: "Sites",
+  storageMb: "Storage (MB)",
+  aiCredits: "AI credits (month)",
+  automations: "Automations",
+  plugins: "Marketplace plugins",
+};
+
+const USAGE_ORDER: UsageMetric[] = [
+  "members",
+  "sites",
+  "storageMb",
+  "aiCredits",
+  "automations",
+  "plugins",
+];
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
@@ -53,18 +79,31 @@ function usagePercent(current: number, limit: number): number {
   return Math.min(100, Math.round((current / limit) * 100));
 }
 
+function formatTrialStatus(resolved: ResolvedPlan): string {
+  if (resolved.isTrialing) {
+    const days = resolved.trialDaysRemaining;
+    if (days === null) return "Trialing";
+    if (days <= 0) return "Trial ending today";
+    return `Trialing · ${days} day${days === 1 ? "" : "s"} left`;
+  }
+  if (resolved.subscription.trialEnd) {
+    return `Ended ${formatDate(resolved.subscription.trialEnd)}`;
+  }
+  return "Not on trial";
+}
+
 export function BillingDashboard({
-  subscription,
-  usage,
-  limits,
+  resolved,
+  upgradeRecommendation,
   invoices,
   canManage,
   stripeConfigured,
   checkoutStatus,
 }: BillingDashboardProps) {
   const router = useRouter();
+  const subscription = resolved.subscription;
   const [interval, setInterval] = useState<BillingInterval>(
-    subscription.interval === "yearly" ? "yearly" : "monthly",
+    resolved.interval === "yearly" ? "yearly" : "monthly",
   );
   const [pendingPlan, setPendingPlan] = useState<PlanId | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
@@ -77,28 +116,20 @@ export function BillingDashboard({
         : null,
   );
 
-  const currentPlan = PLANS[subscription.planId];
-
-  const usageRows = useMemo(
-    () =>
-      (
-        [
-          ["members", "Members", usage.members, limits.members],
-          ["sites", "Sites", usage.sites, limits.sites],
-          ["storageMb", "Storage (MB)", usage.storageMb, limits.storageMb],
-          ["aiCredits", "AI credits (month)", usage.aiCredits, limits.aiCredits],
-          ["automations", "Automations", usage.automations, limits.automations],
-          ["plugins", "Marketplace plugins", usage.plugins, limits.plugins],
-        ] as const
-      ).map(([key, label, current, limit]) => ({
-        key,
-        label,
-        current,
-        limit,
-        percent: usagePercent(current, limit),
-      })),
-    [usage, limits],
-  );
+  const usageRows = useMemo(() => {
+    return USAGE_ORDER.map((metric) => {
+      const row: UsageLimit = resolved.usageLimits[metric];
+      return {
+        key: metric,
+        label: USAGE_LABELS[metric],
+        current: row.current,
+        limit: row.limit,
+        remaining: row.remaining,
+        unlimited: row.unlimited,
+        percent: usagePercent(row.current, row.limit),
+      };
+    });
+  }, [resolved.usageLimits]);
 
   async function postJson(url: string, body?: Record<string, unknown>) {
     const response = await fetch(url, {
@@ -226,7 +257,7 @@ export function BillingDashboard({
               Workspace subscription and renewal status.
             </p>
           </div>
-          {canManage && subscription.planId !== "free" ? (
+          {canManage && resolved.planId !== "free" ? (
             <button
               type="button"
               onClick={onPortal}
@@ -238,13 +269,13 @@ export function BillingDashboard({
           ) : null}
         </div>
 
-        <dl className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
               Plan
             </dt>
             <dd className="mt-1 text-sm font-semibold text-zinc-900">
-              {currentPlan.name}
+              {resolved.planName}
             </dd>
           </div>
           <div>
@@ -252,8 +283,16 @@ export function BillingDashboard({
               Status
             </dt>
             <dd className="mt-1 text-sm font-semibold capitalize text-zinc-900">
-              {subscription.status.replaceAll("_", " ")}
+              {resolved.status.replaceAll("_", " ")}
               {subscription.cancelAtPeriodEnd ? " · cancels at period end" : ""}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+              Trial
+            </dt>
+            <dd className="mt-1 text-sm font-semibold text-zinc-900">
+              {formatTrialStatus(resolved)}
             </dd>
           </div>
           <div>
@@ -261,7 +300,7 @@ export function BillingDashboard({
               Billing
             </dt>
             <dd className="mt-1 text-sm font-semibold capitalize text-zinc-900">
-              {subscription.planId === "free" ? "—" : subscription.interval}
+              {resolved.planId === "free" ? "—" : resolved.interval}
             </dd>
           </div>
           <div>
@@ -274,7 +313,7 @@ export function BillingDashboard({
           </div>
         </dl>
 
-        {canManage && subscription.planId !== "free" ? (
+        {canManage && resolved.planId !== "free" ? (
           <div className="mt-6 flex flex-wrap gap-3">
             {subscription.cancelAtPeriodEnd ? (
               <button
@@ -309,11 +348,29 @@ export function BillingDashboard({
         ) : null}
       </section>
 
+      {upgradeRecommendation ? (
+        <section className="rounded-xl border border-zinc-200 bg-white p-6">
+          <h2 className="text-lg font-medium text-zinc-900">
+            Upgrade recommendation
+          </h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            Based on your plan entitlements and current usage.
+          </p>
+          <div className="mt-4">
+            <p className="text-sm font-semibold text-zinc-900">
+              {upgradeRecommendation.planName}
+            </p>
+            <p className="mt-1 text-sm text-zinc-600">
+              {upgradeRecommendation.reason}
+            </p>
+          </div>
+        </section>
+      ) : null}
+
       <section className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-medium text-zinc-900">Usage</h2>
         <p className="mt-1 text-sm text-zinc-500">
-          Limits for the {currentPlan.name} plan. Later modules enforce these
-          entitlements.
+          Usage summary and limits for the {resolved.planName} plan.
         </p>
         <ul className="mt-6 space-y-4">
           {usageRows.map((row) => (
@@ -322,7 +379,12 @@ export function BillingDashboard({
                 <span className="font-medium text-zinc-800">{row.label}</span>
                 <span className="text-zinc-500">
                   {row.current.toLocaleString("en-US")} /{" "}
-                  {row.limit < 0 ? "∞" : formatLimit(row.limit)}
+                  {row.unlimited ? "∞" : formatLimit(row.limit)}
+                  {!row.unlimited && row.remaining !== null ? (
+                    <span className="ml-2 text-zinc-400">
+                      ({row.remaining.toLocaleString("en-US")} left)
+                    </span>
+                  ) : null}
                 </span>
               </div>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-100">
@@ -334,7 +396,7 @@ export function BillingDashboard({
                         ? "bg-amber-500"
                         : "bg-zinc-900"
                   }`}
-                  style={{ width: `${row.limit < 0 ? 8 : row.percent}%` }}
+                  style={{ width: `${row.unlimited ? 8 : row.percent}%` }}
                 />
               </div>
             </li>
@@ -372,22 +434,22 @@ export function BillingDashboard({
           {PLAN_IDS.map((planId) => {
             const plan = PLANS[planId];
             const isCurrent =
-              subscription.planId === planId &&
-              (planId === "free" || subscription.interval === interval);
+              resolved.planId === planId &&
+              (planId === "free" || resolved.interval === interval);
             const price =
               interval === "yearly" ? plan.priceUsd.yearly : plan.priceUsd.monthly;
             const cta =
               planId === "free"
-                ? subscription.planId === "free"
+                ? resolved.planId === "free"
                   ? "Current plan"
                   : "Downgrade to Free"
                 : isCurrent
                   ? "Current plan"
-                  : subscription.planId === "free"
+                  : resolved.planId === "free"
                     ? "Upgrade"
-                    : planId === subscription.planId
+                    : planId === resolved.planId
                       ? `Switch to ${interval}`
-                      : compareCta(subscription.planId, planId);
+                      : compareCta(resolved.planId, planId);
 
             return (
               <article

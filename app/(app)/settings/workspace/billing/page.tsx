@@ -1,18 +1,86 @@
 import Link from "next/link";
-import { BillingDashboard } from "@/components/billing/billing-dashboard";
+import {
+  BillingDashboard,
+  type UpgradeRecommendation,
+} from "@/components/billing/billing-dashboard";
 import { isWorkspaceManager } from "@/lib/auth/permissions";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import {
-  getWorkspaceLimits,
-  getWorkspaceUsage,
-} from "@/lib/billing/entitlements";
+  featureGateFromSubscription,
+  getPlanDisplayName,
+  PLAN_IDS,
+  PLAN_RANK,
+  resolveCurrentPlan,
+} from "@/lib/billing/engine";
+import type { ResolvedPlan, UpgradePlanId } from "@/lib/billing/engine";
 import { getWorkspaceInvoices } from "@/lib/billing/invoices";
-import { ensureFreeSubscription } from "@/lib/billing/repository";
 import { isStripeConfigured } from "@/lib/billing/stripe";
 
 type BillingPageProps = {
   searchParams: Promise<{ checkout?: string }>;
 };
+
+function nextUpgradePlan(planId: ResolvedPlan["planId"]): UpgradePlanId | null {
+  const next = PLAN_IDS.find(
+    (id) => id !== "free" && PLAN_RANK[id] > PLAN_RANK[planId],
+  );
+  return next && next !== "free" ? next : null;
+}
+
+function getUpgradeRecommendation(
+  resolved: ResolvedPlan,
+): UpgradeRecommendation | null {
+  if (resolved.planId === "enterprise") return null;
+
+  const gate = featureGateFromSubscription(resolved.subscription, {
+    usage: resolved.usage,
+  });
+
+  const gateResults = [
+    gate.canCreateAnotherWebsite(),
+    gate.canUploadMoreMedia(),
+    gate.canUseAutomation(),
+    gate.canUseAI(),
+    gate.canUseMarketplace(),
+  ];
+
+  for (const result of gateResults) {
+    if (!result.allowed && result.upgradePlan) {
+      return {
+        planId: result.upgradePlan,
+        planName: getPlanDisplayName(result.upgradePlan),
+        reason:
+          result.reason ?? "Upgrade to unlock more of the platform.",
+      };
+    }
+  }
+
+  const metricLabels: Record<keyof ResolvedPlan["usageLimits"], string> = {
+    members: "members",
+    sites: "sites",
+    storageMb: "storage",
+    aiCredits: "AI credits",
+    automations: "automations",
+    plugins: "marketplace plugins",
+  };
+
+  for (const limit of Object.values(resolved.usageLimits)) {
+    if (limit.unlimited || limit.limit <= 0) continue;
+    const percent = Math.round((limit.current / limit.limit) * 100);
+    if (percent < 80) continue;
+
+    const planId = nextUpgradePlan(resolved.planId);
+    if (!planId) return null;
+
+    return {
+      planId,
+      planName: getPlanDisplayName(planId),
+      reason: `You're using ${percent}% of your ${metricLabels[limit.metric]} allowance. Consider upgrading for more capacity.`,
+    };
+  }
+
+  return null;
+}
 
 export default async function WorkspaceBillingPage({
   searchParams,
@@ -22,9 +90,8 @@ export default async function WorkspaceBillingPage({
   });
   const params = await searchParams;
   const canManage = isWorkspaceManager(role);
-  const subscription = ensureFreeSubscription(workspace.id);
-  const usage = getWorkspaceUsage(workspace.id);
-  const limits = getWorkspaceLimits(workspace.id);
+  const resolved = resolveCurrentPlan(workspace.id);
+  const upgradeRecommendation = getUpgradeRecommendation(resolved);
   const invoices = canManage
     ? await getWorkspaceInvoices(workspace.id, { refresh: true })
     : [];
@@ -57,9 +124,8 @@ export default async function WorkspaceBillingPage({
       </div>
 
       <BillingDashboard
-        subscription={subscription}
-        usage={usage}
-        limits={limits}
+        resolved={resolved}
+        upgradeRecommendation={upgradeRecommendation}
         invoices={invoices}
         canManage={canManage}
         stripeConfigured={isStripeConfigured()}
