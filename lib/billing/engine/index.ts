@@ -28,6 +28,21 @@ import {
   subscriptionHasFeature,
 } from "@/lib/billing/engine/entitlements";
 import {
+  FeatureGateError,
+  canAccessFeature,
+  canCreateAnotherWebsite,
+  canCreateAnotherWorkspace,
+  canCreateWebsite,
+  canUploadMoreMedia,
+  canUseAI,
+  canUseAutomation,
+  canUseMarketplace,
+  createFeatureGate,
+  featureGateFromSubscription,
+  getWorkspaceQuota,
+  requireFeature,
+} from "@/lib/billing/engine/feature-gate";
+import {
   buildUsageLimit,
   buildUsageLimitSnapshot,
   evaluateUsageLimit,
@@ -91,12 +106,14 @@ export type {
   BillingProviderId,
   EngineSubscriptionStatus,
   FeatureEntitlementMap,
+  FeatureGateResult,
   PlanChangeKind,
   PlanChangePreparation,
   ResolvedPlan,
   Subscription,
   SubscriptionLifecycleStatus,
   TrialConfig,
+  UpgradePlanId,
   UsageLimit,
   UsageLimitSnapshot,
 } from "@/lib/billing/engine/types";
@@ -112,6 +129,11 @@ export type {
 export type {
   FeatureCheckResult,
 } from "@/lib/billing/engine/entitlements";
+
+export type {
+  FeatureGateInput,
+  FeatureGateService,
+} from "@/lib/billing/engine/feature-gate";
 
 export type {
   LimitEvaluation,
@@ -165,6 +187,20 @@ export {
   getFeatureEntitlements,
   isBillingFeatureId,
   subscriptionHasFeature,
+  // Feature Enforcement
+  FeatureGateError,
+  canAccessFeature,
+  canCreateAnotherWebsite,
+  canCreateAnotherWorkspace,
+  canCreateWebsite,
+  canUploadMoreMedia,
+  canUseAI,
+  canUseAutomation,
+  canUseMarketplace,
+  createFeatureGate,
+  featureGateFromSubscription,
+  getWorkspaceQuota,
+  requireFeature,
   // Limits
   buildUsageLimit,
   buildUsageLimitSnapshot,

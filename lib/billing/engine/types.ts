@@ -143,6 +143,19 @@ export type TrialConfig = {
   eligiblePlanIds: readonly PlanId[];
 };
 
+/** Paid plans suggested when a gate denies access. */
+export type UpgradePlanId = Exclude<PlanId, "free">;
+
+/**
+ * Structured feature / usage gate result (provider-independent).
+ * Used by the Feature Enforcement service — not wired to UI.
+ */
+export type FeatureGateResult = {
+  allowed: boolean;
+  reason?: string;
+  upgradePlan?: UpgradePlanId;
+};
+
 export function isBillingProviderId(
   value: string,
 ): value is BillingProviderId {
