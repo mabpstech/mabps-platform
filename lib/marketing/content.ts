@@ -19,13 +19,22 @@ export const TRUST_INDICATORS = [
   "Marketplace",
 ] as const;
 
-export const STATS = [
-  { id: "websites", label: "Websites built", value: 12840, suffix: "+" },
-  { id: "businesses", label: "Businesses", value: 6200, suffix: "+" },
-  { id: "automations", label: "Automations run", value: 2.4, suffix: "M+" },
-  { id: "ai", label: "AI conversations", value: 18, suffix: "M+" },
-  { id: "countries", label: "Countries", value: 42, suffix: "" },
-  { id: "customers", label: "Active customers", value: 9100, suffix: "+" },
+/** Animated trust metrics for the homepage social-proof section. */
+export const TRUST_METRICS = [
+  { id: "websites", label: "Websites Built", value: 10000, suffix: "+" },
+  { id: "automations", label: "Automations", value: 100, suffix: "+" },
+  { id: "ai-workflows", label: "AI Workflows", value: 50, suffix: "+" },
+  { id: "uptime", label: "Platform Uptime", value: 99.9, suffix: "%" },
+] as const;
+
+/** Capability attributes for the Trusted Platform strip. */
+export const TRUSTED_PLATFORM = [
+  "Secure",
+  "Fast",
+  "Multi-tenant",
+  "AI Powered",
+  "Cloud Ready",
+  "Responsive",
 ] as const;
 
 export const FEATURES = [
@@ -229,32 +238,52 @@ export const INTEGRATIONS = [
 
 export const TESTIMONIALS = [
   {
+    id: "jewellery",
+    name: "Priya Mehta",
+    business: "Jewellery",
+    initials: "PM",
     quote:
-      "We replaced our website tool, CRM, and chatbot with MABPS. The site looks premium, and leads finally land in one place.",
-    name: "Ananya Mehta",
-    role: "Founder",
-    company: "Lumina Jewellery",
+      "Our catalogue site and WhatsApp enquiries finally live in one workspace. Leads reach the right jeweller within minutes — and the storefront looks as premium as the pieces.",
   },
   {
+    id: "retail",
+    name: "James Okonkwo",
+    business: "Retail",
+    initials: "JO",
     quote:
-      "Theme Studio and the page builder let our agency ship client sites in days, not weeks — without sacrificing design quality.",
-    name: "Marcus Chen",
-    role: "Creative Director",
-    company: "Northline Agency",
+      "We replaced three disconnected tools with MABPS. Collections update once, CRM captures every visit, and automations keep shoppers coming back without extra staff.",
   },
   {
-    quote:
-      "Automations from form to WhatsApp follow-up cut our response time dramatically. It feels like a team that never sleeps.",
+    id: "restaurant",
     name: "Sofia Alvarez",
-    role: "Operations Lead",
-    company: "Casa Verde Restaurants",
+    business: "Restaurant",
+    initials: "SA",
+    quote:
+      "Menus, reservations, and guest follow-ups used to sprawl across apps. Now the floor team spends evenings serving tables — not chasing messages.",
   },
   {
+    id: "education",
+    name: "Dr. Ananya Rao",
+    business: "Education",
+    initials: "AR",
     quote:
-      "The AI assistant answers from our knowledge base accurately. Support volume dropped while conversion conversations improved.",
-    name: "David Okonkwo",
-    role: "Head of Growth",
-    company: "BrightPath Education",
+      "Admissions enquiries land in CRM, and the AI answers from our knowledge base accurately. Response time dropped while counsellor conversations got sharper.",
+  },
+  {
+    id: "agency",
+    name: "Marcus Chen",
+    business: "Agency",
+    initials: "MC",
+    quote:
+      "Theme Studio and multi-tenant workspaces let us ship client sites in days. Design quality stays high, and every account stays cleanly separated.",
+  },
+  {
+    id: "healthcare",
+    name: "Elena Petrov",
+    business: "Healthcare",
+    initials: "EP",
+    quote:
+      "Patients get grounded answers from our approved knowledge base, while appointment flows stay under our permissions. It feels professional and careful — exactly what clinics need.",
   },
 ] as const;
 

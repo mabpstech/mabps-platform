@@ -1,3 +1,4 @@
+import { AnimatedCounter } from "@/components/marketing/animated-counter";
 import {
   DashboardPreview,
 } from "@/components/marketing/mockups";
@@ -14,7 +15,10 @@ import {
   INDUSTRIES,
   ONE_PLATFORM,
   PLATFORM_FLOW,
+  TESTIMONIALS,
   TRUST_INDICATORS,
+  TRUST_METRICS,
+  TRUSTED_PLATFORM,
 } from "@/lib/marketing/content";
 
 export function HeroSection() {
@@ -250,6 +254,118 @@ export function OnePlatformSection() {
             </ul>
           </div>
         </div>
+      </div>
+    </section>
+  );
+}
+
+export function TestimonialsSection() {
+  return (
+    <section id="testimonials" className="m-section">
+      <div className="m-container">
+        <div className="m-animate-in">
+          <SectionHeading
+            align="center"
+            eyebrow="Testimonials"
+            title="Trusted across industries."
+            lead="Operators in jewellery, retail, hospitality, education, agencies, and healthcare run their business on MABPS."
+          />
+        </div>
+
+        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {TESTIMONIALS.map((item, index) => (
+            <article
+              key={item.id}
+              className="m-card m-animate-in flex flex-col p-6 md:p-7"
+              style={{ animationDelay: `${120 + index * 55}ms` }}
+            >
+              <div className="flex items-center gap-3">
+                <span
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--m-accent-soft)] text-sm font-semibold tracking-wide text-[var(--m-accent)]"
+                  aria-hidden
+                >
+                  {item.initials}
+                </span>
+                <div>
+                  <p className="font-semibold tracking-tight text-[var(--m-ink)]">
+                    {item.name}
+                  </p>
+                  <p className="mt-0.5 text-sm text-[var(--m-muted)]">
+                    {item.business}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-5 flex-1 text-sm leading-7 text-[var(--m-ink-soft)]">
+                “{item.quote}”
+              </p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function TrustMetricsSection() {
+  return (
+    <section id="trust-metrics" className="m-section bg-white">
+      <div className="m-container">
+        <div className="m-animate-in">
+          <SectionHeading
+            align="center"
+            eyebrow="Trust Metrics"
+            title="Built for scale. Proven in production."
+            lead="A platform measured by delivery — websites shipped, workflows running, and uptime teams can rely on."
+          />
+        </div>
+
+        <dl className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {TRUST_METRICS.map((metric, index) => (
+            <div
+              key={metric.id}
+              className="m-animate-in text-center"
+              style={{ animationDelay: `${140 + index * 70}ms` }}
+            >
+              <dt className="sr-only">{metric.label}</dt>
+              <dd className="m-display text-[clamp(2rem,4.5vw,2.75rem)] tracking-tight text-[var(--m-ink)]">
+                <AnimatedCounter value={metric.value} suffix={metric.suffix} />
+              </dd>
+              <p className="mt-2 text-sm font-medium text-[var(--m-muted)]">
+                {metric.label}
+              </p>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+  );
+}
+
+export function TrustedPlatformSection() {
+  return (
+    <section
+      id="trusted-platform"
+      className="border-y border-[var(--m-line)] bg-[linear-gradient(180deg,#ffffff_0%,#f7f9ff_100%)] py-8 md:py-10"
+    >
+      <div className="m-container">
+        <p className="m-animate-in mb-6 text-center text-xs font-semibold tracking-[0.16em] text-[var(--m-muted)] uppercase">
+          Trusted Platform
+        </p>
+        <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 md:gap-x-10">
+          {TRUSTED_PLATFORM.map((label, index) => (
+            <li
+              key={label}
+              className="m-animate-in flex items-center gap-2 text-sm font-medium text-[var(--m-ink-soft)]"
+              style={{ animationDelay: `${120 + index * 60}ms` }}
+            >
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-[var(--m-accent)]"
+                aria-hidden
+              />
+              {label}
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );

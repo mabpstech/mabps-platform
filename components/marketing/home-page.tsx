@@ -4,7 +4,10 @@ import {
   OnePlatformSection,
   PlatformSection,
   SolutionsSection,
+  TestimonialsSection,
   TrustIndicatorsSection,
+  TrustMetricsSection,
+  TrustedPlatformSection,
 } from "@/components/marketing/home-sections";
 
 export function MarketingHomePage() {
@@ -16,6 +19,9 @@ export function MarketingHomePage() {
       <FeaturesSection />
       <SolutionsSection />
       <OnePlatformSection />
+      <TestimonialsSection />
+      <TrustMetricsSection />
+      <TrustedPlatformSection />
     </>
   );
 }
