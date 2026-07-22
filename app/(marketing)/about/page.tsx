@@ -1,10 +1,18 @@
 import {
+  FeatureIcon,
   MarketingButton,
   MarketingContainer,
   MarketingSection,
   SectionHeading,
 } from "@/components/marketing/ui";
 import { createPageMetadata } from "@/lib/marketing/seo";
+
+const VISION_NODES = [
+  { id: "website-builder", label: "Build" },
+  { id: "automation", label: "Automate" },
+  { id: "crm", label: "Collaborate" },
+  { id: "analytics", label: "Grow" },
+] as const;
 
 export const metadata = createPageMetadata({
   title: "About",
@@ -81,6 +89,65 @@ export default function AboutPage() {
                 title="Our Mission"
                 lead="Our mission is to help businesses of every size simplify operations through one unified platform. Instead of managing multiple disconnected tools, MABPS brings websites, AI, CRM, automation, analytics, and knowledge together into one seamless experience that is powerful, easy to use, and built for growth."
               />
+            </div>
+          </div>
+        </MarketingContainer>
+      </MarketingSection>
+
+      <MarketingSection>
+        <MarketingContainer>
+          <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16 xl:gap-20">
+            <div className="m-animate-in max-w-xl">
+              <SectionHeading
+                title="Our Vision"
+                lead="Our vision is to become the world's most user-friendly Business Operating System, empowering entrepreneurs and organizations with one connected platform to build, automate, collaborate, and grow without technical complexity."
+              />
+            </div>
+
+            <div
+              className="m-animate-in m-animate-in-delay-2 relative mx-auto w-full max-w-md lg:mx-0 lg:max-w-none"
+              aria-hidden="true"
+            >
+              <div className="relative overflow-hidden rounded-[var(--m-radius-lg)] border border-[var(--m-line)] bg-[linear-gradient(160deg,#ffffff_0%,#f4f7ff_55%,#eef3ff_100%)] p-8 shadow-[var(--m-shadow-soft)] md:p-10">
+                <div className="absolute inset-0 m-grid-atmosphere opacity-40" />
+                <div className="relative">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white ring-1 ring-[var(--m-line)] shadow-[var(--m-shadow-soft)]">
+                    <span className="text-xs font-semibold tracking-[0.12em] text-[var(--m-accent)] uppercase">
+                      OS
+                    </span>
+                  </div>
+
+                  <svg
+                    className="pointer-events-none absolute left-1/2 top-16 h-[calc(100%-4rem)] w-[min(100%,18rem)] -translate-x-1/2 text-[var(--m-line)]"
+                    viewBox="0 0 280 160"
+                    fill="none"
+                  >
+                    <path
+                      d="M140 8 L40 72 M140 8 L240 72 M140 8 L70 148 M140 8 L210 148"
+                      stroke="currentColor"
+                      strokeWidth="1.25"
+                      strokeDasharray="4 5"
+                    />
+                  </svg>
+
+                  <ul className="relative mt-10 grid grid-cols-2 gap-3 sm:gap-4">
+                    {VISION_NODES.map((node, index) => (
+                      <li
+                        key={node.id}
+                        className="m-animate-in m-card flex items-center gap-3 p-3.5 sm:p-4"
+                        style={{ animationDelay: `${220 + index * 70}ms` }}
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--m-accent-soft)] text-[var(--m-accent)]">
+                          <FeatureIcon id={node.id} />
+                        </div>
+                        <span className="text-sm font-semibold tracking-tight text-[var(--m-ink)]">
+                          {node.label}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         </MarketingContainer>
