@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Keep Turbopack rooted on this app when a parent lockfile exists.
+  turbopack: {
+    root: process.cwd(),
+  },
+  // isomorphic-dompurify / jsdom must stay external for server sanitization.
+  serverExternalPackages: ["isomorphic-dompurify", "jsdom"],
   async redirects() {
     return [
       // P2-2: canonical UI paths (legacy plurals → singular module names)

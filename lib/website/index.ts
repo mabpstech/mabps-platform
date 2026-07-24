@@ -46,3 +46,11 @@ export {
   resolvePublishedSiteByHost,
 } from "@/lib/website/publish";
 export { slugify, ensureUniqueSlug } from "@/lib/website/defaults";
+export {
+  sanitizeRichHtml,
+  sanitizeCustomCss,
+  sanitizeJsonLd,
+  requireSafeCustomCss,
+  requireSafeJsonLd,
+  sanitizeSectionContent,
+} from "@/lib/website/sanitize";

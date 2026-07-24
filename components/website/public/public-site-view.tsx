@@ -1,6 +1,10 @@
 import { SectionRenderer } from "@/components/website/public/section-renderer";
 import { SiteChrome } from "@/components/website/public/site-chrome";
 import { mediaPublicUrl } from "@/lib/website/media-url";
+import {
+  sanitizeCustomCss,
+  sanitizeJsonLd,
+} from "@/lib/website/sanitize";
 import type {
   WebsiteBlogPost,
   WebsiteFormWithFields,
@@ -57,6 +61,11 @@ export function PublicSiteView({
   const robots = page?.seoRobots || seo.robots;
   const ogImageId =
     page?.seoOgImageMediaId || blogPost?.coverMediaId || seo.ogImageMediaId;
+  const safeJsonLd = seo.jsonLd ? sanitizeJsonLd(seo.jsonLd) : null;
+  const safeTheme: WebsiteTheme = {
+    ...theme,
+    customCss: theme.customCss ? sanitizeCustomCss(theme.customCss) || null : null,
+  };
 
   return (
     <>
@@ -74,15 +83,15 @@ export function PublicSiteView({
           )}
         />
       ) : null}
-      {seo.jsonLd ? (
+      {safeJsonLd ? (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: seo.jsonLd }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd }}
         />
       ) : null}
 
       <SiteChrome
-        theme={theme}
+        theme={safeTheme}
         header={header}
         footer={footer}
         navigation={navigation}
@@ -121,7 +130,7 @@ export function PublicSiteView({
             <SectionRenderer
               key={section.id}
               section={section}
-              theme={theme}
+              theme={safeTheme}
               basePath={basePath}
               formsBySlug={formsBySlug}
               blogPosts={blogPosts}

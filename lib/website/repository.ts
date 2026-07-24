@@ -11,6 +11,11 @@ import {
 import { migrateWebsiteSchema } from "@/lib/website/migrate";
 import { mediaKindFromMime } from "@/lib/website/media-kind";
 import {
+  requireSafeCustomCss,
+  requireSafeJsonLd,
+  sanitizeSectionContent,
+} from "@/lib/website/sanitize";
+import {
   coreFieldsFromTokens,
   normalizeThemeTokens,
 } from "@/lib/website/theme/normalize";
@@ -928,8 +933,12 @@ export function updateTheme(
   }
 
   const core = coreFieldsFromTokens(tokens);
-  const customCss =
+  const customCssRaw =
     input.customCss !== undefined ? input.customCss : existing.customCss;
+  const customCss =
+    customCssRaw === null || customCssRaw === undefined
+      ? null
+      : requireSafeCustomCss(customCssRaw);
 
   sqlite
     .prepare(
@@ -1118,6 +1127,10 @@ export function updateSeo(
   if (!existing) throw new Error("SEO settings not found.");
   const timestamp = nowIso();
   const next = { ...existing, ...input };
+  const jsonLd =
+    next.jsonLd === null || next.jsonLd === undefined
+      ? null
+      : requireSafeJsonLd(next.jsonLd);
   sqlite
     .prepare(
       `UPDATE "website_seo" SET
@@ -1133,7 +1146,7 @@ export function updateSeo(
       next.twitterHandle,
       next.robots,
       next.canonicalBaseUrl,
-      next.jsonLd,
+      jsonLd,
       timestamp,
       siteId,
     );
@@ -1331,6 +1344,11 @@ export function createSection(input: {
   const sortOrder =
     input.sortOrder === undefined ? existing.length : input.sortOrder;
 
+  const content = sanitizeSectionContent(
+    input.type,
+    input.content ?? defaultSectionContent(input.type),
+  );
+
   sqlite
     .prepare(
       `INSERT INTO "website_section" (
@@ -1343,7 +1361,7 @@ export function createSection(input: {
       input.pageId,
       input.type,
       sortOrder,
-      JSON.stringify(input.content ?? defaultSectionContent(input.type)),
+      JSON.stringify(content),
       JSON.stringify(input.settings ?? {}),
       timestamp,
       timestamp,
@@ -1365,6 +1383,11 @@ export function updateSection(
   const existing = getSectionById(sectionId);
   if (!existing) throw new Error("Section not found.");
   const timestamp = nowIso();
+  const type = input.type ?? existing.type;
+  const content = sanitizeSectionContent(
+    type,
+    input.content ?? existing.content,
+  );
   sqlite
     .prepare(
       `UPDATE "website_section" SET
@@ -1372,9 +1395,9 @@ export function updateSection(
       WHERE "id" = ?`,
     )
     .run(
-      input.type ?? existing.type,
+      type,
       input.sortOrder ?? existing.sortOrder,
-      JSON.stringify(input.content ?? existing.content),
+      JSON.stringify(content),
       JSON.stringify(input.settings ?? existing.settings),
       timestamp,
       sectionId,
@@ -1412,14 +1435,16 @@ export function replaceSections(
     );
 
     sections.forEach((section, index) => {
+      const content = sanitizeSectionContent(
+        section.type,
+        section.content ?? defaultSectionContent(section.type),
+      );
       insert.run(
         section.id || randomUUID(),
         pageId,
         section.type,
         index,
-        JSON.stringify(
-          section.content ?? defaultSectionContent(section.type),
-        ),
+        JSON.stringify(content),
         JSON.stringify(section.settings ?? {}),
         timestamp,
         timestamp,

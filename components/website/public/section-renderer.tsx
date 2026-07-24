@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PublicForm } from "@/components/website/public/public-form";
 import { mediaPublicUrl } from "@/lib/website/media-url";
+import { sanitizeRichHtml } from "@/lib/website/sanitize";
 import type {
   WebsiteBlogPost,
   WebsiteFormWithFields,
@@ -80,7 +81,7 @@ export function SectionRenderer({
           <div
             className="prose max-w-none"
             dangerouslySetInnerHTML={{
-              __html: String(content.html ?? ""),
+              __html: sanitizeRichHtml(String(content.html ?? "")),
             }}
           />
         ) : null}
