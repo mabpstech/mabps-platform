@@ -114,6 +114,17 @@ export {
   requireRazorpayCredentials,
 } from "@/lib/billing/engine/providers/razorpay/client";
 
+export {
+  getRazorpayWebhookEventId,
+  getRazorpayWebhookSecret,
+  isRazorpayHandledEvent,
+  mapRazorpayWebhookPayload,
+  parseRazorpayWebhookPayload,
+  resolvePlanFromRazorpayPlanId,
+  verifyAndMapRazorpayWebhook,
+  verifyRazorpayWebhookSignature,
+} from "@/lib/billing/engine/providers/razorpay/webhook";
+
 export type {
   PaymentProviderAdapter,
   PaymentProviderRegistry,

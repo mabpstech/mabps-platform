@@ -118,6 +118,10 @@ import {
   billingService,
   createBillingService,
 } from "@/lib/billing/engine/create-service";
+import {
+  processProviderWebhookEvent,
+  processRazorpayWebhookEvent,
+} from "@/lib/billing/engine/webhooks";
 
 export type {
   BillingFeatureId,
@@ -295,4 +299,7 @@ export {
   // Service
   billingService,
   createBillingService,
+  // Webhooks
+  processProviderWebhookEvent,
+  processRazorpayWebhookEvent,
 };

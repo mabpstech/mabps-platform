@@ -11,3 +11,14 @@ export {
   razorpayPaymentProvider,
   RazorpayPaymentProvider,
 } from "@/lib/billing/engine/providers/razorpay/provider";
+
+export {
+  getRazorpayWebhookEventId,
+  getRazorpayWebhookSecret,
+  isRazorpayHandledEvent,
+  mapRazorpayWebhookPayload,
+  parseRazorpayWebhookPayload,
+  resolvePlanFromRazorpayPlanId,
+  verifyAndMapRazorpayWebhook,
+  verifyRazorpayWebhookSignature,
+} from "@/lib/billing/engine/providers/razorpay/webhook";

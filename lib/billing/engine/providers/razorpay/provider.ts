@@ -3,6 +3,7 @@ import {
   isRazorpayConfigured,
   razorpayRequest,
 } from "@/lib/billing/engine/providers/razorpay/client";
+import { verifyAndMapRazorpayWebhook } from "@/lib/billing/engine/providers/razorpay/webhook";
 import type { PaymentProviderAdapter } from "@/lib/billing/engine/providers/types";
 import type {
   ProviderCancelInput,
@@ -22,7 +23,6 @@ import type {
 const NOT_IMPLEMENTED = {
   subscription:
     "Razorpay subscription creation is not implemented yet.",
-  webhook: "Razorpay webhook verification is not implemented yet.",
   portal: "Razorpay customer portal is not implemented yet.",
   invoices: "Razorpay invoice listing is not implemented yet.",
   getSubscription: "Razorpay getSubscription is not implemented yet.",
@@ -41,7 +41,8 @@ type RazorpaySubscriptionResponse = {
 
 /**
  * Razorpay PaymentProviderAdapter.
- * Checkout + customer are live; subscription/webhook/portal/invoice stay placeholders.
+ * Checkout, customer, and webhook verification are live;
+ * portal / invoice / direct cancel stay placeholders.
  */
 export class RazorpayPaymentProvider implements PaymentProviderAdapter {
   readonly id = "razorpay" as const;
@@ -157,10 +158,10 @@ export class RazorpayPaymentProvider implements PaymentProviderAdapter {
   }
 
   verifyWebhook(
-    _rawBody: string | Buffer,
-    _headers: Headers | Record<string, string>,
+    rawBody: string | Buffer,
+    headers: Headers | Record<string, string>,
   ): Promise<ProviderWebhookEvent> {
-    return Promise.reject(new Error(NOT_IMPLEMENTED.webhook));
+    return Promise.resolve(verifyAndMapRazorpayWebhook(rawBody, headers));
   }
 
   cancelSubscription(_input: ProviderCancelInput): Promise<void> {
