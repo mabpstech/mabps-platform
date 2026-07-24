@@ -7,6 +7,7 @@ import {
   sendOrganizationInvitationEmail,
   sendPasswordResetEmail,
   sendVerificationEmail,
+  sendWelcomeEmail,
 } from "@/lib/email";
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
@@ -42,6 +43,14 @@ export const auth = betterAuth({
         email: user.email,
         name: user.name,
         url,
+      });
+    },
+    afterEmailVerification: async (user) => {
+      const baseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+      await sendWelcomeEmail({
+        email: user.email,
+        name: user.name,
+        dashboardUrl: `${baseUrl}/dashboard`,
       });
     },
   },
