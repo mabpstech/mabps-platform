@@ -1,10 +1,10 @@
-import { sanitize as domPurifySanitize } from "isomorphic-dompurify";
+import sanitizeHtml from "sanitize-html";
 
 /**
  * Stored XSS controls for public website surfaces:
  * rich HTML, custom CSS, and JSON-LD.
  *
- * HTML uses DOMPurify (via isomorphic-dompurify). Unsafe tags and inline
+ * HTML uses sanitize-html (Node/CJS-safe; no jsdom). Unsafe tags and inline
  * JavaScript handlers are rejected/stripped. CSS and JSON-LD use strict
  * structural checks plus safe serialization.
  */
@@ -33,19 +33,75 @@ const FORBIDDEN_HTML_TAGS = [
   "style",
 ] as const;
 
+const FORBIDDEN_HTML_TAG_SET = new Set<string>(FORBIDDEN_HTML_TAGS);
+
+/**
+ * Allowlist aligned with DOMPurify's HTML profile minus FORBIDDEN_HTML_TAGS.
+ * Media tags that the previous profile kept (img/video/…) stay allowed so
+ * stored rich HTML does not change visually.
+ */
+const ALLOWED_HTML_TAGS = [
+  ...sanitizeHtml.defaults.allowedTags,
+  "img",
+  "picture",
+  "source",
+  "video",
+  "audio",
+  "track",
+  "del",
+  "ins",
+  "details",
+  "summary",
+  "center",
+  "font",
+  "map",
+  "area",
+].filter((tag) => !FORBIDDEN_HTML_TAG_SET.has(tag));
+
+const RICH_HTML_OPTIONS: sanitizeHtml.IOptions = {
+  allowedTags: ALLOWED_HTML_TAGS,
+  // Match prior FORBID_ATTR (style, srcdoc) and ALLOW_DATA_ATTR: false.
+  // Event handlers are never allowlisted, so onclick/onerror/etc. are stripped.
+  allowedAttributes: {
+    a: ["href", "name", "target", "rel", "title"],
+    img: ["src", "srcset", "sizes", "alt", "title", "width", "height", "loading"],
+    source: ["src", "srcset", "sizes", "type", "media"],
+    video: ["src", "controls", "width", "height", "poster", "preload"],
+    audio: ["src", "controls", "preload"],
+    track: ["src", "kind", "srclang", "label", "default"],
+    area: ["alt", "coords", "href", "shape", "target", "rel"],
+    td: ["colspan", "rowspan", "headers"],
+    th: ["colspan", "rowspan", "headers", "scope"],
+    col: ["span"],
+    colgroup: ["span"],
+    ol: ["start", "type"],
+    ul: ["type"],
+    "*": ["class", "id", "title", "lang", "dir", "role", "aria-*"],
+  },
+  // Match ALLOW_UNKNOWN_PROTOCOLS: false (safe schemes only).
+  allowedSchemes: ["http", "https", "ftp", "mailto", "tel"],
+  allowedSchemesAppliedToAttributes: [
+    "href",
+    "src",
+    "cite",
+    "poster",
+    "action",
+    "formaction",
+  ],
+  allowProtocolRelative: true,
+  parseStyleAttributes: false,
+  // Keep text inside stripped wrappers (e.g. <form><p>hi</p></form> → <p>hi</p>),
+  // while discarding contents of inherently executable tags (script/style/…).
+  disallowedTagsMode: "discard",
+};
+
 /** CSS that can break out of <style>, run JS, or load untrusted sheets. */
 const UNSAFE_CSS_PATTERN =
   /@import\b|expression\s*\(|(?:javascript|vbscript)\s*:|behavior\s*:|-moz-binding\b|data\s*:\s*text\/html|<\/?\s*(?:style|script|iframe|link|object|embed|svg)\b|\\\s*0*3c/i;
 
 export function sanitizeRichHtml(html: string): string {
   if (!html) return "";
-  return domPurifySanitize(html, {
-    USE_PROFILES: { html: true },
-    FORBID_TAGS: [...FORBIDDEN_HTML_TAGS],
-    FORBID_ATTR: ["style", "srcdoc"],
-    ALLOW_DATA_ATTR: false,
-    ALLOW_UNKNOWN_PROTOCOLS: false,
-  });
+  return sanitizeHtml(html, RICH_HTML_OPTIONS);
 }
 
 export function containsUnsafeCss(css: string): boolean {
