@@ -1,23 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import Database from "better-sqlite3";
+import { openDatabase } from "./lib/open-db.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const databaseFile = process.env.DATABASE_URL
-  ? path.isAbsolute(process.env.DATABASE_URL)
-    ? process.env.DATABASE_URL
-    : path.join(root, process.env.DATABASE_URL)
-  : path.join(root, "data", "mabps.db");
+const { db, label } = openDatabase(root);
 
-fs.mkdirSync(path.dirname(databaseFile), { recursive: true });
-
-const db = new Database(databaseFile);
-db.pragma("journal_mode = WAL");
-db.pragma("foreign_keys = ON");
-
-const schema = fs.readFileSync(path.join(root, "lib/crm/schema.sql"), "utf8");
+const schema = fs.readFileSync(
+  path.join(root, "lib/crm/schema.sql"),
+  "utf8",
+);
 db.exec(schema);
 db.close();
 
-console.log(`CRM schema applied to ${databaseFile}`);
+console.log(`CRM schema applied to ${label}`);

@@ -13,18 +13,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import Database from "better-sqlite3";
 import {
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import { openDatabase } from "./lib/open-db.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const databaseFile = process.env.DATABASE_URL
-  ? path.isAbsolute(process.env.DATABASE_URL)
-    ? process.env.DATABASE_URL
-    : path.join(root, process.env.DATABASE_URL)
-  : path.join(root, "data", "mabps.db");
 
 function requireEnv(name) {
   const value = process.env[name]?.trim();
@@ -54,7 +49,7 @@ const client = new S3Client({
   },
 });
 
-const db = new Database(databaseFile, { readonly: true });
+const { db } = openDatabase(root);
 const rows = db
   .prepare(
     `SELECT "id", "storagePath", "mimeType" FROM "website_media" ORDER BY "createdAt" ASC`,

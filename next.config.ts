@@ -52,7 +52,13 @@ const nextConfig: NextConfig = {
     root: process.cwd(),
   },
   // isomorphic-dompurify / jsdom must stay external for server sanitization.
-  serverExternalPackages: ["isomorphic-dompurify", "jsdom"],
+  // libsql has native bindings; keep external so Next does not bundle them.
+  serverExternalPackages: [
+    "isomorphic-dompurify",
+    "jsdom",
+    "libsql",
+    "@libsql/client",
+  ],
   async headers() {
     return [
       {

@@ -17,16 +17,10 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import Database from "better-sqlite3";
+import { openDatabase } from "./lib/open-db.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const migrationsDir = path.join(root, "migrations");
-
-const databaseFile = process.env.DATABASE_URL
-  ? path.isAbsolute(process.env.DATABASE_URL)
-    ? process.env.DATABASE_URL
-    : path.join(root, process.env.DATABASE_URL)
-  : path.join(root, "data", "mabps.db");
 
 /** Ordered baseline modules (feature schemas under lib/<module>/schema.sql). */
 const BASELINE_SCHEMAS = [
@@ -48,11 +42,7 @@ const BASELINE_SCHEMAS = [
   ["marketplace", "lib/marketplace/schema.sql"],
 ];
 
-fs.mkdirSync(path.dirname(databaseFile), { recursive: true });
-
-const db = new Database(databaseFile);
-db.pragma("journal_mode = WAL");
-db.pragma("foreign_keys = ON");
+const { db, label: databaseLabel } = openDatabase(root);
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS "schema_migrations" (
@@ -172,7 +162,7 @@ function applySqlMigrations() {
   }
 }
 
-console.log(`Migrating ${databaseFile}`);
+console.log(`Migrating ${databaseLabel}`);
 applyBaseline();
 applySqlMigrations();
 

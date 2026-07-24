@@ -41,7 +41,7 @@ export const CRITICAL_DEPENDENCIES = [
   "react",
   "react-dom",
   "better-auth",
-  "better-sqlite3",
+  "@libsql/client",
 ] as const;
 
 /** Expected module schema tables for integrity checks. */
