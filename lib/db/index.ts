@@ -55,3 +55,4 @@ export {
   resolveAuthToken,
   isRemoteLibsqlUrl,
 } from "@/lib/db/config";
+export { createLibsqlTransaction, stripRowMetadata } from "@/lib/db/compat";
