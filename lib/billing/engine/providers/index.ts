@@ -1,5 +1,9 @@
 import type { BillingProviderId } from "@/lib/billing/engine/types";
 import { nullPaymentProvider } from "@/lib/billing/engine/providers/null";
+import {
+  createRazorpayPaymentProvider,
+  type RazorpayPaymentProvider,
+} from "@/lib/billing/engine/providers/razorpay/provider";
 import type {
   PaymentProviderAdapter,
   PaymentProviderRegistry,
@@ -77,11 +81,35 @@ export function resolveActivePaymentProviderId(
   return configured[0]?.id ?? "none";
 }
 
+/**
+ * Register the Razorpay adapter on the process-wide (or provided) registry.
+ */
+export function registerRazorpayPaymentProvider(
+  registry: PaymentProviderRegistry = paymentProviderRegistry,
+): RazorpayPaymentProvider {
+  const adapter = createRazorpayPaymentProvider();
+  registry.register(adapter);
+  return adapter;
+}
+
 export {
   createNullPaymentProvider,
   nullPaymentProvider,
   NULL_PAYMENT_PROVIDER_MESSAGE,
 } from "@/lib/billing/engine/providers/null";
+
+export {
+  createRazorpayPaymentProvider,
+  razorpayPaymentProvider,
+  RazorpayPaymentProvider,
+} from "@/lib/billing/engine/providers/razorpay/provider";
+
+export {
+  getRazorpayCredentials,
+  getRazorpayPlanId,
+  isRazorpayConfigured,
+  requireRazorpayCredentials,
+} from "@/lib/billing/engine/providers/razorpay/client";
 
 export type {
   PaymentProviderAdapter,

@@ -110,6 +110,7 @@ import {
   getPaymentProvider,
   listConfiguredPaymentProviders,
   paymentProviderRegistry,
+  registerRazorpayPaymentProvider,
   resolveActivePaymentProviderId,
   createPaymentProviderRegistry,
 } from "@/lib/billing/engine/providers";
@@ -289,6 +290,7 @@ export {
   isBillingProviderId,
   listConfiguredPaymentProviders,
   paymentProviderRegistry,
+  registerRazorpayPaymentProvider,
   resolveActivePaymentProviderId,
   // Service
   billingService,
