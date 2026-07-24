@@ -14,6 +14,7 @@ import {
 } from "@/lib/billing/repository";
 import { sqlite } from "@/lib/db";
 import {
+  sendPaymentFailedEmail,
   sendPaymentSuccessEmail,
   sendSubscriptionCancelledEmail,
   sendTrialEndingEmail,
@@ -177,6 +178,49 @@ export async function notifyPaymentSuccess(input: {
         interval: input.interval,
       }),
       invoiceUrl: input.invoiceUrl,
+      billingUrl: billingSettingsUrl(),
+    }),
+  );
+}
+
+/**
+ * Payment failed (invoice.payment_failed / payment.failed → past due).
+ */
+export async function notifyPaymentFailed(input: {
+  workspaceId: string;
+  planId: PlanId;
+  gracePeriodEnd?: string | null;
+  providerInvoiceId?: string | null;
+  /** Optional idempotency key; defaults to workspace + invoice / day. */
+  eventKey?: string;
+}): Promise<boolean> {
+  if (input.planId === "free") {
+    return false;
+  }
+
+  const recipient = resolveBillingEmailRecipient(input.workspaceId);
+  if (!recipient) {
+    console.warn(
+      `[billing/email] No recipient for payment failed (${input.workspaceId})`,
+    );
+    return false;
+  }
+
+  const dayKey = new Date().toISOString().slice(0, 10);
+  const eventId =
+    input.eventKey ??
+    `email:payment_failed:${input.workspaceId}:${input.providerInvoiceId ?? dayKey}`;
+  if (!claimEmailEvent(eventId, "billing_email.payment_failed")) {
+    return false;
+  }
+
+  return safeSend("payment_failed", input.workspaceId, () =>
+    sendPaymentFailedEmail({
+      email: recipient.email,
+      name: recipient.name,
+      workspaceName: recipient.workspaceName,
+      planName: getPlanDisplayName(input.planId),
+      graceEndsAt: formatDisplayDate(input.gracePeriodEnd),
       billingUrl: billingSettingsUrl(),
     }),
   );

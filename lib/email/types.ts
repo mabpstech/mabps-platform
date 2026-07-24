@@ -10,6 +10,7 @@ export type EmailKind =
   | "verify"
   | "password_reset"
   | "payment_success"
+  | "payment_failed"
   | "trial_ending"
   | "subscription_cancelled";
 
@@ -64,6 +65,15 @@ export type PaymentSuccessEmailInput = {
   billingUrl?: string | null;
 };
 
+export type PaymentFailedEmailInput = {
+  to: string;
+  name?: string | null;
+  workspaceName?: string | null;
+  planName: string;
+  graceEndsAt?: string | null;
+  billingUrl?: string | null;
+};
+
 export type TrialEndingEmailInput = {
   to: string;
   name?: string | null;
@@ -97,6 +107,8 @@ export type EmailService = {
   sendPasswordReset(input: PasswordResetEmailInput): Promise<EmailSendResult>;
 
   sendPaymentSuccess(input: PaymentSuccessEmailInput): Promise<EmailSendResult>;
+
+  sendPaymentFailed(input: PaymentFailedEmailInput): Promise<EmailSendResult>;
 
   sendTrialEnding(input: TrialEndingEmailInput): Promise<EmailSendResult>;
 

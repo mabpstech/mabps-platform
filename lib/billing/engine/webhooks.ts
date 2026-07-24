@@ -1,10 +1,12 @@
 import {
+  notifyPaymentFailed,
   notifyPaymentSuccess,
   notifySubscriptionCancelled,
 } from "@/lib/billing/engine/emails";
 import {
   activateSubscription,
   cancelSubscription,
+  markPastDue,
 } from "@/lib/billing/engine/lifecycle";
 import type { ProviderWebhookEvent } from "@/lib/billing/engine/providers/types";
 import {
@@ -233,7 +235,34 @@ export async function processProviderWebhookEvent(
       return { ok: true };
     }
 
-    case "invoice.payment_failed":
+    case "invoice.payment_failed": {
+      const workspaceId = resolveWorkspaceId({
+        workspaceId: event.workspaceId,
+      });
+      if (!workspaceId) {
+        return { ok: true, skipped: true, reason: "missing_workspace" };
+      }
+
+      const current = loadEngineSubscription(workspaceId);
+      if (current.planId === "free") {
+        return { ok: true, skipped: true, reason: "free_plan" };
+      }
+
+      // Past Due + preserve/establish grace window (soft access while recovering).
+      const pastDue = markPastDue(current);
+      persistEngineSubscription(pastDue);
+
+      await notifyPaymentFailed({
+        workspaceId,
+        planId: pastDue.planId,
+        gracePeriodEnd: pastDue.gracePeriodEnd,
+        providerInvoiceId: event.providerInvoiceId,
+        eventKey: `email:payment_failed:${workspaceId}:${event.providerInvoiceId}`,
+      });
+
+      return { ok: true };
+    }
+
     case "checkout.completed":
     case "unhandled":
       return { ok: true, skipped: true, reason: event.type };

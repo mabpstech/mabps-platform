@@ -9,6 +9,7 @@ export type {
   EmailSendResult,
   EmailService,
   PasswordResetEmailInput,
+  PaymentFailedEmailInput,
   PaymentSuccessEmailInput,
   RenderedEmail,
   SendEmailInput,
@@ -37,6 +38,7 @@ export {
   renderVerifyEmail,
   renderPasswordResetEmail,
   renderPaymentSuccessEmail,
+  renderPaymentFailedEmail,
   renderTrialEndingEmail,
   renderSubscriptionCancelledEmail,
   renderEmailLayout,
@@ -107,6 +109,24 @@ export async function sendPaymentSuccessEmail(params: {
     planName: params.planName,
     amountFormatted: params.amountFormatted,
     invoiceUrl: params.invoiceUrl,
+    billingUrl: params.billingUrl,
+  });
+}
+
+export async function sendPaymentFailedEmail(params: {
+  email: string;
+  name?: string | null;
+  workspaceName?: string | null;
+  planName: string;
+  graceEndsAt?: string | null;
+  billingUrl?: string | null;
+}): Promise<void> {
+  await getEmailService().sendPaymentFailed({
+    to: params.email,
+    name: params.name,
+    workspaceName: params.workspaceName,
+    planName: params.planName,
+    graceEndsAt: params.graceEndsAt,
     billingUrl: params.billingUrl,
   });
 }

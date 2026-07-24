@@ -120,6 +120,7 @@ import {
 } from "@/lib/billing/engine/create-service";
 import {
   formatBillingAmount,
+  notifyPaymentFailed,
   notifyPaymentSuccess,
   notifySubscriptionCancelled,
   notifyTrialEnding,
@@ -309,6 +310,7 @@ export {
   createBillingService,
   // Lifecycle emails
   formatBillingAmount,
+  notifyPaymentFailed,
   notifyPaymentSuccess,
   notifySubscriptionCancelled,
   notifyTrialEnding,

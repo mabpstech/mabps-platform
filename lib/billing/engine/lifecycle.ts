@@ -349,10 +349,12 @@ export function isUsageLimitReached(
 
 /**
  * Mark payment as past due (supported lifecycle state; no provider I/O).
+ * Preserves an existing grace window; establishes the default grace period
+ * when none is set so soft access continues after payment failure.
  */
 export function markPastDue(
   subscription: Subscription,
-  input: { now?: Date } = {},
+  input: { now?: Date; graceDays?: number } = {},
 ): Subscription {
   const now = input.now ?? new Date();
   const lifecycle = getLifecycleStatus(subscription);
@@ -368,10 +370,20 @@ export function markPastDue(
     );
   }
 
+  const gracePeriodEnd =
+    subscription.gracePeriodEnd ??
+    (() => {
+      const days = input.graceDays ?? DEFAULT_GRACE_PERIOD_DAYS;
+      const end = new Date(now.getTime());
+      end.setUTCDate(end.getUTCDate() + days);
+      return end.toISOString();
+    })();
+
   return touch(
     subscription,
     {
       status: "past_due",
+      gracePeriodEnd,
     },
     now,
   );

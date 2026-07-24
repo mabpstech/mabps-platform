@@ -14,6 +14,7 @@ import type { EngineSubscriptionStatus } from "@/lib/billing/engine/types";
 
 const HANDLED_EVENTS = [
   "payment.success",
+  "payment.failed",
   "subscription.activated",
   "subscription.cancelled",
 ] as const;
@@ -211,6 +212,23 @@ export function mapRazorpayWebhookPayload(
       type: "subscription.deleted",
       providerSubscriptionId,
       workspaceId,
+    };
+  }
+
+  if (eventType === "payment.failed") {
+    const providerInvoiceId = payment?.invoice_id || payment?.id;
+    if (!providerInvoiceId) {
+      return {
+        type: "unhandled",
+        providerEventType: eventType,
+      };
+    }
+    return {
+      type: "invoice.payment_failed",
+      providerInvoiceId,
+      workspaceId,
+      amountPaid: payment?.amount,
+      currency: payment?.currency ?? undefined,
     };
   }
 

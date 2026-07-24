@@ -4,6 +4,7 @@ import {
 } from "@/lib/email/providers";
 import {
   renderPasswordResetEmail,
+  renderPaymentFailedEmail,
   renderPaymentSuccessEmail,
   renderSubscriptionCancelledEmail,
   renderTrialEndingEmail,
@@ -15,6 +16,7 @@ import type {
   EmailSendResult,
   EmailService,
   PasswordResetEmailInput,
+  PaymentFailedEmailInput,
   PaymentSuccessEmailInput,
   SendEmailInput,
   SubscriptionCancelledEmailInput,
@@ -113,6 +115,19 @@ export function createEmailService(
         html: rendered.html,
         text: rendered.text,
         tags: ["payment_success"],
+      });
+    },
+
+    async sendPaymentFailed(
+      input: PaymentFailedEmailInput,
+    ): Promise<EmailSendResult> {
+      const rendered = renderPaymentFailedEmail(input);
+      return send({
+        to: input.to,
+        subject: rendered.subject,
+        html: rendered.html,
+        text: rendered.text,
+        tags: ["payment_failed"],
       });
     },
 
