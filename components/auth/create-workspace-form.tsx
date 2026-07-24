@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 import { authClient } from "@/lib/auth/client";
+import { getAuthErrorMessage, logAuthErrorInDev } from "@/lib/auth/errors";
 import { slugifyWorkspace } from "@/lib/auth/slug";
 import {
   authButtonClassName,
@@ -43,7 +44,10 @@ export function CreateWorkspaceForm() {
     });
 
     if (createError || !data) {
-      setError(createError?.message ?? "Unable to create workspace.");
+      logAuthErrorInDev("organization.create", createError ?? { reason: "no data" });
+      setError(
+        getAuthErrorMessage(createError, "Unable to create workspace."),
+      );
       setPending(false);
       return;
     }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 import { authClient } from "@/lib/auth/client";
+import { getAuthErrorMessage, logAuthErrorInDev } from "@/lib/auth/errors";
 import { slugifyWorkspace } from "@/lib/auth/slug";
 import {
   authButtonClassName,
@@ -64,53 +65,70 @@ export function SignupForm({ googleEnabled = false }: SignupFormProps) {
       }
     }
 
-    const { error: signUpError } = await authClient.signUp.email({
-      name,
-      email,
-      password,
-      callbackURL: acceptingInvite
-        ? (callbackUrl as string)
-        : "/dashboard",
-    });
+    try {
+      const { error: signUpError } = await authClient.signUp.email({
+        name,
+        email,
+        password,
+        callbackURL: acceptingInvite
+          ? (callbackUrl as string)
+          : "/dashboard",
+      });
 
-    if (signUpError) {
-      setError(signUpError.message ?? "Unable to create account.");
-      setPending(false);
-      return;
-    }
+      if (signUpError) {
+        logAuthErrorInDev("signUp.email", signUpError);
+        setError(getAuthErrorMessage(signUpError));
+        setPending(false);
+        return;
+      }
 
-    if (acceptingInvite && callbackUrl) {
-      setInfo("Account created. Continue to accept your invitation.");
-      router.push(callbackUrl);
+      if (acceptingInvite && callbackUrl) {
+        setInfo("Account created. Continue to accept your invitation.");
+        router.push(callbackUrl);
+        router.refresh();
+        return;
+      }
+
+      const finalSlug = slugifyWorkspace(effectiveSlug);
+      const { data, error: createError } = await authClient.organization.create({
+        name: workspaceName.trim(),
+        slug: finalSlug,
+        logo: workspaceLogo.trim() || undefined,
+        keepCurrentActiveOrganization: false,
+      });
+
+      if (createError || !data) {
+        logAuthErrorInDev("organization.create", createError ?? { reason: "no data" });
+        setInfo(
+          "Account created, but workspace setup needs one more step.",
+        );
+        router.push("/onboarding");
+        router.refresh();
+        return;
+      }
+
+      await authClient.organization.setActive({
+        organizationId: data.id,
+      });
+
+      await fetch("/api/billing/bootstrap", { method: "POST" }).catch(() => null);
+
+      router.push("/dashboard");
       router.refresh();
-      return;
-    }
-
-    const finalSlug = slugifyWorkspace(effectiveSlug);
-    const { data, error: createError } = await authClient.organization.create({
-      name: workspaceName.trim(),
-      slug: finalSlug,
-      logo: workspaceLogo.trim() || undefined,
-      keepCurrentActiveOrganization: false,
-    });
-
-    if (createError || !data) {
-      setInfo(
-        "Account created, but workspace setup needs one more step.",
+    } catch (unexpectedError) {
+      logAuthErrorInDev("signup.submit", unexpectedError);
+      setError(
+        getAuthErrorMessage(
+          unexpectedError &&
+            typeof unexpectedError === "object" &&
+            "message" in unexpectedError
+            ? (unexpectedError as { message?: string })
+            : null,
+          "Unable to create account. Please try again.",
+        ),
       );
-      router.push("/onboarding");
-      router.refresh();
-      return;
+      setPending(false);
     }
-
-    await authClient.organization.setActive({
-      organizationId: data.id,
-    });
-
-    await fetch("/api/billing/bootstrap", { method: "POST" }).catch(() => null);
-
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (
