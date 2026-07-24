@@ -21,7 +21,7 @@ function cloudflareHeaders(token: string): HeadersInit {
 
 /**
  * Trigger a Cloudflare Pages deployment when credentials are configured.
- * Falls back to simulated deployment for local/dev without tokens.
+ * Fails loudly when account ID or API token is missing — never simulates publish.
  */
 export async function createCloudflareDeployment(options: {
   settings: DeploymentSettings;
@@ -35,19 +35,9 @@ export async function createCloudflareDeployment(options: {
   const projectName = project.cloudflareProjectName || project.slug;
 
   if (!settings.cloudflareApiToken || !settings.cloudflareAccountId) {
-    const id = `sim_cf_${commitSha.slice(0, 12)}`;
-    return {
-      providerDeploymentId: id,
-      url: `https://${projectName}.pages.dev`,
-      inspectorUrl: `https://dash.cloudflare.com/${settings.cloudflareAccountId || "account"}/pages/view/${projectName}`,
-      simulated: true,
-      raw: {
-        mode: "simulated",
-        reason: "Cloudflare account/token not configured.",
-        commitMessage,
-        branch,
-      },
-    };
+    throw new Error(
+      "Cloudflare account ID and API token are not configured.",
+    );
   }
 
   const response = await fetch(

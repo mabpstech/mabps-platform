@@ -64,14 +64,9 @@ export function DeploymentProjectsPanel({
       });
       const data = (await response.json()) as {
         error?: string;
-        simulated?: boolean;
       };
       if (!response.ok) throw new Error(data.error || "Publish failed.");
-      setSuccess(
-        data.simulated
-          ? "Published (simulated — add provider tokens for live deploys)."
-          : "Published successfully.",
-      );
+      setSuccess("Published successfully.");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Publish failed.");

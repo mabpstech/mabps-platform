@@ -153,11 +153,21 @@ export async function runPublishPipeline(options: {
       };
     }
 
+    // Real providers must never publish via simulated/fallback deploys.
+    if (
+      providerResult.simulated &&
+      (project.provider === "cloudflare" || project.provider === "vercel")
+    ) {
+      throw new Error(
+        `${project.provider === "cloudflare" ? "Cloudflare" : "Vercel"} provider tokens are not configured.`,
+      );
+    }
+
     appendBuildLog(
       options.workspaceId,
       deployment.id,
       providerResult.simulated
-        ? "Provider credentials missing — completed simulated deployment"
+        ? "Manual provider — recorded local deployment"
         : `Provider accepted deployment ${providerResult.providerDeploymentId}`,
     );
     appendBuildLog(

@@ -17,7 +17,7 @@ function vercelHeaders(token: string): HeadersInit {
 
 /**
  * Create a Vercel deployment when a token is configured.
- * Falls back to a deterministic simulated deployment for local/dev.
+ * Fails loudly when the token is missing — never simulates publish.
  */
 export async function createVercelDeployment(options: {
   settings: DeploymentSettings;
@@ -30,15 +30,7 @@ export async function createVercelDeployment(options: {
   const { settings, project, commitSha, commitMessage, branch } = options;
 
   if (!settings.vercelToken) {
-    const slug = project.vercelProjectId || project.slug;
-    const id = `sim_vercel_${commitSha.slice(0, 12)}`;
-    return {
-      providerDeploymentId: id,
-      url: `https://${slug}-${commitSha.slice(0, 8)}.vercel.app`,
-      inspectorUrl: `https://vercel.com/deployments/${id}`,
-      simulated: true,
-      raw: { mode: "simulated", reason: "No Vercel token configured." },
-    };
+    throw new Error("Vercel token is not configured.");
   }
 
   const teamQuery = settings.vercelTeamId
