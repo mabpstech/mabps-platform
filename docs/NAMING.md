@@ -12,7 +12,7 @@ Canonical public names for domains that previously drifted across UI, API, `lib/
 
 ## Exceptions (intentional)
 
-- **`lib/email-engine`** — product email module. Kept distinct from **`lib/email.ts`** (auth transactional mail via Better Auth / Resend).
+- **`lib/email-engine`** — product email module. Kept distinct from **`lib/email/`** (platform transactional mail via Better Auth / Resend).
 - **`/api/website/sites/...`** — resource path for site entities under the website module (not a naming split).
 - **Public publish routes** — `/p/...` and `/site/...` remain the published-site surfaces; admin builder is `/website`.
 
