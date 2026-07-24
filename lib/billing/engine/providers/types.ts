@@ -148,6 +148,9 @@ export type ProviderWebhookEvent =
         providerSubscriptionId: string;
         workspaceId?: string;
       };
+      /** Present when the update was driven by a successful payment. */
+      amountPaid?: number;
+      currency?: string;
     }
   | {
       type: "subscription.deleted";

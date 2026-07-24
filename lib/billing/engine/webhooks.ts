@@ -1,4 +1,8 @@
 import {
+  notifyPaymentSuccess,
+  notifySubscriptionCancelled,
+} from "@/lib/billing/engine/emails";
+import {
   activateSubscription,
   cancelSubscription,
 } from "@/lib/billing/engine/lifecycle";
@@ -80,9 +84,9 @@ function loadEngineSubscription(
  * Apply a normalized provider webhook event to the Billing Engine lifecycle
  * and persist the resulting subscription row.
  */
-export function processProviderWebhookEvent(
+export async function processProviderWebhookEvent(
   event: ProviderWebhookEvent,
-): { ok: true; skipped?: boolean; reason?: string } {
+): Promise<{ ok: true; skipped?: boolean; reason?: string }> {
   switch (event.type) {
     case "subscription.updated": {
       const workspaceId = resolveWorkspaceId({
@@ -151,6 +155,19 @@ export function processProviderWebhookEvent(
         currentPeriodEnd:
           event.subscription.currentPeriodEnd ?? activated.currentPeriodEnd,
       });
+
+      // payment.success maps amountPaid; subscription.activated does not.
+      if (typeof event.amountPaid === "number") {
+        await notifyPaymentSuccess({
+          workspaceId,
+          planId,
+          interval,
+          amountPaid: event.amountPaid,
+          currency: event.currency,
+          eventKey: `email:payment_success:${workspaceId}:${event.subscription.providerSubscriptionId}:${event.amountPaid}`,
+        });
+      }
+
       return { ok: true };
     }
 
@@ -167,10 +184,24 @@ export function processProviderWebhookEvent(
       }
 
       const current = loadEngineSubscription(workspaceId);
+      const cancelledPlanId = current.planId;
+      const endsAt =
+        current.currentPeriodEnd ?? current.canceledAt ?? new Date().toISOString();
+      const providerSubscriptionId =
+        current.providerSubscriptionId ?? event.providerSubscriptionId;
+
       // Domain transition: immediate cancel, then align persisted access with Free
       // (same product outcome as the Stripe cancelled path).
       cancelSubscription(current, { immediate: true });
       downgradeToFree(workspaceId);
+
+      await notifySubscriptionCancelled({
+        workspaceId,
+        planId: cancelledPlanId,
+        endsAt,
+        providerSubscriptionId,
+      });
+
       return { ok: true };
     }
 
@@ -189,6 +220,16 @@ export function processProviderWebhookEvent(
 
       const activated = activateSubscription(current);
       persistEngineSubscription(activated);
+
+      await notifyPaymentSuccess({
+        workspaceId,
+        planId: activated.planId,
+        interval: activated.interval,
+        amountPaid: event.amountPaid,
+        currency: event.currency,
+        eventKey: `email:payment_success:${workspaceId}:${event.providerInvoiceId}`,
+      });
+
       return { ok: true };
     }
 
@@ -205,16 +246,16 @@ export function processProviderWebhookEvent(
 /**
  * Idempotent Razorpay → Billing Engine webhook processing.
  */
-export function processRazorpayWebhookEvent(input: {
+export async function processRazorpayWebhookEvent(input: {
   eventId: string;
   eventType: string;
   event: ProviderWebhookEvent;
-}): { ok: true; duplicate?: boolean; skipped?: boolean; reason?: string } {
+}): Promise<{ ok: true; duplicate?: boolean; skipped?: boolean; reason?: string }> {
   if (hasProcessedWebhookEvent(input.eventId)) {
     return { ok: true, duplicate: true };
   }
 
-  const result = processProviderWebhookEvent(input.event);
+  const result = await processProviderWebhookEvent(input.event);
   markWebhookEventProcessed(input.eventId, input.eventType);
   return result;
 }

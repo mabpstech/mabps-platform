@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     );
     const eventId = getRazorpayWebhookEventId(payload, request.headers);
     const rawEvent = parseRazorpayWebhookPayload(payload);
-    const result = processRazorpayWebhookEvent({
+    const result = await processRazorpayWebhookEvent({
       eventId,
       eventType: rawEvent.event ?? event.type,
       event,

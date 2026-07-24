@@ -119,6 +119,14 @@ import {
   createBillingService,
 } from "@/lib/billing/engine/create-service";
 import {
+  formatBillingAmount,
+  notifyPaymentSuccess,
+  notifySubscriptionCancelled,
+  notifyTrialEnding,
+  processTrialEndingNotifications,
+  resolveBillingEmailRecipient,
+} from "@/lib/billing/engine/emails";
+import {
   processProviderWebhookEvent,
   processRazorpayWebhookEvent,
 } from "@/lib/billing/engine/webhooks";
@@ -299,6 +307,13 @@ export {
   // Service
   billingService,
   createBillingService,
+  // Lifecycle emails
+  formatBillingAmount,
+  notifyPaymentSuccess,
+  notifySubscriptionCancelled,
+  notifyTrialEnding,
+  processTrialEndingNotifications,
+  resolveBillingEmailRecipient,
   // Webhooks
   processProviderWebhookEvent,
   processRazorpayWebhookEvent,

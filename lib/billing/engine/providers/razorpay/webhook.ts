@@ -278,6 +278,8 @@ export function mapRazorpayWebhookPayload(
         trialEnd: null,
         gracePeriodEnd: null,
       },
+      amountPaid: payment?.amount,
+      currency: payment?.currency ?? undefined,
     };
   }
 

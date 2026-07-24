@@ -3,6 +3,9 @@ import {
   type PreparePlanChangeInput,
 } from "@/lib/billing/engine/change-plan";
 import {
+  notifySubscriptionCancelled,
+} from "@/lib/billing/engine/emails";
+import {
   cancelSubscription as applyCancelLifecycle,
 } from "@/lib/billing/engine/lifecycle";
 import {
@@ -215,6 +218,17 @@ export function createBillingService(
 
       const next = applyCancelLifecycle(current, {
         immediate: Boolean(input.immediate),
+      });
+
+      const endsAt = input.immediate
+        ? next.canceledAt ?? new Date().toISOString()
+        : next.currentPeriodEnd ?? next.canceledAt;
+
+      await notifySubscriptionCancelled({
+        workspaceId: input.workspaceId,
+        planId: current.planId,
+        endsAt,
+        providerSubscriptionId: row.stripeSubscriptionId,
       });
 
       if (input.immediate) {

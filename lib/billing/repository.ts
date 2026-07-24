@@ -110,6 +110,20 @@ export function getSubscriptionByStripeId(
   return row ? rowToSubscription(row) : null;
 }
 
+/**
+ * Trialing subscriptions with a trial end date (for trial-ending emails).
+ */
+export function listTrialingSubscriptions(): WorkspaceSubscription[] {
+  ensureBillingReady();
+  const rows = sqlite
+    .prepare(
+      `SELECT * FROM "subscription"
+       WHERE "status" = 'trialing' AND "trialEnd" IS NOT NULL`,
+    )
+    .all() as Record<string, unknown>[];
+  return rows.map(rowToSubscription);
+}
+
 export function ensureFreeSubscription(
   workspaceId: string,
 ): WorkspaceSubscription {
