@@ -3,6 +3,9 @@ import {
   type PreparePlanChangeInput,
 } from "@/lib/billing/engine/change-plan";
 import {
+  cancelSubscription as applyCancelLifecycle,
+} from "@/lib/billing/engine/lifecycle";
+import {
   resolveActivePaymentProviderId,
   getPaymentProvider,
 } from "@/lib/billing/engine/providers";
@@ -15,9 +18,19 @@ import type {
   BillingServiceContext,
 } from "@/lib/billing/engine/service";
 import { buildTrialFields } from "@/lib/billing/engine/trial";
-import type { BillingProviderId, Subscription } from "@/lib/billing/engine/types";
+import {
+  toEngineSubscription,
+  type BillingProviderId,
+  type Subscription,
+} from "@/lib/billing/engine/types";
 import type { BillingInterval, PlanId } from "@/lib/billing/plans";
-import { ensureFreeSubscription } from "@/lib/billing/repository";
+import {
+  downgradeToFree,
+  ensureFreeSubscription,
+  getSubscriptionByWorkspaceId,
+  upsertSubscription,
+} from "@/lib/billing/repository";
+import type { SubscriptionStatus } from "@/lib/billing/types";
 import type { UsageSnapshot } from "@/lib/billing/types";
 
 function getBillingAppBaseUrl(): string {
@@ -26,6 +39,36 @@ function getBillingAppBaseUrl(): string {
     process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
     "http://localhost:3000"
   );
+}
+
+function toPersistedStatus(
+  status: Subscription["status"],
+): SubscriptionStatus {
+  switch (status) {
+    case "grace_period":
+      return "past_due";
+    case "expired":
+      return "canceled";
+    default:
+      return status;
+  }
+}
+
+function persistEngineSubscription(subscription: Subscription): void {
+  upsertSubscription({
+    workspaceId: subscription.workspaceId,
+    planId: subscription.planId,
+    interval: subscription.interval,
+    status: toPersistedStatus(subscription.status),
+    stripeSubscriptionId: subscription.providerSubscriptionId,
+    stripePriceId: subscription.providerPriceId,
+    stripeCustomerId: subscription.providerCustomerId,
+    currentPeriodStart: subscription.currentPeriodStart,
+    currentPeriodEnd: subscription.currentPeriodEnd,
+    cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+    canceledAt: subscription.canceledAt,
+    trialEnd: subscription.trialEnd,
+  });
 }
 
 /**
@@ -94,7 +137,7 @@ export function createBillingService(
         );
       }
 
-      // Checkout initiation only — provider updates, cancel, and webhooks come later.
+      // Checkout initiation for Free → paid; in-plan updates stay provider-specific.
       if (preparation.requiresCheckout) {
         const baseUrl = getBillingAppBaseUrl();
         const checkout = await adapter.createCheckout({
@@ -140,16 +183,86 @@ export function createBillingService(
       );
     },
 
-    async cancelSubscription() {
+    async cancelSubscription(input) {
       const providerId = getProviderId();
       if (providerId === "none") {
         throw new Error(
           "No payment provider is configured for cancellation.",
         );
       }
-      throw new Error(
-        `Cancel via "${providerId}" is not wired in the Billing Engine foundation.`,
-      );
+
+      const adapter = getPaymentProvider(providerId);
+      if (!adapter?.isConfigured()) {
+        throw new Error(
+          `Payment provider "${providerId}" is not configured.`,
+        );
+      }
+
+      const row =
+        getSubscriptionByWorkspaceId(input.workspaceId) ??
+        ensureFreeSubscription(input.workspaceId);
+
+      if (row.planId === "free" || !row.stripeSubscriptionId) {
+        return;
+      }
+
+      const current = toEngineSubscription(row, providerId);
+      await adapter.cancelSubscription({
+        workspaceId: input.workspaceId,
+        providerSubscriptionId: row.stripeSubscriptionId,
+        immediate: Boolean(input.immediate),
+      });
+
+      const next = applyCancelLifecycle(current, {
+        immediate: Boolean(input.immediate),
+      });
+
+      if (input.immediate) {
+        downgradeToFree(input.workspaceId);
+        return;
+      }
+
+      persistEngineSubscription(next);
+    },
+
+    async createPortalSession(input) {
+      const providerId = getProviderId();
+      if (providerId === "none") {
+        throw new Error(
+          "No payment provider is configured for the billing portal.",
+        );
+      }
+
+      const adapter = getPaymentProvider(providerId);
+      if (!adapter?.isConfigured()) {
+        throw new Error(
+          `Payment provider "${providerId}" is not configured.`,
+        );
+      }
+
+      return adapter.createPortal({
+        workspaceId: input.workspaceId,
+        customerId: input.customerId,
+        returnUrl: input.returnUrl,
+      });
+    },
+
+    async listInvoices(input) {
+      const providerId = getProviderId();
+      if (providerId === "none") {
+        return [];
+      }
+
+      const adapter = getPaymentProvider(providerId);
+      if (!adapter?.isConfigured()) {
+        return [];
+      }
+
+      return adapter.listInvoices({
+        workspaceId: input.workspaceId,
+        customerId: input.customerId,
+        limit: input.limit,
+      });
     },
 
     getActiveProvider() {

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import {
-  BillingDashboard,
+  BillingPortal,
   type UpgradeRecommendation,
-} from "@/components/billing/billing-dashboard";
+} from "@/components/billing/billing-portal";
 import { isWorkspaceManager } from "@/lib/auth/permissions";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import {
@@ -102,10 +102,11 @@ export default async function WorkspaceBillingPage({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-            Billing
+            Billing Portal
           </h1>
           <p className="mt-1 text-sm text-zinc-500">
-            Subscription, usage limits, and invoices for {workspace.name}.
+            Current plan, upgrades, cancellation, and invoices for{" "}
+            {workspace.name}.
           </p>
         </div>
         <div className="flex gap-3 text-sm">
@@ -124,7 +125,7 @@ export default async function WorkspaceBillingPage({
         </div>
       </div>
 
-      <BillingDashboard
+      <BillingPortal
         resolved={resolved}
         upgradeRecommendation={upgradeRecommendation}
         invoices={invoices}

@@ -8,6 +8,7 @@ import type {
   ResolvedPlan,
   Subscription,
 } from "@/lib/billing/engine/types";
+import type { ProviderInvoice } from "@/lib/billing/engine/providers/types";
 import type { UsageSnapshot } from "@/lib/billing/types";
 
 /**
@@ -47,6 +48,24 @@ export type BillingService = {
     workspaceId: string;
     immediate?: boolean;
   }): Promise<void>;
+
+  /**
+   * Open the customer billing portal (provider-hosted or in-app return URL).
+   */
+  createPortalSession(input: {
+    workspaceId: string;
+    customerId: string;
+    returnUrl: string;
+  }): Promise<{ url: string }>;
+
+  /**
+   * List provider invoices for a billing customer (synced or remote).
+   */
+  listInvoices(input: {
+    workspaceId: string;
+    customerId: string;
+    limit?: number;
+  }): Promise<ProviderInvoice[]>;
 
   getActiveProvider(): BillingProviderId;
 };
