@@ -13,6 +13,7 @@ import {
   resolveCurrentPlan,
 } from "@/lib/billing/engine";
 import type { ResolvedPlan, UpgradePlanId } from "@/lib/billing/engine";
+import { isRazorpayConfigured } from "@/lib/billing/engine/providers";
 import { getWorkspaceInvoices } from "@/lib/billing/invoices";
 import { isStripeConfigured } from "@/lib/billing/stripe";
 
@@ -129,6 +130,7 @@ export default async function WorkspaceBillingPage({
         invoices={invoices}
         canManage={canManage}
         stripeConfigured={isStripeConfigured()}
+        razorpayConfigured={isRazorpayConfigured()}
         checkoutStatus={params.checkout ?? null}
       />
     </div>

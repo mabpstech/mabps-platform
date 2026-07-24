@@ -20,6 +20,14 @@ import type { BillingInterval, PlanId } from "@/lib/billing/plans";
 import { ensureFreeSubscription } from "@/lib/billing/repository";
 import type { UsageSnapshot } from "@/lib/billing/types";
 
+function getBillingAppBaseUrl(): string {
+  return (
+    process.env.BETTER_AUTH_URL?.replace(/\/$/, "") ||
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
+    "http://localhost:3000"
+  );
+}
+
 /**
  * Domain-only BillingService.
  * Resolves plans and prepares changes; payment methods require a registered adapter.
@@ -86,11 +94,30 @@ export function createBillingService(
         );
       }
 
-      // Adapter execution is intentionally deferred — foundation only validates readiness.
-      void input;
-      void adapter;
+      // Checkout initiation only — provider updates, cancel, and webhooks come later.
+      if (preparation.requiresCheckout) {
+        const baseUrl = getBillingAppBaseUrl();
+        const checkout = await adapter.createCheckout({
+          workspaceId: input.workspaceId,
+          workspaceName: input.workspaceName,
+          email: input.email,
+          planId: input.targetPlanId,
+          interval: input.targetInterval,
+          successUrl: `${baseUrl}/settings/workspace/billing?checkout=success`,
+          cancelUrl: `${baseUrl}/settings/workspace/billing?checkout=canceled`,
+          customerId:
+            resolved.subscription.providerCustomerId ?? undefined,
+        });
+
+        return {
+          preparation,
+          checkoutUrl: checkout.url,
+          subscriptionId: checkout.sessionId,
+        };
+      }
+
       throw new Error(
-        `Payment provider "${providerId}" adapter is registered but applyPlanChange is not wired in the Billing Engine foundation.`,
+        `Plan change "${preparation.kind}" via "${providerId}" requires a provider update that is not wired yet.`,
       );
     },
 

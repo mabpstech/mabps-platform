@@ -1,3 +1,4 @@
+import { billingService } from "@/lib/billing/engine/create-service";
 import {
   comparePlans,
   getStripePriceId,
@@ -9,7 +10,6 @@ import {
 import { ensureFreeSubscription } from "@/lib/billing/repository";
 import { getStripe } from "@/lib/billing/stripe";
 import { syncSubscriptionFromStripe } from "@/lib/billing/stripe-sync";
-import { createCheckoutSession } from "@/lib/billing/checkout";
 import { cancelWorkspaceSubscription } from "@/lib/billing/cancel";
 
 export async function changeWorkspacePlan(input: {
@@ -36,16 +36,29 @@ export async function changeWorkspacePlan(input: {
     return {};
   }
 
+  // Free → paid (or no provider subscription): Razorpay checkout via Billing Engine
+  if (!current.stripeSubscriptionId || current.planId === "free") {
+    const result = await billingService.applyPlanChange({
+      workspaceId: input.workspaceId,
+      workspaceName: input.workspaceName,
+      email: input.email,
+      targetPlanId: input.planId,
+      targetInterval: input.interval,
+    });
+    if (!result.checkoutUrl) {
+      throw new Error("Checkout URL was not returned.");
+    }
+    return {
+      url: result.checkoutUrl,
+      subscriptionId: result.subscriptionId,
+    };
+  }
+
   const priceId = getStripePriceId(input.planId, input.interval);
   if (!priceId) {
     throw new Error(
       `Stripe price is not configured for ${input.planId} (${input.interval}).`,
     );
-  }
-
-  // Free → paid: Checkout
-  if (!current.stripeSubscriptionId || current.planId === "free") {
-    return createCheckoutSession(input);
   }
 
   // Same plan + interval: no-op

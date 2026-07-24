@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireBillingManagerApi } from "@/lib/billing/access";
-import { createCheckoutSession } from "@/lib/billing/checkout";
+import { billingService } from "@/lib/billing/engine/create-service";
 import { billingErrorResponse } from "@/lib/billing/http";
 import {
   isBillingInterval,
@@ -30,15 +30,25 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await createCheckoutSession({
+    const result = await billingService.applyPlanChange({
       workspaceId: workspace.id,
       workspaceName: workspace.name,
       email: session.user.email,
-      planId: body.planId as PlanId,
-      interval: body.interval as BillingInterval,
+      targetPlanId: body.planId as PlanId,
+      targetInterval: body.interval as BillingInterval,
     });
 
-    return NextResponse.json(result);
+    if (!result.checkoutUrl) {
+      return NextResponse.json(
+        { error: "Checkout URL was not returned." },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({
+      url: result.checkoutUrl,
+      subscriptionId: result.subscriptionId,
+    });
   } catch (error) {
     return billingErrorResponse(error);
   }

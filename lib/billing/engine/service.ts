@@ -27,7 +27,7 @@ export type BillingService = {
 
   /**
    * Apply a prepared plan change through the active payment provider.
-   * Foundation stubs must throw until an adapter is registered.
+   * Checkout initiation is wired; provider updates and cancel stay deferred.
    */
   applyPlanChange(input: {
     workspaceId: string;

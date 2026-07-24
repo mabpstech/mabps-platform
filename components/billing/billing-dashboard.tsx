@@ -36,6 +36,7 @@ type BillingDashboardProps = {
   invoices: BillingInvoice[];
   canManage: boolean;
   stripeConfigured: boolean;
+  razorpayConfigured: boolean;
   checkoutStatus?: string | null;
 };
 
@@ -98,6 +99,7 @@ export function BillingDashboard({
   invoices,
   canManage,
   stripeConfigured,
+  razorpayConfigured,
   checkoutStatus,
 }: BillingDashboardProps) {
   const router = useRouter();
@@ -154,7 +156,22 @@ export function BillingDashboard({
     setPendingPlan(planId);
 
     try {
-      if (!stripeConfigured && planId !== "free") {
+      const needsCheckout =
+        planId !== "free" &&
+        (resolved.planId === "free" ||
+          !resolved.subscription.providerSubscriptionId);
+
+      if (needsCheckout && !razorpayConfigured) {
+        throw new Error(
+          "Razorpay is not configured in this environment.",
+        );
+      }
+
+      if (
+        !needsCheckout &&
+        planId !== "free" &&
+        !stripeConfigured
+      ) {
         throw new Error("Stripe is not configured in this environment.");
       }
 
@@ -241,10 +258,10 @@ export function BillingDashboard({
       {error ? <div className={authErrorClassName}>{error}</div> : null}
       {message ? <div className={authSuccessClassName}>{message}</div> : null}
 
-      {!stripeConfigured ? (
+      {!razorpayConfigured ? (
         <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          Stripe keys are not configured. Free plan entitlements still apply;
-          paid upgrades require <code className="font-mono">STRIPE_*</code>{" "}
+          Razorpay keys are not configured. Free plan entitlements still apply;
+          paid upgrades require <code className="font-mono">RAZORPAY_*</code>{" "}
           environment variables.
         </div>
       ) : null}

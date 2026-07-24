@@ -92,6 +92,9 @@ export function registerRazorpayPaymentProvider(
   return adapter;
 }
 
+/** Register Razorpay on the shared registry at module load. */
+registerRazorpayPaymentProvider();
+
 export {
   createNullPaymentProvider,
   nullPaymentProvider,
