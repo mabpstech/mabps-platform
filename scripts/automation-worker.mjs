@@ -11,6 +11,13 @@
  *   AUTOMATION_WORKER_LIMIT                jobs per tick (default 25)
  */
 
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import dotenv from "dotenv";
+
+const projectRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+dotenv.config({ path: path.join(projectRoot, ".env") });
+
 const baseUrl = (
   process.env.NEXT_PUBLIC_APP_URL ||
   process.env.BETTER_AUTH_URL ||

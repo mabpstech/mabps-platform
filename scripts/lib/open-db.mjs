@@ -4,7 +4,12 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import dotenv from "dotenv";
 import Database from "libsql";
+
+const projectRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "../..");
+dotenv.config({ path: path.join(projectRoot, ".env") });
 
 function isRemoteLibsqlUrl(url) {
   return /^(libsql:|https?:\/\/|wss?:\/\/)/i.test(String(url || "").trim());
