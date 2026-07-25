@@ -1,4 +1,3 @@
-import { migrateGuardianSchema } from "@/lib/guardian/migrate";
 import {
   createGuardianLog,
   createMonitorEvent,
@@ -32,8 +31,9 @@ async function applyAction(
           `One-click migration is only supported for guardian (got ${moduleName}).`,
         );
       }
-      migrateGuardianSchema();
-      return "Guardian schema migration applied.";
+      throw new Error(
+        "Schema migrations must be applied via CLI (npm run db:migrate:guardian or npm run db:migrate:all), not at runtime.",
+      );
     }
     case "create_workspace_settings": {
       const moduleName = String(repair.metadata.module || "guardian");
