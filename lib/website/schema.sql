@@ -171,6 +171,16 @@ CREATE TABLE IF NOT EXISTS "website_media" (
   "updatedAt" text not null
 );
 
+-- Opaque blob bytes for website media (Turso / SQLite). Keys match storagePath.
+CREATE TABLE IF NOT EXISTS "media_blob" (
+  "key" text not null primary key,
+  "contentType" text not null default 'application/octet-stream',
+  "bytes" blob not null,
+  "sizeBytes" integer not null default 0,
+  "createdAt" text not null,
+  "updatedAt" text not null
+);
+
 CREATE TABLE IF NOT EXISTS "website_form" (
   "id" text not null primary key,
   "siteId" text not null references "website_site" ("id") on delete cascade,

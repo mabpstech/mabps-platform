@@ -3,11 +3,12 @@ import { randomUUID } from "node:crypto";
 import { getMediaBlobStore } from "@/lib/storage/media-blob-store";
 
 function uploadsRelativeRoot(): string {
-  return path.join("data", "uploads");
+  // Logical keys always use POSIX separators (DB / S3 / local adapters).
+  return path.posix.join("data", "uploads");
 }
 
 export function siteUploadDir(workspaceId: string, siteId: string): string {
-  return path.join(uploadsRelativeRoot(), workspaceId, siteId);
+  return path.posix.join(uploadsRelativeRoot(), workspaceId, siteId);
 }
 
 export async function ensureSiteUploadDir(
@@ -113,7 +114,7 @@ export async function storeMediaBuffer(input: {
   const dir = await ensureSiteUploadDir(input.workspaceId, input.siteId);
   const ext = extensionForMime(input.mimeType, input.originalName);
   const filename = `${randomUUID()}${ext}`;
-  const storagePath = path.join(dir, filename);
+  const storagePath = path.posix.join(dir, filename);
   await getMediaBlobStore().put(storagePath, input.buffer, {
     contentType: input.mimeType,
   });

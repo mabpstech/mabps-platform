@@ -25,6 +25,13 @@ function resolveKeyAbsolute(key: string): string {
 }
 
 export function createLocalFsBlobStore(): BlobStore {
+  if (process.env.VERCEL || process.env.VERCEL_ENV) {
+    throw new Error(
+      "Local filesystem media storage is not supported on Vercel. " +
+        "Unset MEDIA_STORAGE_DRIVER (auto db) or set MEDIA_STORAGE_DRIVER=db|s3.",
+    );
+  }
+
   return {
     async put(key, body) {
       const absolute = resolveKeyAbsolute(key);

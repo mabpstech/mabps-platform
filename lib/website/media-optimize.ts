@@ -45,7 +45,7 @@ async function writeVariant(input: {
 }): Promise<MediaVariant> {
   const dir = siteUploadDir(input.workspaceId, input.siteId);
   const filename = `${randomUUID()}${input.ext}`;
-  const storagePath = path.join(dir, filename);
+  const storagePath = path.posix.join(dir, filename);
   await getMediaBlobStore().put(storagePath, input.buffer, {
     contentType: input.mimeType,
   });
