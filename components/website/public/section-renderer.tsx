@@ -65,10 +65,16 @@ export function SectionRenderer({
   const maxWidthClass = section.settings.fullWidth
     ? "mx-auto max-w-none"
     : "mx-auto max-w-5xl";
+  const responsiveVisibility = [
+    section.settings.hideOnMobile ? "hidden sm:block" : "",
+    section.settings.hideOnDesktop ? "sm:hidden" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <section
-      className={`${paddingClass(section.settings.paddingY)} px-6`}
+      className={`${paddingClass(section.settings.paddingY)} px-6 ${responsiveVisibility}`}
       style={style}
     >
       <div className={maxWidthClass}>

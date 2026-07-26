@@ -2002,6 +2002,38 @@ function SectionSettingsPanel({
         />
         Hide this section on the live site
       </label>
+      <div className="rounded-xl border border-zinc-200 bg-white p-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+          Responsive visibility
+        </p>
+        <p className="mt-0.5 text-[11px] text-zinc-500">
+          Preview with Desktop / Tablet / Mobile above the live preview.
+        </p>
+        <div className="mt-3 space-y-2">
+          <label className="flex items-center gap-2 text-sm text-zinc-700">
+            <input
+              type="checkbox"
+              checked={Boolean(settings.hideOnMobile)}
+              onChange={(event) =>
+                onChange({ hideOnMobile: event.target.checked })
+              }
+              disabled={!canManage}
+            />
+            Hide on phones
+          </label>
+          <label className="flex items-center gap-2 text-sm text-zinc-700">
+            <input
+              type="checkbox"
+              checked={Boolean(settings.hideOnDesktop)}
+              onChange={(event) =>
+                onChange({ hideOnDesktop: event.target.checked })
+              }
+              disabled={!canManage}
+            />
+            Hide on tablet & desktop
+          </label>
+        </div>
+      </div>
     </div>
   );
 }

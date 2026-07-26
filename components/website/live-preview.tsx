@@ -4,16 +4,28 @@ import { useState } from "react";
 
 export type PreviewDevice = "desktop" | "tablet" | "mobile";
 
-const DEVICE_WIDTH: Record<PreviewDevice, string> = {
-  desktop: "100%",
-  tablet: "768px",
-  mobile: "390px",
-};
-
-const DEVICE_HEIGHT: Record<PreviewDevice, string> = {
-  desktop: "640px",
-  tablet: "700px",
-  mobile: "700px",
+const DEVICE_META: Record<
+  PreviewDevice,
+  { label: string; width: string; height: string; hint: string }
+> = {
+  desktop: {
+    label: "Desktop",
+    width: "100%",
+    height: "640px",
+    hint: "Full width · ≥1024px",
+  },
+  tablet: {
+    label: "Tablet",
+    width: "768px",
+    height: "700px",
+    hint: "768×700 · sm breakpoint",
+  },
+  mobile: {
+    label: "Mobile",
+    width: "390px",
+    height: "740px",
+    hint: "390×740 · phone layout",
+  },
 };
 
 export function LivePreview({
@@ -28,21 +40,19 @@ export function LivePreview({
 }) {
   const [device, setDevice] = useState<PreviewDevice>("desktop");
   const [key, setKey] = useState(0);
+  const meta = DEVICE_META[device];
 
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 bg-white px-3 py-2">
-        <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-          {title}
-        </p>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+            {title}
+          </p>
+          <p className="text-[11px] text-zinc-500">{meta.hint}</p>
+        </div>
         <div className="flex items-center gap-1 rounded-lg bg-zinc-100 p-0.5">
-          {(
-            [
-              ["desktop", "Desktop"],
-              ["tablet", "Tablet"],
-              ["mobile", "Mobile"],
-            ] as const
-          ).map(([id, label]) => (
+          {(Object.keys(DEVICE_META) as PreviewDevice[]).map((id) => (
             <button
               key={id}
               type="button"
@@ -54,7 +64,7 @@ export function LivePreview({
                   : "text-zinc-500 hover:text-zinc-800"
               }`}
             >
-              {label}
+              {DEVICE_META[id].label}
             </button>
           ))}
         </div>
@@ -66,18 +76,28 @@ export function LivePreview({
           Refresh
         </button>
       </div>
-      <div className="flex justify-center overflow-x-auto p-4">
+      <div
+        className={`flex justify-center overflow-x-auto p-4 ${
+          device === "mobile" ? "bg-[linear-gradient(180deg,#e4e4e7_0%,#f4f4f5_40%,#e4e4e7_100%)]" : ""
+        }`}
+      >
         <div
-          className="shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition-[width,height] duration-300 ease-in-out"
+          className={`shrink-0 overflow-hidden bg-white shadow-sm transition-[width,height,border-radius,box-shadow] duration-300 ease-in-out ${
+            device === "mobile"
+              ? "rounded-[1.75rem] border-[6px] border-zinc-900 shadow-[0_18px_40px_rgba(15,23,42,0.18)]"
+              : device === "tablet"
+                ? "rounded-2xl border border-zinc-300 shadow-md"
+                : "rounded-xl border border-zinc-200"
+          }`}
           style={{
-            width: DEVICE_WIDTH[device],
+            width: meta.width,
             maxWidth: device === "desktop" ? "100%" : undefined,
-            height: DEVICE_HEIGHT[device],
+            height: meta.height,
           }}
         >
           <iframe
-            key={`${src}-${refreshToken}-${key}`}
-            title={title}
+            key={`${src}-${refreshToken}-${key}-${device}`}
+            title={`${title} (${meta.label})`}
             src={src}
             className="h-full w-full border-0 bg-white"
           />

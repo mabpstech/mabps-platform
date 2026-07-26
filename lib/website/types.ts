@@ -182,6 +182,10 @@ export type SectionSettings = {
   background?: string;
   hidden?: boolean;
   fullWidth?: boolean;
+  /** Hide below the `sm` breakpoint (phones). */
+  hideOnMobile?: boolean;
+  /** Hide at `sm` and above (tablet/desktop). */
+  hideOnDesktop?: boolean;
 };
 
 export type WebsiteSection = {
