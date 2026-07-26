@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   authButtonClassName,
   authErrorClassName,
@@ -20,6 +20,15 @@ export type PublishChecklistItem = {
   ok: boolean;
   /** When true, publish is blocked until this item is complete. */
   required?: boolean;
+};
+
+type DomainInstructions = {
+  customDomain: string;
+  txtHost: string;
+  txtValue: string;
+  cnameHost: string;
+  cnameValue: string;
+  apexNote: string | null;
 };
 
 type DisplayStatus = "draft" | "publishing" | "published" | "failed" | "unpublished";
@@ -66,12 +75,30 @@ export function PublishPanel({
   const [domain, setDomain] = useState(site.customDomain ?? "");
   const [current, setCurrent] = useState(site);
   const [events, setEvents] = useState(initialEvents);
+  const [domainInstructions, setDomainInstructions] =
+    useState<DomainInstructions | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
   const [publishFailed, setPublishFailed] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!site.customDomain) return;
+    let cancelled = false;
+    void fetch(`/api/website/sites/${site.id}/domain`)
+      .then((response) => response.json())
+      .then((data: { instructions?: DomainInstructions | null }) => {
+        if (!cancelled && data.instructions) {
+          setDomainInstructions(data.instructions);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [site.customDomain, site.id]);
 
   const displayStatus = toDisplayStatus(current.status, pending, publishFailed);
   const liveUrl = liveUrlFor(current);
@@ -154,14 +181,16 @@ export function PublishPanel({
       const data = (await response.json()) as {
         error?: string;
         site?: WebsiteSite;
-        instructions?: string | null;
+        message?: string | null;
+        instructions?: DomainInstructions | null;
       };
       if (!response.ok) throw new Error(data.error || "Unable to save domain.");
       if (data.site) {
         setCurrent(data.site);
         setDomain(data.site.customDomain ?? "");
       }
-      setMessage(data.instructions || "Custom domain updated.");
+      setDomainInstructions(data.instructions ?? null);
+      setMessage(data.message || "Custom domain updated.");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save domain.");
@@ -184,10 +213,17 @@ export function PublishPanel({
       const data = (await response.json()) as {
         error?: string;
         site?: WebsiteSite;
+        message?: string;
+        instructions?: DomainInstructions | null;
+        txtOk?: boolean;
+        cnameOk?: boolean;
       };
       if (!response.ok) throw new Error(data.error || "Verification failed.");
       if (data.site) setCurrent(data.site);
-      setMessage("Custom domain verified.");
+      if (data.instructions !== undefined) {
+        setDomainInstructions(data.instructions);
+      }
+      setMessage(data.message || "Custom domain verified.");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed.");
@@ -465,8 +501,8 @@ export function PublishPanel({
       <div className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-medium text-zinc-900">Custom domain</h2>
         <p className="mt-2 text-sm text-zinc-600">
-          Point your domain DNS to this app, add a TXT verification record, then
-          verify.
+          Connect a domain you own. We verify ownership with a TXT record, then
+          you point a CNAME at MABPS so visitors can reach your site.
         </p>
         <div className="mt-4 max-w-xl">
           <label className={authLabelClassName}>Domain</label>
@@ -477,18 +513,38 @@ export function PublishPanel({
             placeholder="www.example.com"
             disabled={!canManage || Boolean(pending)}
           />
+          <p className="mt-1.5 text-xs text-zinc-500">
+            Prefer a www subdomain. Apex domains often need ALIAS/ANAME support.
+          </p>
         </div>
-        {current.domainVerificationToken ? (
-          <div className="mt-4 rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
-            <p className="font-medium">DNS TXT record</p>
-            <p className="mt-1 font-mono text-xs">
-              Host: {current.customDomain}
-            </p>
-            <p className="mt-1 break-all font-mono text-xs">
-              Value: {current.domainVerificationToken}
-            </p>
-            <p className="mt-2 text-xs text-zinc-500">
-              Verified: {current.domainVerified ? "yes" : "no"}
+        {domainInstructions ? (
+          <div className="mt-4 space-y-3 rounded-md border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700">
+            <div>
+              <p className="font-medium">1. Ownership TXT record</p>
+              <p className="mt-1 font-mono text-xs">
+                Host: {domainInstructions.txtHost}
+              </p>
+              <p className="mt-1 break-all font-mono text-xs">
+                Value: {domainInstructions.txtValue}
+              </p>
+            </div>
+            <div>
+              <p className="font-medium">2. Traffic CNAME record</p>
+              <p className="mt-1 font-mono text-xs">
+                Host: {domainInstructions.cnameHost}
+              </p>
+              <p className="mt-1 font-mono text-xs">
+                Value: {domainInstructions.cnameValue}
+              </p>
+            </div>
+            {domainInstructions.apexNote ? (
+              <p className="text-xs text-amber-700">{domainInstructions.apexNote}</p>
+            ) : null}
+            <p className="text-xs text-zinc-500">
+              Status:{" "}
+              {current.domainVerified
+                ? "Ownership verified"
+                : "Waiting for DNS verification"}
             </p>
           </div>
         ) : null}
@@ -508,8 +564,52 @@ export function PublishPanel({
               onClick={() => void verifyDomain()}
               disabled={Boolean(pending) || !current.customDomain}
             >
-              {pending === "verify" ? "Verifying…" : "Mark verified"}
+              {pending === "verify" ? "Checking DNS…" : "Verify DNS"}
             </button>
+            {current.customDomain ? (
+              <button
+                type="button"
+                className={`${authSecondaryButtonClassName} !w-auto px-4 text-red-700`}
+                onClick={() => {
+                  setDomain("");
+                  void (async () => {
+                    setPending("domain");
+                    try {
+                      const response = await fetch(
+                        `/api/website/sites/${site.id}/domain`,
+                        {
+                          method: "PUT",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ customDomain: null }),
+                        },
+                      );
+                      const data = (await response.json()) as {
+                        error?: string;
+                        site?: WebsiteSite;
+                      };
+                      if (!response.ok) {
+                        throw new Error(data.error || "Unable to remove domain.");
+                      }
+                      if (data.site) setCurrent(data.site);
+                      setDomainInstructions(null);
+                      setMessage("Custom domain removed.");
+                      router.refresh();
+                    } catch (err) {
+                      setError(
+                        err instanceof Error
+                          ? err.message
+                          : "Unable to remove domain.",
+                      );
+                    } finally {
+                      setPending(null);
+                    }
+                  })();
+                }}
+                disabled={Boolean(pending)}
+              >
+                Remove
+              </button>
+            ) : null}
           </div>
         ) : null}
       </div>

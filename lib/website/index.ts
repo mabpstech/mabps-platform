@@ -43,10 +43,14 @@ export {
   publishSite,
   unpublishSite,
   getPublishHistory,
+} from "@/lib/website/publish";
+export {
   setCustomDomain,
   verifyCustomDomain,
   resolvePublishedSiteByHost,
-} from "@/lib/website/publish";
+  buildDomainInstructions,
+  appHostnameForDomains,
+} from "@/lib/website/domain";
 export { slugify, ensureUniqueSlug } from "@/lib/website/defaults";
 export {
   sanitizeRichHtml,
