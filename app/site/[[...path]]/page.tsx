@@ -35,6 +35,8 @@ export default async function CustomDomainSitePage({ params }: PageProps) {
 
   // On a custom domain, links are root-relative (no /p/{slug} prefix).
   const basePath = "";
+  const proto = requestHeaders.get("x-forwarded-proto") || "https";
+  const requestOrigin = `${proto}://${host.split(":")[0]}`;
 
   if (resolved.kind === "blog") {
     return (
@@ -49,6 +51,7 @@ export default async function CustomDomainSitePage({ params }: PageProps) {
         blogPosts={renderable.blogPosts}
         basePath={basePath}
         blogPost={resolved.post}
+        requestOrigin={requestOrigin}
       />
     );
   }
@@ -66,6 +69,7 @@ export default async function CustomDomainSitePage({ params }: PageProps) {
       formsBySlug={renderable.formsBySlug}
       blogPosts={renderable.blogPosts}
       basePath={basePath}
+      requestOrigin={requestOrigin}
     />
   );
 }

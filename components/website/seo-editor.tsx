@@ -13,15 +13,22 @@ import type { WebsiteSeo } from "@/lib/website/types";
 
 export function SeoEditor({
   siteId,
+  siteSlug,
+  siteName,
   seo,
+  faviconMediaId,
   canManage,
 }: {
   siteId: string;
+  siteSlug: string;
+  siteName: string;
   seo: WebsiteSeo;
+  faviconMediaId: string | null;
   canManage: boolean;
 }) {
   const router = useRouter();
   const [form, setForm] = useState(seo);
+  const [faviconId, setFaviconId] = useState<string | null>(faviconMediaId);
   const [showAdvanced, setShowAdvanced] = useState(Boolean(seo.jsonLd));
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [toast, setToast] = useState<{
@@ -36,23 +43,34 @@ export function SeoEditor({
       return;
     }
     setSaveState((current) => (current === "saving" ? current : "dirty"));
-  }, [form]);
+  }, [form, faviconId]);
 
   async function save() {
     if (!canManage) return;
     setSaveState("saving");
     try {
-      const response = await fetch(`/api/website/sites/${siteId}/seo`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      const data = (await response.json()) as {
+      const [seoResponse, themeResponse] = await Promise.all([
+        fetch(`/api/website/sites/${siteId}/seo`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        }),
+        fetch(`/api/website/sites/${siteId}/theme`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ faviconMediaId: faviconId }),
+        }),
+      ]);
+      const seoData = (await seoResponse.json()) as {
         error?: string;
         seo?: WebsiteSeo;
       };
-      if (!response.ok) throw new Error(data.error || "Unable to save SEO.");
-      if (data.seo) setForm(data.seo);
+      const themeData = (await themeResponse.json()) as { error?: string };
+      if (!seoResponse.ok) throw new Error(seoData.error || "Unable to save SEO.");
+      if (!themeResponse.ok) {
+        throw new Error(themeData.error || "Unable to save favicon.");
+      }
+      if (seoData.seo) setForm(seoData.seo);
       setSaveState("saved");
       setToast({ message: "Search settings saved ✓", tone: "success" });
       router.refresh();
@@ -67,6 +85,15 @@ export function SeoEditor({
       });
     }
   }
+
+  const previewTitle =
+    form.defaultTitle?.trim() || `${siteName} | Website`;
+  const previewDescription =
+    form.defaultDescription?.trim() ||
+    "Add a short description so people understand your offer in search results.";
+  const previewUrl =
+    form.canonicalBaseUrl?.replace(/^https?:\/\//, "") ||
+    `your-app.com/p/${siteSlug}`;
 
   return (
     <div className="space-y-4">
@@ -87,94 +114,183 @@ export function SeoEditor({
         </p>
       </div>
 
-      <div className="grid gap-4 rounded-2xl border border-zinc-200 bg-white p-6 sm:grid-cols-2">
-        <div className="sm:col-span-2">
-          <label className={authLabelClassName}>Default page title</label>
-          <input
-            className={authInputClassName}
-            value={form.defaultTitle ?? ""}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                defaultTitle: event.target.value || null,
-              }))
-            }
-            disabled={!canManage}
-            placeholder="Your Business | Tagline"
-          />
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="grid gap-4 rounded-2xl border border-zinc-200 bg-white p-6 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className={authLabelClassName}>Default page title</label>
+            <input
+              className={authInputClassName}
+              value={form.defaultTitle ?? ""}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  defaultTitle: event.target.value || null,
+                }))
+              }
+              disabled={!canManage}
+              placeholder="Your Business | Tagline"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={authLabelClassName}>Default description</label>
+            <textarea
+              className={`${authInputClassName} min-h-24`}
+              value={form.defaultDescription ?? ""}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  defaultDescription: event.target.value || null,
+                }))
+              }
+              disabled={!canManage}
+              placeholder="A short summary of what you offer"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <MediaPicker
+              siteId={siteId}
+              value={form.ogImageMediaId}
+              onChange={(ogImageMediaId) =>
+                setForm((current) => ({ ...current, ogImageMediaId }))
+              }
+              disabled={!canManage}
+              label="Social share image"
+              hint="og"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <MediaPicker
+              siteId={siteId}
+              value={faviconId}
+              onChange={setFaviconId}
+              disabled={!canManage}
+              label="Favicon"
+              hint="favicon"
+            />
+          </div>
+          <div>
+            <label className={authLabelClassName}>X / Twitter handle</label>
+            <input
+              className={authInputClassName}
+              value={form.twitterHandle ?? ""}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  twitterHandle: event.target.value || null,
+                }))
+              }
+              disabled={!canManage}
+              placeholder="@yourbrand"
+            />
+          </div>
+          <div>
+            <label className={authLabelClassName}>Search engine visibility</label>
+            <select
+              className={authInputClassName}
+              value={form.robots}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, robots: event.target.value }))
+              }
+              disabled={!canManage}
+            >
+              <option value="index,follow">Show in search results</option>
+              <option value="noindex,nofollow">Hide from search results</option>
+              <option value="index,nofollow">Show, but don’t follow links</option>
+            </select>
+          </div>
+          <div className="sm:col-span-2">
+            <label className={authLabelClassName}>Preferred website URL</label>
+            <input
+              className={authInputClassName}
+              value={form.canonicalBaseUrl ?? ""}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  canonicalBaseUrl: event.target.value || null,
+                }))
+              }
+              disabled={!canManage}
+              placeholder="https://www.yourdomain.com"
+            />
+            <p className="mt-1.5 text-xs text-zinc-500">
+              Used for canonical links, Open Graph URLs, sitemap, and robots.txt.
+            </p>
+          </div>
         </div>
-        <div className="sm:col-span-2">
-          <label className={authLabelClassName}>Default description</label>
-          <textarea
-            className={`${authInputClassName} min-h-24`}
-            value={form.defaultDescription ?? ""}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                defaultDescription: event.target.value || null,
-              }))
-            }
-            disabled={!canManage}
-            placeholder="A short summary of what you offer"
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <MediaPicker
-            siteId={siteId}
-            value={form.ogImageMediaId}
-            onChange={(ogImageMediaId) =>
-              setForm((current) => ({ ...current, ogImageMediaId }))
-            }
-            disabled={!canManage}
-            label="Social share image"
-            hint="og"
-          />
-        </div>
-        <div>
-          <label className={authLabelClassName}>X / Twitter handle</label>
-          <input
-            className={authInputClassName}
-            value={form.twitterHandle ?? ""}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                twitterHandle: event.target.value || null,
-              }))
-            }
-            disabled={!canManage}
-            placeholder="@yourbrand"
-          />
-        </div>
-        <div>
-          <label className={authLabelClassName}>Search engine visibility</label>
-          <select
-            className={authInputClassName}
-            value={form.robots}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, robots: event.target.value }))
-            }
-            disabled={!canManage}
-          >
-            <option value="index,follow">Show in search results</option>
-            <option value="noindex,nofollow">Hide from search results</option>
-            <option value="index,nofollow">Show, but don’t follow links</option>
-          </select>
-        </div>
-        <div className="sm:col-span-2">
-          <label className={authLabelClassName}>Preferred website URL</label>
-          <input
-            className={authInputClassName}
-            value={form.canonicalBaseUrl ?? ""}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                canonicalBaseUrl: event.target.value || null,
-              }))
-            }
-            disabled={!canManage}
-            placeholder="https://www.yourdomain.com"
-          />
-        </div>
+
+        <aside className="space-y-4">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+              Google preview
+            </p>
+            <div className="mt-3 space-y-1">
+              <p className="truncate text-xs text-emerald-800">{previewUrl}</p>
+              <p className="line-clamp-2 text-lg font-medium text-[#1a0dab]">
+                {previewTitle}
+              </p>
+              <p className="line-clamp-3 text-sm text-zinc-600">
+                {previewDescription}
+              </p>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+              Social card
+            </p>
+            <div className="mt-3 overflow-hidden rounded-xl border border-zinc-200">
+              {form.ogImageMediaId ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={`/api/website/media/file/${form.ogImageMediaId}`}
+                  alt=""
+                  className="h-28 w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-28 items-center justify-center bg-zinc-50 text-xs text-zinc-400">
+                  No social image yet
+                </div>
+              )}
+              <div className="space-y-1 px-3 py-3">
+                <p className="truncate text-[11px] uppercase tracking-wide text-zinc-400">
+                  {previewUrl}
+                </p>
+                <p className="line-clamp-2 text-sm font-semibold text-zinc-900">
+                  {previewTitle}
+                </p>
+                <p className="line-clamp-2 text-xs text-zinc-500">
+                  {previewDescription}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
+            <p className="font-medium text-zinc-900">Public SEO files</p>
+            <ul className="mt-2 space-y-1 text-xs">
+              <li>
+                Sitemap:{" "}
+                <a
+                  className="font-medium text-zinc-900 underline underline-offset-2"
+                  href={`/p/${siteSlug}/sitemap.xml`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  /p/{siteSlug}/sitemap.xml
+                </a>
+              </li>
+              <li>
+                Robots:{" "}
+                <a
+                  className="font-medium text-zinc-900 underline underline-offset-2"
+                  href={`/p/${siteSlug}/robots.txt`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  /p/{siteSlug}/robots.txt
+                </a>
+              </li>
+            </ul>
+          </div>
+        </aside>
       </div>
 
       <div className="rounded-2xl border border-zinc-200 bg-white p-6">

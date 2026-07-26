@@ -55,6 +55,8 @@ export default async function PublicSlugSitePage({
   if (!resolved) notFound();
 
   const basePath = `/p/${renderable.site.slug}`;
+  const proto = requestHeaders.get("x-forwarded-proto") || "https";
+  const requestOrigin = host ? `${proto}://${host.split(":")[0]}` : null;
 
   if (resolved.kind === "blog") {
     return (
@@ -69,6 +71,7 @@ export default async function PublicSlugSitePage({
         blogPosts={renderable.blogPosts}
         basePath={basePath}
         blogPost={resolved.post}
+        requestOrigin={requestOrigin}
       />
     );
   }
@@ -86,6 +89,7 @@ export default async function PublicSlugSitePage({
       formsBySlug={renderable.formsBySlug}
       blogPosts={renderable.blogPosts}
       basePath={basePath}
+      requestOrigin={requestOrigin}
     />
   );
 }
