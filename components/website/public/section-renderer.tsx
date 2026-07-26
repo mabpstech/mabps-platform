@@ -100,7 +100,7 @@ export function SectionRenderer({
           <figure>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={mediaPublicUrl(String(content.mediaId))}
+              src={mediaPublicUrl(String(content.mediaId), "large")}
               alt={String(content.alt ?? "")}
               className="w-full object-cover"
               style={{ borderRadius: theme.borderRadius }}
@@ -207,7 +207,7 @@ export function SectionRenderer({
                   {typeof item.mediaId === "string" && item.mediaId ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={mediaPublicUrl(item.mediaId)}
+                      src={mediaPublicUrl(item.mediaId, "medium")}
                       alt=""
                       className="h-40 w-full object-cover"
                     />
@@ -306,7 +306,7 @@ export function SectionRenderer({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   key={mediaId}
-                  src={mediaPublicUrl(mediaId)}
+                  src={mediaPublicUrl(mediaId, "medium")}
                   alt=""
                   className="h-48 w-full object-cover"
                   style={{ borderRadius: theme.borderRadius }}
@@ -400,7 +400,7 @@ function HeroBlock({
       {desktopId ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={mediaPublicUrl(desktopId)}
+          src={mediaPublicUrl(desktopId, "large")}
           alt=""
           className={`absolute inset-0 h-full w-full object-cover ${mobileId ? "hidden sm:block" : ""}`}
         />
@@ -408,7 +408,7 @@ function HeroBlock({
       {mobileId ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={mediaPublicUrl(mobileId)}
+          src={mediaPublicUrl(mobileId, "large")}
           alt=""
           className="absolute inset-0 h-full w-full object-cover sm:hidden"
         />

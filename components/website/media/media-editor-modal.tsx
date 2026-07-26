@@ -117,15 +117,28 @@ export function MediaEditorModal({
 
         <div className="grid min-h-0 flex-1 gap-0 overflow-y-auto md:grid-cols-[1.2fr_1fr]">
           <div className="flex items-center justify-center bg-zinc-950 p-6">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previewUrl(item, "large")}
-              alt=""
-              className="max-h-80 max-w-full object-contain transition-transform"
-              style={{
-                transform: `rotate(${rotate}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1})`,
-              }}
-            />
+            <div className="relative max-h-80 max-w-full overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewUrl(item, "large")}
+                alt=""
+                className="max-h-80 max-w-full object-contain transition-transform"
+                style={{
+                  transform: `rotate(${rotate}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1})`,
+                }}
+              />
+              {item.width && item.height ? (
+                <div
+                  className="pointer-events-none absolute border-2 border-emerald-400/90 bg-emerald-400/10"
+                  style={{
+                    left: `${(crop.left / item.width) * 100}%`,
+                    top: `${(crop.top / item.height) * 100}%`,
+                    width: `${(crop.width / item.width) * 100}%`,
+                    height: `${(crop.height / item.height) * 100}%`,
+                  }}
+                />
+              ) : null}
+            </div>
           </div>
 
           <div className="space-y-4 p-5">
@@ -194,6 +207,56 @@ export function MediaEditorModal({
               />
               Lock aspect ratio
             </label>
+
+            <div>
+              <p className="mb-2 text-xs font-medium text-zinc-600">Crop presets</p>
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    ["free", "Original"],
+                    ["1:1", "1:1"],
+                    ["4:3", "4:3"],
+                    ["16:9", "16:9"],
+                    ["3:4", "3:4"],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`${authSecondaryButtonClassName} !w-auto px-2.5 py-1 text-[11px]`}
+                    onClick={() => {
+                      const sourceW = item.width || crop.width;
+                      const sourceH = item.height || crop.height;
+                      if (id === "free") {
+                        setCrop({
+                          left: 0,
+                          top: 0,
+                          width: sourceW,
+                          height: sourceH,
+                        });
+                        return;
+                      }
+                      const [aw, ah] = id.split(":").map(Number);
+                      const targetRatio = aw / ah;
+                      let width = sourceW;
+                      let height = Math.round(width / targetRatio);
+                      if (height > sourceH) {
+                        height = sourceH;
+                        width = Math.round(height * targetRatio);
+                      }
+                      setCrop({
+                        left: Math.max(0, Math.round((sourceW - width) / 2)),
+                        top: Math.max(0, Math.round((sourceH - height) / 2)),
+                        width,
+                        height,
+                      });
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div className="grid grid-cols-2 gap-3">
               <label className="text-xs text-zinc-600">

@@ -150,7 +150,7 @@ export function SiteChrome({
                 <Link href={basePath || "/"}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={mediaPublicUrl(logoMediaId)}
+                    src={mediaPublicUrl(logoMediaId, "medium")}
                     alt={displayName}
                     className={`${logoHeight(header.logoSize)} w-auto`}
                     style={{ borderRadius: "var(--site-radius-image)" }}

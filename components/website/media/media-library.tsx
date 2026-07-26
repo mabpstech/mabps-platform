@@ -18,7 +18,9 @@ import { MediaDetailPanel } from "@/components/website/media/media-detail-panel"
 import { MediaEditorModal } from "@/components/website/media/media-editor-modal";
 import {
   formatBytes,
+  isAudioMedia,
   isImageMedia,
+  isPdfMedia,
   isVideoMedia,
   KIND_FILTERS,
   previewUrl,
@@ -58,10 +60,12 @@ export function MediaLibrary({
   const [showFavorites, setShowFavorites] = useState(false);
   const [showRecentUsed, setShowRecentUsed] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [checkedIds, setCheckedIds] = useState<string[]>([]);
   const [usages, setUsages] = useState<MediaUsageRef[]>([]);
   const [usageCount, setUsageCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [bulkPending, setBulkPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(initialMedia.length);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -75,6 +79,7 @@ export function MediaLibrary({
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const selected = media.find((item) => item.id === selectedId) ?? null;
+  const checkedCount = checkedIds.length;
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -318,6 +323,76 @@ export function MediaLibrary({
     setFolders((current) => current.filter((item) => item.id !== folder.id));
     if (folderId === folder.id) setFolderId("all");
     void refresh();
+  }
+
+  function toggleChecked(id: string) {
+    setCheckedIds((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
+    );
+  }
+
+  async function runBulk(
+    action: "delete" | "favorite" | "unfavorite" | "move",
+    options: { folderId?: string | null; force?: boolean } = {},
+  ) {
+    if (!canManage || checkedIds.length === 0) return;
+    if (action === "delete") {
+      const confirmed = window.confirm(
+        `Delete ${checkedIds.length} selected asset${checkedIds.length === 1 ? "" : "s"}?`,
+      );
+      if (!confirmed) return;
+    }
+    setBulkPending(true);
+    try {
+      const response = await fetch(`/api/website/sites/${siteId}/media/bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          mediaIds: checkedIds,
+          folderId: options.folderId,
+          force: options.force,
+        }),
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        processed?: number;
+        blocked?: Array<{ mediaId: string; usageCount: number }>;
+      };
+      if (!response.ok) {
+        if (
+          response.status === 409 &&
+          action === "delete" &&
+          !options.force
+        ) {
+          const force = window.confirm(
+            `${data.error || "Some assets are in use."} Force delete anyway?`,
+          );
+          if (force) {
+            setBulkPending(false);
+            await runBulk("delete", { force: true });
+            return;
+          }
+        }
+        throw new Error(data.error || "Bulk action failed.");
+      }
+      setCheckedIds([]);
+      setToast({
+        message: `${data.processed ?? 0} asset${(data.processed ?? 0) === 1 ? "" : "s"} updated ✓`,
+        tone: "success",
+      });
+      void refresh();
+      router.refresh();
+    } catch (err) {
+      setToast({
+        message: err instanceof Error ? err.message : "Bulk action failed.",
+        tone: "error",
+      });
+    } finally {
+      setBulkPending(false);
+    }
   }
 
   return (
@@ -572,6 +647,66 @@ export function MediaLibrary({
             </div>
           ) : null}
 
+          {canManage && checkedCount > 0 ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm">
+              <span className="font-medium text-zinc-800">
+                {checkedCount} selected
+              </span>
+              <button
+                type="button"
+                className="rounded-md px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-white"
+                disabled={bulkPending}
+                onClick={() => void runBulk("favorite")}
+              >
+                Favorite
+              </button>
+              <button
+                type="button"
+                className="rounded-md px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-white"
+                disabled={bulkPending}
+                onClick={() => void runBulk("unfavorite")}
+              >
+                Unfavorite
+              </button>
+              <select
+                className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs"
+                disabled={bulkPending}
+                defaultValue=""
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (!value) return;
+                  void runBulk("move", {
+                    folderId: value === "unfiled" ? null : value,
+                  });
+                  event.currentTarget.value = "";
+                }}
+              >
+                <option value="">Move to…</option>
+                <option value="unfiled">Unfiled</option>
+                {folders.map((folder) => (
+                  <option key={folder.id} value={folder.id}>
+                    {folder.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-white"
+                disabled={bulkPending}
+                onClick={() => void runBulk("delete")}
+              >
+                {bulkPending ? "Working…" : "Delete"}
+              </button>
+              <button
+                type="button"
+                className="ml-auto rounded-md px-2 py-1 text-xs text-zinc-500 hover:bg-white"
+                onClick={() => setCheckedIds([])}
+              >
+                Clear
+              </button>
+            </div>
+          ) : null}
+
           {loading && media.length === 0 ? (
             <MediaSkeleton view={view} />
           ) : media.length === 0 ? (
@@ -602,7 +737,9 @@ export function MediaLibrary({
                     className={`group overflow-hidden rounded-xl border bg-white text-left transition hover:-translate-y-0.5 hover:shadow-md ${
                       active
                         ? "border-zinc-900 ring-2 ring-zinc-900/15"
-                        : "border-zinc-200"
+                        : checkedIds.includes(item.id)
+                          ? "border-zinc-400"
+                          : "border-zinc-200"
                     }`}
                   >
                     <div className="relative aspect-square bg-zinc-50">
@@ -614,11 +751,49 @@ export function MediaLibrary({
                           loading="lazy"
                           className="h-full w-full object-cover"
                         />
+                      ) : isVideoMedia(item) ? (
+                        <video
+                          src={previewUrl(item)}
+                          muted
+                          preload="metadata"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : isAudioMedia(item) ? (
+                        <div className="flex h-full flex-col items-center justify-center gap-2 px-3 text-center">
+                          <span className="text-2xl" aria-hidden>
+                            ♪
+                          </span>
+                          <span className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
+                            Audio
+                          </span>
+                        </div>
+                      ) : isPdfMedia(item) ? (
+                        <div className="flex h-full flex-col items-center justify-center gap-2 px-3 text-center">
+                          <span className="rounded bg-red-100 px-2 py-1 text-[10px] font-bold text-red-700">
+                            PDF
+                          </span>
+                          <span className="line-clamp-2 text-[11px] text-zinc-500">
+                            {item.originalName}
+                          </span>
+                        </div>
                       ) : (
                         <div className="flex h-full items-center justify-center text-xs font-medium uppercase tracking-wide text-zinc-500">
-                          {isVideoMedia(item) ? "Video" : kindLabel}
+                          {kindLabel}
                         </div>
                       )}
+                      {canManage ? (
+                        <label
+                          className="absolute left-2 top-2 rounded bg-white/90 p-1 shadow-sm"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checkedIds.includes(item.id)}
+                            onChange={() => toggleChecked(item.id)}
+                            aria-label={`Select ${item.originalName}`}
+                          />
+                        </label>
+                      ) : null}
                       {item.favorited ? (
                         <span className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] text-amber-300">
                           ★

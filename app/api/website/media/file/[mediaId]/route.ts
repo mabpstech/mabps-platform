@@ -75,12 +75,27 @@ export async function GET(request: Request, context: RouteContext) {
       return NextResponse.json({ error: "File missing." }, { status: 404 });
     }
 
+    const etag = `"${media.updatedAt}-${sizeParam || "original"}-${buffer.byteLength}"`;
+    const ifNoneMatch = request.headers.get("if-none-match");
+    if (ifNoneMatch && ifNoneMatch === etag) {
+      return new NextResponse(null, {
+        status: 304,
+        headers: {
+          ETag: etag,
+          "Cache-Control": published
+            ? "public, max-age=86400, stale-while-revalidate=604800"
+            : "private, no-store",
+        },
+      });
+    }
+
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": mimeType,
         "Content-Length": String(buffer.byteLength),
+        ETag: etag,
         "Cache-Control": published
-          ? "public, max-age=31536000, immutable"
+          ? "public, max-age=86400, stale-while-revalidate=604800"
           : "private, no-store",
       },
     });

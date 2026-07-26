@@ -37,8 +37,16 @@ export function previewUrl(
   item: WebsiteMedia,
   size: "thumbnail" | "medium" | "large" | "original" = "thumbnail",
 ): string {
-  if (isImageMedia(item)) return mediaPublicUrl(item.id, size);
-  return mediaPublicUrl(item.id);
+  const version = item.updatedAt || item.createdAt;
+  if (isImageMedia(item)) return mediaPublicUrl(item.id, size, version);
+  return mediaPublicUrl(item.id, undefined, version);
+}
+
+export function isPdfMedia(item: WebsiteMedia): boolean {
+  return (
+    item.mimeType === "application/pdf" ||
+    item.originalName.toLowerCase().endsWith(".pdf")
+  );
 }
 
 export function kindLabel(kind: MediaKind): string {
