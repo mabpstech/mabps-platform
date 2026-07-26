@@ -136,6 +136,8 @@ export function CreateSiteWizard({
         body: JSON.stringify({
           name: name.trim(),
           slug: slug.trim() || undefined,
+          template,
+          category,
         }),
       });
       const data = (await response.json()) as {

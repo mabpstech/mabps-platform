@@ -4,10 +4,15 @@ import {
   DEFAULT_HEADER,
   DEFAULT_SEO,
   DEFAULT_THEME,
-  buildDefaultPages,
   ensureUniqueSlug,
   slugify,
 } from "@/lib/website/defaults";
+import {
+  buildTemplatePages,
+  type DefaultPageSeed,
+  type SiteCategoryId,
+  type SiteTemplateId,
+} from "@/lib/website/templates";
 import { migrateWebsiteSchema } from "@/lib/website/migrate";
 import { mediaKindFromMime } from "@/lib/website/media-kind";
 import {
@@ -584,7 +589,7 @@ function insertSeo(siteId: string, siteName: string, timestamp: string): Website
 
 function insertPageWithSections(
   siteId: string,
-  seed: ReturnType<typeof buildDefaultPages>[number],
+  seed: DefaultPageSeed,
   timestamp: string,
 ): WebsitePage {
   const pageId = randomUUID();
@@ -733,6 +738,8 @@ export function createSite(input: {
   workspaceId: string;
   name: string;
   slug?: string;
+  template?: SiteTemplateId | null;
+  category?: SiteCategoryId | null;
 }): WebsiteSite {
   ensureWebsiteReady();
   const timestamp = nowIso();
@@ -760,9 +767,11 @@ export function createSite(input: {
     insertFooter(id, name, timestamp);
     insertSeo(id, name, timestamp);
 
-    const pages = buildDefaultPages(name).map((seed) =>
-      insertPageWithSections(id, seed, timestamp),
-    );
+    const pages = buildTemplatePages({
+      siteName: name,
+      template: input.template,
+      category: input.category,
+    }).map((seed) => insertPageWithSections(id, seed, timestamp));
     seedDefaultNavigation(id, pages, timestamp);
     seedContactForm(id, timestamp);
   });

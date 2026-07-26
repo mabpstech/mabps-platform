@@ -23,6 +23,8 @@ export function createWorkspaceSite(input: {
   workspaceId: string;
   name: string;
   slug?: string;
+  template?: import("@/lib/website/templates").SiteTemplateId | null;
+  category?: import("@/lib/website/templates").SiteCategoryId | null;
 }): WebsiteSite {
   assertWithinLimit(input.workspaceId, "sites", { delta: 1 });
   const site = createSite(input);

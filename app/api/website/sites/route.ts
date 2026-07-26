@@ -8,6 +8,10 @@ import {
   createWorkspaceSite,
   listWorkspaceSites,
 } from "@/lib/website/sites";
+import {
+  isSiteCategoryId,
+  isSiteTemplateId,
+} from "@/lib/website/templates";
 
 export async function GET() {
   try {
@@ -25,6 +29,8 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       name?: unknown;
       slug?: unknown;
+      template?: unknown;
+      category?: unknown;
     };
 
     if (typeof body.name !== "string" || !body.name.trim()) {
@@ -38,6 +44,8 @@ export async function POST(request: Request) {
       workspaceId: workspace.id,
       name: body.name,
       slug: typeof body.slug === "string" ? body.slug : undefined,
+      template: isSiteTemplateId(body.template) ? body.template : "classic",
+      category: isSiteCategoryId(body.category) ? body.category : "other",
     });
 
     return NextResponse.json({ site }, { status: 201 });

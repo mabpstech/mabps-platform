@@ -53,6 +53,13 @@ export {
 } from "@/lib/website/domain";
 export { slugify, ensureUniqueSlug } from "@/lib/website/defaults";
 export {
+  buildTemplatePages,
+  isSiteCategoryId,
+  isSiteTemplateId,
+  SITE_CATEGORY_IDS,
+  SITE_TEMPLATE_IDS,
+} from "@/lib/website/templates";
+export {
   sanitizeRichHtml,
   sanitizeCustomCss,
   sanitizeJsonLd,
