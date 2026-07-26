@@ -1,5 +1,5 @@
 -- Database-backed media blob storage for serverless (Vercel / Turso).
--- Website media bytes live in media_blob; website_media.storagePath is the key.
+-- Website media bytes live in media_blob. website_media.storagePath is the key.
 
 CREATE TABLE IF NOT EXISTS "media_blob" (
   "key" text not null primary key,
