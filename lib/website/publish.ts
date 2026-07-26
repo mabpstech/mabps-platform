@@ -3,9 +3,19 @@ import {
   getSiteByCustomDomain,
   getSiteById,
   listPages,
+  listPublishEvents,
+  recordPublishEvent,
   updateSite,
 } from "@/lib/website/repository";
-import type { WebsiteSite } from "@/lib/website/types";
+import type {
+  WebsitePublishEvent,
+  WebsiteSite,
+} from "@/lib/website/types";
+
+export type PublishActor = {
+  userId?: string | null;
+  name?: string | null;
+};
 
 export type PublishResult = {
   site: WebsiteSite;
@@ -13,9 +23,14 @@ export type PublishResult = {
   customDomain: string | null;
   domainVerified: boolean;
   domainVerificationToken: string | null;
+  event: WebsitePublishEvent;
+  draftPageCount: number;
 };
 
-export function publishSite(siteId: string): PublishResult {
+export function publishSite(
+  siteId: string,
+  actor: PublishActor = {},
+): PublishResult {
   const site = getSiteById(siteId);
   if (!site) throw new Error("Site not found.");
 
@@ -24,10 +39,32 @@ export function publishSite(siteId: string): PublishResult {
   if (!home) {
     throw new Error("A home page is required before publishing.");
   }
+  if (home.status !== "published") {
+    throw new Error(
+      "Publish your home page before making the website live.",
+    );
+  }
 
+  const publishedAt = new Date().toISOString();
   const published = updateSite(siteId, {
     status: "published",
-    publishedAt: site.publishedAt ?? new Date().toISOString(),
+    publishedAt: site.publishedAt ?? publishedAt,
+  });
+
+  const draftPageCount = pages.filter(
+    (page) => page.status !== "published",
+  ).length;
+
+  const event = recordPublishEvent({
+    siteId,
+    action: "publish",
+    status: "published",
+    actorUserId: actor.userId,
+    actorName: actor.name,
+    note:
+      draftPageCount > 0
+        ? `${draftPageCount} draft page${draftPageCount === 1 ? "" : "s"} remain private.`
+        : null,
   });
 
   return {
@@ -36,13 +73,33 @@ export function publishSite(siteId: string): PublishResult {
     customDomain: published.customDomain,
     domainVerified: published.domainVerified,
     domainVerificationToken: published.domainVerificationToken,
+    event,
+    draftPageCount,
   };
 }
 
-export function unpublishSite(siteId: string): WebsiteSite {
+export function unpublishSite(
+  siteId: string,
+  actor: PublishActor = {},
+): { site: WebsiteSite; event: WebsitePublishEvent } {
   const site = getSiteById(siteId);
   if (!site) throw new Error("Site not found.");
-  return updateSite(siteId, { status: "unpublished" });
+  const unpublished = updateSite(siteId, { status: "unpublished" });
+  const event = recordPublishEvent({
+    siteId,
+    action: "unpublish",
+    status: "unpublished",
+    actorUserId: actor.userId,
+    actorName: actor.name,
+  });
+  return { site: unpublished, event };
+}
+
+export function getPublishHistory(
+  siteId: string,
+  limit = 20,
+): WebsitePublishEvent[] {
+  return listPublishEvents(siteId, limit);
 }
 
 export function setCustomDomain(

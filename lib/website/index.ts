@@ -16,6 +16,7 @@ export {
   listForms,
   getFormWithFields,
   listNavItems,
+  listPublishEvents,
   getThemeBySiteId,
   getHeaderBySiteId,
   getFooterBySiteId,
@@ -41,6 +42,7 @@ export {
 export {
   publishSite,
   unpublishSite,
+  getPublishHistory,
   setCustomDomain,
   verifyCustomDomain,
   resolvePublishedSiteByHost,

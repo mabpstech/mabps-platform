@@ -220,6 +220,18 @@ CREATE TABLE IF NOT EXISTS "website_form_submission" (
   "createdAt" text not null
 );
 
+CREATE TABLE IF NOT EXISTS "website_publish_event" (
+  "id" text not null primary key,
+  "siteId" text not null references "website_site" ("id") on delete cascade,
+  "action" text not null,
+  "status" text not null,
+  "versionLabel" text not null,
+  "actorUserId" text,
+  "actorName" text,
+  "note" text,
+  "createdAt" text not null
+);
+
 CREATE INDEX IF NOT EXISTS "website_site_workspaceId_idx" on "website_site" ("workspaceId");
 CREATE INDEX IF NOT EXISTS "website_site_status_idx" on "website_site" ("status");
 CREATE INDEX IF NOT EXISTS "website_site_customDomain_idx" on "website_site" ("customDomain");
@@ -236,3 +248,4 @@ CREATE INDEX IF NOT EXISTS "website_media_folder_siteId_idx" on "website_media_f
 CREATE INDEX IF NOT EXISTS "website_form_siteId_idx" on "website_form" ("siteId");
 CREATE INDEX IF NOT EXISTS "website_form_field_formId_idx" on "website_form_field" ("formId");
 CREATE INDEX IF NOT EXISTS "website_form_submission_formId_idx" on "website_form_submission" ("formId");
+CREATE INDEX IF NOT EXISTS "website_publish_event_siteId_idx" on "website_publish_event" ("siteId", "createdAt");

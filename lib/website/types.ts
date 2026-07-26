@@ -146,6 +146,21 @@ export type WebsiteNavItem = {
   updatedAt: string;
 };
 
+export const PUBLISH_EVENT_ACTIONS = ["publish", "unpublish"] as const;
+export type PublishEventAction = (typeof PUBLISH_EVENT_ACTIONS)[number];
+
+export type WebsitePublishEvent = {
+  id: string;
+  siteId: string;
+  action: PublishEventAction;
+  status: SiteStatus;
+  versionLabel: string;
+  actorUserId: string | null;
+  actorName: string | null;
+  note: string | null;
+  createdAt: string;
+};
+
 export type WebsiteSeo = {
   id: string;
   siteId: string;

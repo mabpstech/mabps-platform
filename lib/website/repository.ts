@@ -32,6 +32,7 @@ import type {
   MediaVariants,
   PageStatus,
   PageType,
+  PublishEventAction,
   SectionSettings,
   SectionType,
   SiteStatus,
@@ -46,6 +47,7 @@ import type {
   WebsiteMediaFolder,
   WebsiteNavItem,
   WebsitePage,
+  WebsitePublishEvent,
   WebsiteSection,
   WebsiteSeo,
   WebsiteSite,
@@ -842,6 +844,96 @@ export function updateSite(
     );
 
   return getSiteById(siteId)!;
+}
+
+function rowToPublishEvent(row: Record<string, unknown>): WebsitePublishEvent {
+  return {
+    id: String(row.id),
+    siteId: String(row.siteId),
+    action: row.action as PublishEventAction,
+    status: row.status as SiteStatus,
+    versionLabel: String(row.versionLabel),
+    actorUserId: row.actorUserId ? String(row.actorUserId) : null,
+    actorName: row.actorName ? String(row.actorName) : null,
+    note: row.note ? String(row.note) : null,
+    createdAt: String(row.createdAt),
+  };
+}
+
+export function listPublishEvents(
+  siteId: string,
+  limit = 20,
+): WebsitePublishEvent[] {
+  ensureWebsiteReady();
+  const rows = sqlite
+    .prepare(
+      `SELECT * FROM "website_publish_event"
+       WHERE "siteId" = ?
+       ORDER BY "createdAt" DESC
+       LIMIT ?`,
+    )
+    .all(siteId, Math.max(1, Math.min(100, limit))) as Record<
+    string,
+    unknown
+  >[];
+  return rows.map(rowToPublishEvent);
+}
+
+export function countPublishEvents(siteId: string): number {
+  ensureWebsiteReady();
+  const row = sqlite
+    .prepare(
+      `SELECT COUNT(*) as count FROM "website_publish_event" WHERE "siteId" = ?`,
+    )
+    .get(siteId) as { count?: number } | undefined;
+  return Number(row?.count ?? 0);
+}
+
+export function recordPublishEvent(input: {
+  siteId: string;
+  action: PublishEventAction;
+  status: SiteStatus;
+  actorUserId?: string | null;
+  actorName?: string | null;
+  note?: string | null;
+}): WebsitePublishEvent {
+  ensureWebsiteReady();
+  const timestamp = nowIso();
+  const priorPublishes = sqlite
+    .prepare(
+      `SELECT COUNT(*) as count FROM "website_publish_event"
+       WHERE "siteId" = ? AND "action" = 'publish'`,
+    )
+    .get(input.siteId) as { count?: number } | undefined;
+  const nextPublishNumber = Number(priorPublishes?.count ?? 0) + 1;
+  const versionLabel =
+    input.action === "publish"
+      ? `v${nextPublishNumber}`
+      : `offline-${timestamp.slice(0, 10)}`;
+  const id = randomUUID();
+  sqlite
+    .prepare(
+      `INSERT INTO "website_publish_event" (
+        "id", "siteId", "action", "status", "versionLabel",
+        "actorUserId", "actorName", "note", "createdAt"
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      id,
+      input.siteId,
+      input.action,
+      input.status,
+      versionLabel,
+      input.actorUserId ?? null,
+      input.actorName ?? null,
+      input.note ?? null,
+      timestamp,
+    );
+  return rowToPublishEvent(
+    sqlite
+      .prepare(`SELECT * FROM "website_publish_event" WHERE "id" = ?`)
+      .get(id) as Record<string, unknown>,
+  );
 }
 
 export function deleteSite(siteId: string): void {

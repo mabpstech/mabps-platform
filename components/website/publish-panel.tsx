@@ -11,19 +11,15 @@ import {
   authSecondaryButtonClassName,
   authSuccessClassName,
 } from "@/lib/auth/styles";
-import type { WebsiteSite } from "@/lib/website/types";
+import type { WebsitePublishEvent, WebsiteSite } from "@/lib/website/types";
 import { StatusBadge } from "@/components/website/ui/empty-state";
 
 export type PublishChecklistItem = {
   id: string;
   label: string;
   ok: boolean;
-};
-
-type PublishHistory = {
-  publishedBy: string;
-  publishedAt: string;
-  latestVersion: string;
+  /** When true, publish is blocked until this item is complete. */
+  required?: boolean;
 };
 
 type DisplayStatus = "draft" | "publishing" | "published" | "failed" | "unpublished";
@@ -39,18 +35,6 @@ function liveUrlFor(site: WebsiteSite): string {
     return `https://${site.customDomain}`;
   }
   return `/p/${site.slug}`;
-}
-
-function versionFromDate(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "—";
-  const y = date.getUTCFullYear();
-  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(date.getUTCDate()).padStart(2, "0");
-  const h = String(date.getUTCHours()).padStart(2, "0");
-  const min = String(date.getUTCMinutes()).padStart(2, "0");
-  return `v${y}.${m}.${d}.${h}${min}`;
 }
 
 function toDisplayStatus(
@@ -70,40 +54,47 @@ export function PublishPanel({
   canManage,
   checklist,
   publisherName,
+  initialEvents,
 }: {
   site: WebsiteSite;
   canManage: boolean;
   checklist: PublishChecklistItem[];
   publisherName: string;
+  initialEvents: WebsitePublishEvent[];
 }) {
   const router = useRouter();
   const [domain, setDomain] = useState(site.customDomain ?? "");
   const [current, setCurrent] = useState(site);
+  const [events, setEvents] = useState(initialEvents);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
   const [publishFailed, setPublishFailed] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [history, setHistory] = useState<PublishHistory | null>(() =>
-    site.publishedAt
-      ? {
-          publishedBy: publisherName,
-          publishedAt: site.publishedAt,
-          latestVersion: versionFromDate(site.updatedAt || site.publishedAt),
-        }
-      : null,
-  );
 
   const displayStatus = toDisplayStatus(current.status, pending, publishFailed);
   const liveUrl = liveUrlFor(current);
   const warningCount = useMemo(
-    () => checklist.filter((item) => !item.ok).length,
+    () => checklist.filter((item) => !item.ok && !item.required).length,
     [checklist],
   );
+  const blockingItems = useMemo(
+    () => checklist.filter((item) => item.required && !item.ok),
+    [checklist],
+  );
+  const latestPublish = events.find((event) => event.action === "publish");
 
   async function publish(action: "publish" | "unpublish") {
     if (!canManage) return;
+    if (action === "publish" && blockingItems.length > 0) {
+      setError(
+        `Finish required items before publishing: ${blockingItems
+          .map((item) => item.label)
+          .join(", ")}.`,
+      );
+      return;
+    }
     setPending(action);
     setError(null);
     setMessage(null);
@@ -119,22 +110,20 @@ export function PublishPanel({
       const data = (await response.json()) as {
         error?: string;
         site?: WebsiteSite;
-        publicPath?: string;
+        events?: WebsitePublishEvent[];
+        draftPageCount?: number;
       };
       if (!response.ok) throw new Error(data.error || "Publish failed.");
       if (data.site) setCurrent(data.site);
+      if (data.events) setEvents(data.events);
       if (action === "publish") {
-        const publishedAt =
-          data.site?.updatedAt ||
-          data.site?.publishedAt ||
-          new Date().toISOString();
-        setHistory({
-          publishedBy: publisherName,
-          publishedAt,
-          latestVersion: versionFromDate(publishedAt),
-        });
         setShowSuccess(true);
         setMessage(null);
+        if (data.draftPageCount && data.draftPageCount > 0) {
+          setMessage(
+            `${data.draftPageCount} draft page${data.draftPageCount === 1 ? "" : "s"} remain private.`,
+          );
+        }
       } else {
         setShowSuccess(false);
         setMessage("Site unpublished.");
@@ -240,7 +229,7 @@ export function PublishPanel({
         <div className="overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-sky-50">
           <div className="px-6 py-10 text-center sm:px-10 sm:py-14">
             <p className="text-4xl" aria-hidden>
-              🎉
+              ✓
             </p>
             <h1 className="mt-4 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
               Your website is now live!
@@ -301,7 +290,7 @@ export function PublishPanel({
           </div>
         </div>
 
-        {history ? <PublishHistoryCard history={history} /> : null}
+        <PublishHistoryCard events={events} fallbackName={publisherName} />
 
         {canManage ? (
           <div className="rounded-xl border border-zinc-200 bg-white p-6">
@@ -355,7 +344,11 @@ export function PublishPanel({
           <h2 className="text-lg font-medium text-zinc-900">
             Pre-publish checklist
           </h2>
-          {warningCount > 0 ? (
+          {blockingItems.length > 0 ? (
+            <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-200">
+              {blockingItems.length} required
+            </span>
+          ) : warningCount > 0 ? (
             <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
               {warningCount} warning{warningCount === 1 ? "" : "s"}
             </span>
@@ -366,55 +359,75 @@ export function PublishPanel({
           )}
         </div>
         <p className="mt-1 text-sm text-zinc-500">
-          Missing items are warnings only — you can still publish.
+          Required items must pass. Warnings are optional but recommended.
         </p>
         <ul className="mt-4 divide-y divide-zinc-100 rounded-lg border border-zinc-100">
-          {checklist.map((item) => (
-            <li
-              key={item.id}
-              className="flex items-center justify-between gap-3 px-4 py-3 text-sm"
-            >
-              <span className="flex items-center gap-2 text-zinc-800">
+          {checklist.map((item) => {
+            const tone = item.ok
+              ? "ok"
+              : item.required
+                ? "required"
+                : "warning";
+            return (
+              <li
+                key={item.id}
+                className="flex items-center justify-between gap-3 px-4 py-3 text-sm"
+              >
+                <span className="flex items-center gap-2 text-zinc-800">
+                  <span
+                    className={
+                      tone === "ok"
+                        ? "font-medium text-emerald-600"
+                        : tone === "required"
+                          ? "font-medium text-red-600"
+                          : "font-medium text-amber-600"
+                    }
+                    aria-hidden
+                  >
+                    {tone === "ok" ? "✓" : tone === "required" ? "×" : "!"}
+                  </span>
+                  {item.label}
+                </span>
                 <span
                   className={
-                    item.ok
-                      ? "font-medium text-emerald-600"
-                      : "font-medium text-amber-600"
+                    tone === "ok"
+                      ? "text-xs font-medium text-emerald-700"
+                      : tone === "required"
+                        ? "text-xs font-medium text-red-700"
+                        : "text-xs font-medium text-amber-700"
                   }
-                  aria-hidden
                 >
-                  {item.ok ? "✓" : "!"}
+                  {tone === "ok"
+                    ? "Complete"
+                    : tone === "required"
+                      ? "Required"
+                      : "Warning"}
                 </span>
-                {item.label}
-              </span>
-              <span
-                className={
-                  item.ok
-                    ? "text-xs font-medium text-emerald-700"
-                    : "text-xs font-medium text-amber-700"
-                }
-              >
-                {item.ok ? "Complete" : "Warning"}
-              </span>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
 
         <div className="mt-5 rounded-lg border border-zinc-100 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
           <p>
             Public path:{" "}
             <Link
-              href={`/p/${current.slug}`}
+              href={`/p/${current.slug}?preview=1`}
               className="font-medium text-zinc-900 underline underline-offset-2"
               target="_blank"
             >
               /p/{current.slug}
             </Link>
           </p>
-          {current.publishedAt ? (
+          {latestPublish ? (
             <p className="mt-1">
-              First published{" "}
-              {new Date(current.publishedAt).toLocaleString()}
+              Last published {new Date(latestPublish.createdAt).toLocaleString()}{" "}
+              as {latestPublish.versionLabel}
+              {latestPublish.actorName ? ` by ${latestPublish.actorName}` : ""}
+            </p>
+          ) : current.publishedAt ? (
+            <p className="mt-1">
+              First published {new Date(current.publishedAt).toLocaleString()}
             </p>
           ) : null}
         </div>
@@ -425,7 +438,7 @@ export function PublishPanel({
               type="button"
               className={`${authButtonClassName} !w-auto px-4`}
               onClick={() => void publish("publish")}
-              disabled={Boolean(pending)}
+              disabled={Boolean(pending) || blockingItems.length > 0}
             >
               {pending === "publish"
                 ? "Publishing…"
@@ -447,7 +460,7 @@ export function PublishPanel({
         ) : null}
       </div>
 
-      {history ? <PublishHistoryCard history={history} /> : null}
+      <PublishHistoryCard events={events} fallbackName={publisherName} />
 
       <div className="rounded-xl border border-zinc-200 bg-white p-6">
         <h2 className="text-lg font-medium text-zinc-900">Custom domain</h2>
@@ -504,39 +517,52 @@ export function PublishPanel({
   );
 }
 
-function PublishHistoryCard({ history }: { history: PublishHistory }) {
+function PublishHistoryCard({
+  events,
+  fallbackName,
+}: {
+  events: WebsitePublishEvent[];
+  fallbackName: string;
+}) {
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-6">
       <h2 className="text-lg font-medium text-zinc-900">Publish history</h2>
       <p className="mt-1 text-sm text-zinc-500">
-        Latest successful publish for this website.
+        Every publish and unpublish is recorded with who made the change.
       </p>
-      <dl className="mt-4 grid gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-zinc-100 bg-zinc-50 px-4 py-3">
-          <dt className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-            Published by
-          </dt>
-          <dd className="mt-1 text-sm font-medium text-zinc-900">
-            {history.publishedBy}
-          </dd>
-        </div>
-        <div className="rounded-lg border border-zinc-100 bg-zinc-50 px-4 py-3">
-          <dt className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-            Published at
-          </dt>
-          <dd className="mt-1 text-sm font-medium text-zinc-900">
-            {new Date(history.publishedAt).toLocaleString()}
-          </dd>
-        </div>
-        <div className="rounded-lg border border-zinc-100 bg-zinc-50 px-4 py-3">
-          <dt className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-            Latest version
-          </dt>
-          <dd className="mt-1 font-mono text-sm font-medium text-zinc-900">
-            {history.latestVersion}
-          </dd>
-        </div>
-      </dl>
+      {events.length === 0 ? (
+        <p className="mt-4 text-sm text-zinc-500">
+          No publish events yet{fallbackName ? ` — ${fallbackName} can publish first` : ""}.
+        </p>
+      ) : (
+        <ul className="mt-4 divide-y divide-zinc-100 rounded-lg border border-zinc-100">
+          {events.map((event) => (
+            <li
+              key={event.id}
+              className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm"
+            >
+              <div>
+                <p className="font-medium text-zinc-900">
+                  {event.action === "publish" ? "Published" : "Unpublished"}{" "}
+                  <span className="font-mono text-xs text-zinc-500">
+                    {event.versionLabel}
+                  </span>
+                </p>
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  {event.actorName || fallbackName} ·{" "}
+                  {new Date(event.createdAt).toLocaleString()}
+                </p>
+                {event.note ? (
+                  <p className="mt-1 text-xs text-amber-700">{event.note}</p>
+                ) : null}
+              </div>
+              <StatusBadge
+                status={event.action === "publish" ? "published" : "unpublished"}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
