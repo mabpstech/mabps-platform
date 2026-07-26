@@ -27,7 +27,10 @@ import {
 import { SaveBar, type SaveState } from "@/components/website/ui/save-bar";
 import { Toast } from "@/components/website/ui/toast";
 import {
+  PAGE_STATUSES,
   SECTION_TYPES,
+  type PageStatus,
+  type SectionSettings,
   type SectionType,
   type WebsitePage,
   type WebsiteSection,
@@ -115,10 +118,15 @@ export function PageBuilder({
   const router = useRouter();
   const [title, setTitle] = useState(page.title);
   const [slug, setSlug] = useState(page.slug);
+  const [status, setStatus] = useState<PageStatus>(page.status);
   const [seoTitle, setSeoTitle] = useState(page.seoTitle ?? "");
   const [seoDescription, setSeoDescription] = useState(
     page.seoDescription ?? "",
   );
+  const [seoOgImageMediaId, setSeoOgImageMediaId] = useState<string | null>(
+    page.seoOgImageMediaId,
+  );
+  const [seoRobots, setSeoRobots] = useState(page.seoRobots ?? "");
   const [sections, setSections] = useState(() => toDraft(initialSections));
   const [selectedId, setSelectedId] = useState<string | null>(
     initialSections[0]?.id ?? null,
@@ -143,14 +151,20 @@ export function PageBuilder({
   const editVersionRef = useRef(0);
   const titleRef = useRef(title);
   const slugRef = useRef(slug);
+  const statusRef = useRef(status);
   const seoTitleRef = useRef(seoTitle);
   const seoDescriptionRef = useRef(seoDescription);
+  const seoOgImageMediaIdRef = useRef(seoOgImageMediaId);
+  const seoRobotsRef = useRef(seoRobots);
   const sectionsRef = useRef(sections);
 
   titleRef.current = title;
   slugRef.current = slug;
+  statusRef.current = status;
   seoTitleRef.current = seoTitle;
   seoDescriptionRef.current = seoDescription;
+  seoOgImageMediaIdRef.current = seoOgImageMediaId;
+  seoRobotsRef.current = seoRobots;
   sectionsRef.current = sections;
 
   const selected = useMemo(
@@ -174,8 +188,11 @@ export function PageBuilder({
       const versionAtStart = editVersionRef.current;
       const snapshotTitle = titleRef.current;
       const snapshotSlug = slugRef.current;
+      const snapshotStatus = statusRef.current;
       const snapshotSeoTitle = seoTitleRef.current;
       const snapshotSeoDescription = seoDescriptionRef.current;
+      const snapshotSeoOgImageMediaId = seoOgImageMediaIdRef.current;
+      const snapshotSeoRobots = seoRobotsRef.current;
       const snapshotSections = sectionsRef.current;
 
       setSaveState("saving");
@@ -188,8 +205,11 @@ export function PageBuilder({
             body: JSON.stringify({
               title: snapshotTitle,
               slug: snapshotSlug,
+              status: snapshotStatus,
               seoTitle: snapshotSeoTitle || null,
               seoDescription: snapshotSeoDescription || null,
+              seoOgImageMediaId: snapshotSeoOgImageMediaId,
+              seoRobots: snapshotSeoRobots || null,
             }),
           },
         );
@@ -283,7 +303,18 @@ export function PageBuilder({
       void saveAll({ silent: true });
     }, 2500);
     return () => window.clearTimeout(timer);
-  }, [title, slug, seoTitle, seoDescription, sections, canManage, saveAll]);
+  }, [
+    title,
+    slug,
+    status,
+    seoTitle,
+    seoDescription,
+    seoOgImageMediaId,
+    seoRobots,
+    sections,
+    canManage,
+    saveAll,
+  ]);
 
   function reorder(
     fromId: string,
@@ -342,6 +373,20 @@ export function PageBuilder({
           ? {
               ...section,
               content: { ...section.content, [key]: value },
+            }
+          : section,
+      ),
+    );
+  }
+
+  function updateSelectedSettings(patch: Partial<SectionSettings>) {
+    if (!selectedId) return;
+    setSections((current) =>
+      current.map((section) =>
+        section.clientKey === selectedId
+          ? {
+              ...section,
+              settings: { ...section.settings, ...patch },
             }
           : section,
       ),
@@ -461,32 +506,77 @@ export function PageBuilder({
       </div>
 
       {showSettings ? (
-        <div className="grid gap-4 rounded-2xl border border-zinc-200 bg-white p-5 sm:grid-cols-2">
-          <Field
-            label="Page title"
-            value={title}
-            onChange={setTitle}
+        <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              label="Page title"
+              value={title}
+              onChange={setTitle}
+              disabled={!canManage}
+            />
+            <Field
+              label="Page address"
+              value={slug}
+              onChange={setSlug}
+              disabled={!canManage || page.pageType === "home"}
+            />
+            <div>
+              <label className={authLabelClassName}>Page status</label>
+              <select
+                className={authInputClassName}
+                value={status}
+                onChange={(event) =>
+                  setStatus(event.target.value as PageStatus)
+                }
+                disabled={!canManage}
+              >
+                {PAGE_STATUSES.map((value) => (
+                  <option key={value} value={value}>
+                    {value === "published" ? "Published" : "Draft"}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-[11px] text-zinc-500">
+                Draft pages stay private until you publish them.
+              </p>
+            </div>
+            <div>
+              <label className={authLabelClassName}>Page robots</label>
+              <select
+                className={authInputClassName}
+                value={seoRobots}
+                onChange={(event) => setSeoRobots(event.target.value)}
+                disabled={!canManage}
+              >
+                <option value="">Use site default</option>
+                <option value="index,follow">Index, follow</option>
+                <option value="noindex,follow">No index, follow</option>
+                <option value="index,nofollow">Index, no follow</option>
+                <option value="noindex,nofollow">No index, no follow</option>
+              </select>
+            </div>
+            <Field
+              label="Search title"
+              value={seoTitle}
+              onChange={setSeoTitle}
+              disabled={!canManage}
+              placeholder="Shown in Google results"
+            />
+            <Field
+              label="Search description"
+              value={seoDescription}
+              onChange={setSeoDescription}
+              disabled={!canManage}
+              placeholder="Short summary for search engines"
+            />
+          </div>
+          <MediaPicker
+            siteId={siteId}
+            value={seoOgImageMediaId}
+            onChange={setSeoOgImageMediaId}
             disabled={!canManage}
-          />
-          <Field
-            label="Page address"
-            value={slug}
-            onChange={setSlug}
-            disabled={!canManage || page.pageType === "home"}
-          />
-          <Field
-            label="Search title"
-            value={seoTitle}
-            onChange={setSeoTitle}
-            disabled={!canManage}
-            placeholder="Shown in Google results"
-          />
-          <Field
-            label="Search description"
-            value={seoDescription}
-            onChange={setSeoDescription}
-            disabled={!canManage}
-            placeholder="Short summary for search engines"
+            label="Social share image"
+            hint="og"
           />
         </div>
       ) : null}
@@ -682,6 +772,7 @@ export function PageBuilder({
               section={selected}
               canManage={canManage}
               onChange={updateSelectedContent}
+              onSettingsChange={updateSelectedSettings}
               onRemove={removeSelected}
             />
           )}
@@ -711,23 +802,36 @@ function SectionInspector({
   section,
   canManage,
   onChange,
+  onSettingsChange,
   onRemove,
 }: {
   siteId: string;
   section: DraftSection;
   canManage: boolean;
   onChange: (key: string, value: unknown) => void;
+  onSettingsChange: (patch: Partial<SectionSettings>) => void;
   onRemove: () => void;
 }) {
+  const settingsPanel = (
+    <SectionSettingsPanel
+      settings={section.settings}
+      canManage={canManage}
+      onChange={onSettingsChange}
+    />
+  );
+
   if (section.type === "hero") {
     return (
-      <HeroInspector
-        siteId={siteId}
-        content={section.content}
-        canManage={canManage}
-        onChange={onChange}
-        onRemove={onRemove}
-      />
+      <div className="space-y-4">
+        <HeroInspector
+          siteId={siteId}
+          content={section.content}
+          canManage={canManage}
+          onChange={onChange}
+        />
+        {settingsPanel}
+        <RemoveButton canManage={canManage} onRemove={onRemove} />
+      </div>
     );
   }
 
@@ -740,6 +844,7 @@ function SectionInspector({
           onChange={(html) => onChange("html", html)}
           disabled={!canManage}
         />
+        {settingsPanel}
         <RemoveButton canManage={canManage} onRemove={onRemove} />
       </div>
     );
@@ -763,6 +868,7 @@ function SectionInspector({
             <option value="xl">Extra large</option>
           </select>
         </div>
+        {settingsPanel}
         <RemoveButton canManage={canManage} onRemove={onRemove} />
       </div>
     );
@@ -796,6 +902,139 @@ function SectionInspector({
           onChange={(value) => onChange("caption", value)}
           disabled={!canManage}
         />
+        {settingsPanel}
+        <RemoveButton canManage={canManage} onRemove={onRemove} />
+      </div>
+    );
+  }
+
+  if (section.type === "gallery") {
+    const mediaIds = Array.isArray(section.content.mediaIds)
+      ? section.content.mediaIds.map(String)
+      : [];
+    return (
+      <div className="space-y-4">
+        <InspectorHeading type={section.type} />
+        <Field
+          label="Headline"
+          value={String(section.content.heading ?? "")}
+          onChange={(value) => onChange("heading", value)}
+          disabled={!canManage}
+        />
+        <MediaPicker
+          siteId={siteId}
+          value={mediaIds[0] ?? null}
+          onChange={() => undefined}
+          values={mediaIds}
+          onChangeMultiple={(ids) => onChange("mediaIds", ids)}
+          multiple
+          disabled={!canManage}
+          label="Gallery images"
+          hint="banner"
+        />
+        {mediaIds.length > 1 && canManage ? (
+          <GalleryOrderEditor
+            mediaIds={mediaIds}
+            onChange={(ids) => onChange("mediaIds", ids)}
+          />
+        ) : null}
+        {settingsPanel}
+        <RemoveButton canManage={canManage} onRemove={onRemove} />
+      </div>
+    );
+  }
+
+  if (section.type === "form") {
+    return (
+      <div className="space-y-4">
+        <InspectorHeading type={section.type} />
+        <Field
+          label="Headline"
+          value={String(section.content.heading ?? "")}
+          onChange={(value) => onChange("heading", value)}
+          disabled={!canManage}
+        />
+        <FormSlugPicker
+          siteId={siteId}
+          value={String(section.content.formSlug ?? "contact")}
+          onChange={(value) => onChange("formSlug", value)}
+          disabled={!canManage}
+        />
+        {settingsPanel}
+        <RemoveButton canManage={canManage} onRemove={onRemove} />
+      </div>
+    );
+  }
+
+  if (section.type === "blogList") {
+    return (
+      <div className="space-y-4">
+        <InspectorHeading type={section.type} />
+        <Field
+          label="Headline"
+          value={String(section.content.heading ?? "")}
+          onChange={(value) => onChange("heading", value)}
+          disabled={!canManage}
+        />
+        <div>
+          <label className={authLabelClassName}>Number of posts</label>
+          <input
+            type="number"
+            min={1}
+            max={24}
+            className={authInputClassName}
+            value={Number(section.content.limit ?? 6)}
+            onChange={(event) =>
+              onChange("limit", Math.max(1, Math.min(24, Number(event.target.value) || 6)))
+            }
+            disabled={!canManage}
+          />
+        </div>
+        {settingsPanel}
+        <RemoveButton canManage={canManage} onRemove={onRemove} />
+      </div>
+    );
+  }
+
+  if (section.type === "products" || section.type === "collections") {
+    return (
+      <div className="space-y-4">
+        <InspectorHeading type={section.type} />
+        <Field
+          label="Headline"
+          value={String(section.content.heading ?? "")}
+          onChange={(value) => onChange("heading", value)}
+          disabled={!canManage}
+        />
+        <CatalogItemsEditor
+          siteId={siteId}
+          items={Array.isArray(section.content.items) ? section.content.items : []}
+          canManage={canManage}
+          mode={section.type}
+          onChange={(items) => onChange("items", items)}
+        />
+        {settingsPanel}
+        <RemoveButton canManage={canManage} onRemove={onRemove} />
+      </div>
+    );
+  }
+
+  if (section.type === "features") {
+    return (
+      <div className="space-y-4">
+        <InspectorHeading type={section.type} />
+        <Field
+          label="Headline"
+          value={String(section.content.heading ?? "")}
+          onChange={(value) => onChange("heading", value)}
+          disabled={!canManage}
+        />
+        <FeaturesItemsEditor
+          items={Array.isArray(section.content.items) ? section.content.items : []}
+          canManage={canManage}
+          onChange={(items) => onChange("items", items)}
+        />
+        {settingsPanel}
         <RemoveButton canManage={canManage} onRemove={onRemove} />
       </div>
     );
@@ -812,7 +1051,6 @@ function SectionInspector({
     "secondaryHref",
     "buttonLabel",
     "buttonHref",
-    "formSlug",
     "caption",
     "alt",
   ];
@@ -832,29 +1070,7 @@ function SectionInspector({
           />
         ) : null,
       )}
-      {"mediaId" in section.content ? (
-        <MediaPicker
-          siteId={siteId}
-          value={
-            typeof section.content.mediaId === "string"
-              ? section.content.mediaId
-              : null
-          }
-          onChange={(mediaId) => onChange("mediaId", mediaId)}
-          disabled={!canManage}
-          label="Image"
-          hint="product"
-        />
-      ) : null}
-      {(section.type === "features" ||
-        section.type === "products" ||
-        section.type === "collections") && (
-        <ItemsEditor
-          items={Array.isArray(section.content.items) ? section.content.items : []}
-          canManage={canManage}
-          onChange={(items) => onChange("items", items)}
-        />
-      )}
+      {settingsPanel}
       <RemoveButton canManage={canManage} onRemove={onRemove} />
     </div>
   );
@@ -871,13 +1087,11 @@ function HeroInspector({
   content,
   canManage,
   onChange,
-  onRemove,
 }: {
   siteId: string;
   content: Record<string, unknown>;
   canManage: boolean;
   onChange: (key: string, value: unknown) => void;
-  onRemove: () => void;
 }) {
   const desktopMediaId =
     typeof content.desktopMediaId === "string"
@@ -1108,8 +1322,6 @@ function HeroInspector({
           </div>
         </div>
       </HeroEditorCard>
-
-      <RemoveButton canManage={canManage} onRemove={onRemove} />
     </div>
   );
 }
@@ -1373,27 +1585,29 @@ function RichTextField({
   );
 }
 
-function ItemsEditor({
+function asItemRecords(items: unknown[]): Array<Record<string, unknown>> {
+  return items.map((item) =>
+    item && typeof item === "object"
+      ? { ...(item as Record<string, unknown>) }
+      : {},
+  );
+}
+
+function FeaturesItemsEditor({
   items,
   canManage,
   onChange,
 }: {
   items: unknown[];
   canManage: boolean;
-  onChange: (items: Array<Record<string, string>>) => void;
+  onChange: (items: Array<Record<string, unknown>>) => void;
 }) {
-  const normalized = items.map((item) => {
-    const record = (item ?? {}) as Record<string, unknown>;
-    return {
-      title: String(record.title ?? ""),
-      description: String(record.description ?? record.body ?? ""),
-    };
-  });
+  const normalized = asItemRecords(items);
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label className={authLabelClassName}>Items</label>
+        <label className={authLabelClassName}>Features</label>
         {canManage ? (
           <button
             type="button"
@@ -1401,34 +1615,34 @@ function ItemsEditor({
             onClick={() =>
               onChange([
                 ...normalized,
-                { title: "New item", description: "Description" },
+                { title: "New feature", description: "Description" },
               ])
             }
           >
-            Add item
+            Add feature
           </button>
         ) : null}
       </div>
       {normalized.map((item, index) => (
         <div
-          key={`item-${index}`}
+          key={`feature-${index}`}
           className="space-y-2 rounded-xl border border-zinc-200 p-3"
         >
           <StableTextInput
-            value={item.title}
+            value={String(item.title ?? "")}
             disabled={!canManage}
             onChange={(title) => {
-              const next = [...normalized];
+              const next = asItemRecords(normalized);
               next[index] = { ...next[index], title };
               onChange(next);
             }}
             placeholder="Title"
           />
           <StableTextInput
-            value={item.description}
+            value={String(item.description ?? item.body ?? "")}
             disabled={!canManage}
             onChange={(description) => {
-              const next = [...normalized];
+              const next = asItemRecords(normalized);
               next[index] = { ...next[index], description };
               onChange(next);
             }}
@@ -1442,11 +1656,352 @@ function ItemsEditor({
               className="text-xs text-red-600"
               onClick={() => onChange(normalized.filter((_, i) => i !== index))}
             >
-              Remove item
+              Remove feature
             </button>
           ) : null}
         </div>
       ))}
+    </div>
+  );
+}
+
+function CatalogItemsEditor({
+  siteId,
+  items,
+  canManage,
+  mode,
+  onChange,
+}: {
+  siteId: string;
+  items: unknown[];
+  canManage: boolean;
+  mode: "products" | "collections";
+  onChange: (items: Array<Record<string, unknown>>) => void;
+}) {
+  const normalized = asItemRecords(items);
+  const noun = mode === "products" ? "product" : "collection";
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <label className={authLabelClassName}>
+          {mode === "products" ? "Products" : "Collections"}
+        </label>
+        {canManage ? (
+          <button
+            type="button"
+            className="text-xs font-medium text-zinc-600 hover:text-zinc-900"
+            onClick={() =>
+              onChange([
+                ...normalized,
+                {
+                  name: `New ${noun}`,
+                  description: "Description",
+                  price: mode === "products" ? "$0" : "",
+                  href: mode === "products" ? "#" : "/products",
+                  mediaId: null,
+                },
+              ])
+            }
+          >
+            Add {noun}
+          </button>
+        ) : null}
+      </div>
+      {normalized.map((item, index) => {
+        const name = String(item.name ?? item.title ?? "");
+        const description = String(item.description ?? item.body ?? "");
+        const price = String(item.price ?? "");
+        const href = String(item.href ?? "");
+        const mediaId =
+          typeof item.mediaId === "string" ? item.mediaId : null;
+
+        return (
+          <div
+            key={`catalog-${index}`}
+            className="space-y-2 rounded-xl border border-zinc-200 p-3"
+          >
+            <StableTextInput
+              value={name}
+              disabled={!canManage}
+              onChange={(nextName) => {
+                const next = asItemRecords(normalized);
+                next[index] = { ...next[index], name: nextName };
+                delete next[index].title;
+                onChange(next);
+              }}
+              placeholder="Name"
+            />
+            <StableTextInput
+              value={description}
+              disabled={!canManage}
+              onChange={(nextDescription) => {
+                const next = asItemRecords(normalized);
+                next[index] = {
+                  ...next[index],
+                  description: nextDescription,
+                };
+                onChange(next);
+              }}
+              placeholder="Description"
+              multiline
+              className={`${authInputClassName} min-h-16`}
+            />
+            {mode === "products" ? (
+              <StableTextInput
+                value={price}
+                disabled={!canManage}
+                onChange={(nextPrice) => {
+                  const next = asItemRecords(normalized);
+                  next[index] = { ...next[index], price: nextPrice };
+                  onChange(next);
+                }}
+                placeholder="Price"
+              />
+            ) : null}
+            <StableTextInput
+              value={href}
+              disabled={!canManage}
+              onChange={(nextHref) => {
+                const next = asItemRecords(normalized);
+                next[index] = { ...next[index], href: nextHref };
+                onChange(next);
+              }}
+              placeholder="Link, e.g. /products"
+            />
+            <MediaPicker
+              siteId={siteId}
+              value={mediaId}
+              onChange={(nextMediaId) => {
+                const next = asItemRecords(normalized);
+                next[index] = { ...next[index], mediaId: nextMediaId };
+                onChange(next);
+              }}
+              disabled={!canManage}
+              label="Image"
+              hint="product"
+            />
+            {canManage ? (
+              <button
+                type="button"
+                className="text-xs text-red-600"
+                onClick={() =>
+                  onChange(normalized.filter((_, i) => i !== index))
+                }
+              >
+                Remove {noun}
+              </button>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function GalleryOrderEditor({
+  mediaIds,
+  onChange,
+}: {
+  mediaIds: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <label className={authLabelClassName}>Image order</label>
+      <ul className="space-y-2">
+        {mediaIds.map((id, index) => (
+          <li
+            key={`${id}-${index}`}
+            className="flex items-center gap-3 rounded-xl border border-zinc-200 px-3 py-2"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/api/website/media/file/${id}`}
+              alt=""
+              className="h-10 w-14 rounded-md object-cover"
+            />
+            <span className="min-w-0 flex-1 truncate text-xs text-zinc-500">
+              Image {index + 1}
+            </span>
+            <button
+              type="button"
+              className="text-xs text-zinc-500 hover:text-zinc-900 disabled:opacity-40"
+              disabled={index === 0}
+              onClick={() => {
+                const next = [...mediaIds];
+                const [moved] = next.splice(index, 1);
+                next.splice(index - 1, 0, moved);
+                onChange(next);
+              }}
+            >
+              Up
+            </button>
+            <button
+              type="button"
+              className="text-xs text-zinc-500 hover:text-zinc-900 disabled:opacity-40"
+              disabled={index === mediaIds.length - 1}
+              onClick={() => {
+                const next = [...mediaIds];
+                const [moved] = next.splice(index, 1);
+                next.splice(index + 1, 0, moved);
+                onChange(next);
+              }}
+            >
+              Down
+            </button>
+            <button
+              type="button"
+              className="text-xs text-red-600"
+              onClick={() => onChange(mediaIds.filter((_, i) => i !== index))}
+            >
+              Remove
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function FormSlugPicker({
+  siteId,
+  value,
+  onChange,
+  disabled,
+}: {
+  siteId: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  const [forms, setForms] = useState<Array<{ slug: string; name: string }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch(`/api/website/sites/${siteId}/forms`);
+        const data = (await response.json()) as {
+          forms?: Array<{ slug: string; name: string }>;
+        };
+        if (!cancelled) {
+          setForms(
+            (data.forms ?? []).map((form) => ({
+              slug: form.slug,
+              name: form.name,
+            })),
+          );
+        }
+      } catch {
+        if (!cancelled) setForms([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [siteId]);
+
+  return (
+    <div>
+      <label className={authLabelClassName}>Form</label>
+      <select
+        className={authInputClassName}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled || loading}
+      >
+        {forms.length === 0 ? (
+          <option value={value}>{value || "contact"}</option>
+        ) : (
+          forms.map((form) => (
+            <option key={form.slug} value={form.slug}>
+              {form.name} ({form.slug})
+            </option>
+          ))
+        )}
+      </select>
+      <p className="mt-1.5 text-[11px] text-zinc-500">
+        Choose which published form this section should render.
+      </p>
+    </div>
+  );
+}
+
+function SectionSettingsPanel({
+  settings,
+  canManage,
+  onChange,
+}: {
+  settings: SectionSettings;
+  canManage: boolean;
+  onChange: (patch: Partial<SectionSettings>) => void;
+}) {
+  return (
+    <div className="space-y-3 rounded-2xl border border-zinc-200 bg-zinc-50/50 p-4">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+          Section layout
+        </p>
+        <p className="mt-0.5 text-[11px] text-zinc-500">
+          Spacing, background, and width for this block.
+        </p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className={authLabelClassName}>Vertical padding</label>
+          <select
+            className={authInputClassName}
+            value={settings.paddingY ?? "md"}
+            onChange={(event) =>
+              onChange({
+                paddingY: event.target.value as SectionSettings["paddingY"],
+              })
+            }
+            disabled={!canManage}
+          >
+            <option value="none">None</option>
+            <option value="sm">Small</option>
+            <option value="md">Medium</option>
+            <option value="lg">Large</option>
+            <option value="xl">Extra large</option>
+          </select>
+        </div>
+        <div>
+          <label className={authLabelClassName}>Background</label>
+          <input
+            type="text"
+            className={authInputClassName}
+            value={settings.background ?? ""}
+            onChange={(event) =>
+              onChange({ background: event.target.value || undefined })
+            }
+            disabled={!canManage}
+            placeholder="#ffffff or leave empty"
+          />
+        </div>
+      </div>
+      <label className="flex items-center gap-2 text-sm text-zinc-700">
+        <input
+          type="checkbox"
+          checked={Boolean(settings.fullWidth)}
+          onChange={(event) => onChange({ fullWidth: event.target.checked })}
+          disabled={!canManage}
+        />
+        Full width (edge to edge)
+      </label>
+      <label className="flex items-center gap-2 text-sm text-zinc-700">
+        <input
+          type="checkbox"
+          checked={Boolean(settings.hidden)}
+          onChange={(event) => onChange({ hidden: event.target.checked })}
+          disabled={!canManage}
+        />
+        Hide this section on the live site
+      </label>
     </div>
   );
 }

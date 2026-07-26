@@ -62,12 +62,16 @@ export function SectionRenderer({
     return <div className={height} aria-hidden />;
   }
 
+  const maxWidthClass = section.settings.fullWidth
+    ? "mx-auto max-w-none"
+    : "mx-auto max-w-5xl";
+
   return (
     <section
       className={`${paddingClass(section.settings.paddingY)} px-6`}
       style={style}
     >
-      <div className="mx-auto max-w-5xl">
+      <div className={maxWidthClass}>
         {section.type === "hero" ? (
           <HeroBlock
             content={content}
@@ -191,23 +195,33 @@ export function SectionRenderer({
                       ? hrefWithBase(basePath, String(item.href))
                       : "#"
                   }
-                  className="border p-5 transition hover:shadow-sm"
+                  className="overflow-hidden border transition hover:shadow-sm"
                   style={{ borderRadius: theme.borderRadius }}
                 >
-                  <h3 className="text-lg font-medium">
-                    {String(item.name ?? "Item")}
-                  </h3>
-                  <p
-                    className="mt-2 text-sm"
-                    style={{ color: theme.mutedColor }}
-                  >
-                    {String(item.description ?? "")}
-                  </p>
-                  {item.price ? (
-                    <p className="mt-3 text-sm font-medium">
-                      {String(item.price)}
-                    </p>
+                  {typeof item.mediaId === "string" && item.mediaId ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={mediaPublicUrl(item.mediaId)}
+                      alt=""
+                      className="h-40 w-full object-cover"
+                    />
                   ) : null}
+                  <div className="p-5">
+                    <h3 className="text-lg font-medium">
+                      {String(item.name ?? item.title ?? "Item")}
+                    </h3>
+                    <p
+                      className="mt-2 text-sm"
+                      style={{ color: theme.mutedColor }}
+                    >
+                      {String(item.description ?? "")}
+                    </p>
+                    {item.price ? (
+                      <p className="mt-3 text-sm font-medium">
+                        {String(item.price)}
+                      </p>
+                    ) : null}
+                  </div>
                 </Link>
               ))}
             </div>
@@ -272,17 +286,27 @@ export function SectionRenderer({
         ) : null}
 
         {section.type === "gallery" ? (
-          <div className="grid gap-4 sm:grid-cols-3">
-            {asStringArray(content.mediaIds).map((mediaId) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={mediaId}
-                src={mediaPublicUrl(mediaId)}
-                alt=""
-                className="h-48 w-full object-cover"
-                style={{ borderRadius: theme.borderRadius }}
-              />
-            ))}
+          <div>
+            {content.heading ? (
+              <h2
+                className="mb-8 text-3xl font-semibold"
+                style={{ fontFamily: theme.fontHeading }}
+              >
+                {String(content.heading)}
+              </h2>
+            ) : null}
+            <div className="grid gap-4 sm:grid-cols-3">
+              {asStringArray(content.mediaIds).map((mediaId) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={mediaId}
+                  src={mediaPublicUrl(mediaId)}
+                  alt=""
+                  className="h-48 w-full object-cover"
+                  style={{ borderRadius: theme.borderRadius }}
+                />
+              ))}
+            </div>
           </div>
         ) : null}
       </div>
