@@ -173,11 +173,17 @@ function rowToNavItem(row: Record<string, unknown>): WebsiteNavItem {
     label: String(row.label),
     href: row.href ? String(row.href) : null,
     pageId: row.pageId ? String(row.pageId) : null,
+    parentId: row.parentId ? String(row.parentId) : null,
     sortOrder: Number(row.sortOrder ?? 0),
     openInNewTab: Boolean(row.openInNewTab),
     createdAt: String(row.createdAt),
     updatedAt: String(row.updatedAt),
   };
+}
+
+function hrefForPage(page: WebsitePage): string {
+  if (page.pageType === "home" || page.slug === "home") return "/";
+  return `/${page.slug}`;
 }
 
 function rowToSeo(row: Record<string, unknown>): WebsiteSeo {
@@ -629,9 +635,9 @@ function seedDefaultNavigation(
 ): void {
   const insert = sqlite.prepare(
     `INSERT INTO "website_nav_item" (
-      "id", "siteId", "label", "href", "pageId", "sortOrder", "openInNewTab",
+      "id", "siteId", "label", "href", "pageId", "parentId", "sortOrder", "openInNewTab",
       "createdAt", "updatedAt"
-    ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, NULL, ?, 0, ?, ?)`,
   );
 
   const order = ["home", "about", "products", "collections", "blog", "contact"];
@@ -644,7 +650,7 @@ function seedDefaultNavigation(
       randomUUID(),
       siteId,
       page.title,
-      `/${page.slug === "home" ? "" : page.slug}`.replace(/\/$/, "") || "/",
+      hrefForPage(page),
       page.id,
       index,
       timestamp,
@@ -1068,9 +1074,11 @@ export function listNavItems(siteId: string): WebsiteNavItem[] {
 export function replaceNavItems(
   siteId: string,
   items: Array<{
+    clientKey?: string;
     label: string;
     href?: string | null;
     pageId?: string | null;
+    parentKey?: string | null;
     openInNewTab?: boolean;
   }>,
 ): WebsiteNavItem[] {
@@ -1084,21 +1092,66 @@ export function replaceNavItems(
 
     const insert = sqlite.prepare(
       `INSERT INTO "website_nav_item" (
-        "id", "siteId", "label", "href", "pageId", "sortOrder", "openInNewTab",
-        "createdAt", "updatedAt"
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        "id", "siteId", "label", "href", "pageId", "parentId", "sortOrder",
+        "openInNewTab", "createdAt", "updatedAt"
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
 
-    items.forEach((item, index) => {
-      const label = item.label.trim();
-      if (!label) return;
+    const idByClientKey = new Map<string, string>();
+    const prepared = items
+      .map((item, index) => {
+        const label = item.label.trim();
+        if (!label) return null;
+        const clientKey = item.clientKey?.trim() || `item-${index}`;
+        const id = randomUUID();
+        idByClientKey.set(clientKey, id);
+
+        const page =
+          item.pageId && typeof item.pageId === "string"
+            ? getPageById(item.pageId)
+            : null;
+        const pageBelongs =
+          page && page.siteId === siteId ? page : null;
+        const href = pageBelongs
+          ? hrefForPage(pageBelongs)
+          : item.href?.trim() || null;
+
+        return {
+          id,
+          clientKey,
+          label,
+          href,
+          pageId: pageBelongs?.id ?? null,
+          parentKey: item.parentKey?.trim() || null,
+          openInNewTab: Boolean(item.openInNewTab),
+          sortOrder: index,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+    // Only allow one nesting level: children must reference a top-level sibling.
+    const topLevelKeys = new Set(
+      prepared
+        .filter((item) => !item.parentKey)
+        .map((item) => item.clientKey),
+    );
+
+    prepared.forEach((item) => {
+      let parentId: string | null = null;
+      if (item.parentKey && topLevelKeys.has(item.parentKey)) {
+        parentId = idByClientKey.get(item.parentKey) ?? null;
+      }
+      // Prevent self-parenting and child-as-parent.
+      if (parentId === item.id) parentId = null;
+
       insert.run(
-        randomUUID(),
+        item.id,
         siteId,
-        label,
-        item.href?.trim() || null,
-        item.pageId || null,
-        index,
+        item.label,
+        item.href,
+        item.pageId,
+        parentId,
+        item.sortOrder,
         item.openInNewTab ? 1 : 0,
         timestamp,
         timestamp,

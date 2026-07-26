@@ -138,6 +138,8 @@ export type WebsiteNavItem = {
   label: string;
   href: string | null;
   pageId: string | null;
+  /** Null for top-level items; points at another nav item for dropdown children. */
+  parentId: string | null;
   sortOrder: number;
   openInNewTab: boolean;
   createdAt: string;

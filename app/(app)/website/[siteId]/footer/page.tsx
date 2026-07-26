@@ -18,6 +18,7 @@ export default async function SiteFooterPage({ params }: PageProps) {
   return (
     <FooterEditor
       siteId={siteId}
+      siteSlug={site.slug}
       footer={footer}
       canManage={isWorkspaceManager(role)}
     />

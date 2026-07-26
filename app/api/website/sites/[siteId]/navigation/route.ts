@@ -45,9 +45,17 @@ export async function PUT(request: Request, context: RouteContext) {
         throw new Error(`Navigation item ${index + 1} needs a label.`);
       }
       return {
+        clientKey:
+          typeof record.clientKey === "string" && record.clientKey.trim()
+            ? record.clientKey
+            : `item-${index}`,
         label: record.label,
         href: typeof record.href === "string" ? record.href : null,
         pageId: typeof record.pageId === "string" ? record.pageId : null,
+        parentKey:
+          typeof record.parentKey === "string" && record.parentKey.trim()
+            ? record.parentKey
+            : null,
         openInNewTab: Boolean(record.openInNewTab),
       };
     });

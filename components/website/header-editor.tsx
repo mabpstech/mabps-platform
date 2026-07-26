@@ -6,6 +6,7 @@ import {
   authInputClassName,
   authLabelClassName,
 } from "@/lib/auth/styles";
+import { LivePreview } from "@/components/website/live-preview";
 import { MediaPicker } from "@/components/website/media-picker";
 import { SaveBar, type SaveState } from "@/components/website/ui/save-bar";
 import { Toast } from "@/components/website/ui/toast";
@@ -23,10 +24,12 @@ function readLogoSize(header: WebsiteHeader): LogoSize {
 
 export function HeaderEditor({
   siteId,
+  siteSlug,
   header,
   canManage,
 }: {
   siteId: string;
+  siteSlug: string;
   header: WebsiteHeader;
   canManage: boolean;
 }) {
@@ -45,21 +48,12 @@ export function HeaderEditor({
           .announcementEnabled,
       ),
   );
-  const [showSearch, setShowSearch] = useState(
-    () =>
-      Boolean(
-        (header as WebsiteHeader & { showSearch?: boolean }).showSearch,
-      ),
-  );
-  const [showCart, setShowCart] = useState(
-    () =>
-      Boolean((header as WebsiteHeader & { showCart?: boolean }).showCart),
-  );
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [toast, setToast] = useState<{
     message: string;
     tone: "success" | "error";
   } | null>(null);
+  const [previewToken, setPreviewToken] = useState(0);
   const hydrated = useRef(false);
 
   useEffect(() => {
@@ -68,7 +62,7 @@ export function HeaderEditor({
       return;
     }
     setSaveState((current) => (current === "saving" ? current : "dirty"));
-  }, [form, logoSize, announcement, showAnnouncement, showSearch, showCart]);
+  }, [form, logoSize, announcement, showAnnouncement]);
 
   async function save() {
     if (!canManage) return;
@@ -82,8 +76,9 @@ export function HeaderEditor({
           logoSize,
           announcementText: announcement || null,
           announcementEnabled: showAnnouncement,
-          showSearch,
-          showCart,
+          // Search/cart are not shipped yet — keep them off in production chrome.
+          showSearch: false,
+          showCart: false,
         }),
       });
       const data = (await response.json()) as {
@@ -97,6 +92,7 @@ export function HeaderEditor({
       }
       setSaveState("saved");
       setToast({ message: "Header saved ✓", tone: "success" });
+      setPreviewToken((current) => current + 1);
       router.refresh();
       window.setTimeout(() => {
         setSaveState((current) => (current === "saved" ? "idle" : current));
@@ -219,24 +215,6 @@ export function HeaderEditor({
               />
             </div>
           ) : null}
-          <label className="flex items-center gap-2 text-sm text-zinc-700">
-            <input
-              type="checkbox"
-              checked={showSearch}
-              onChange={(event) => setShowSearch(event.target.checked)}
-              disabled={!canManage}
-            />
-            Show search icon
-          </label>
-          <label className="flex items-center gap-2 text-sm text-zinc-700">
-            <input
-              type="checkbox"
-              checked={showCart}
-              onChange={(event) => setShowCart(event.target.checked)}
-              disabled={!canManage}
-            />
-            Show cart icon
-          </label>
           <p className="text-xs text-zinc-500">
             Desktop and mobile menus are managed under Menu. Social icons live in
             Footer.
@@ -330,6 +308,12 @@ export function HeaderEditor({
           </div>
         </section>
       </div>
+
+      <LivePreview
+        src={`/p/${siteSlug}?preview=1`}
+        title="Header preview"
+        refreshToken={previewToken}
+      />
 
       <Toast
         message={toast?.message ?? null}

@@ -18,6 +18,7 @@ export default async function SiteHeaderPage({ params }: PageProps) {
   return (
     <HeaderEditor
       siteId={siteId}
+      siteSlug={site.slug}
       header={header}
       canManage={isWorkspaceManager(role)}
     />

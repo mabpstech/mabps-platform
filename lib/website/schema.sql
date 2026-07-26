@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS "website_nav_item" (
   "label" text not null,
   "href" text,
   "pageId" text,
+  "parentId" text,
   "sortOrder" integer not null default 0,
   "openInNewTab" integer not null default 0,
   "createdAt" text not null,
@@ -225,6 +226,7 @@ CREATE INDEX IF NOT EXISTS "website_site_customDomain_idx" on "website_site" ("c
 CREATE INDEX IF NOT EXISTS "website_page_siteId_idx" on "website_page" ("siteId");
 CREATE INDEX IF NOT EXISTS "website_section_pageId_idx" on "website_section" ("pageId");
 CREATE INDEX IF NOT EXISTS "website_nav_item_siteId_idx" on "website_nav_item" ("siteId");
+CREATE INDEX IF NOT EXISTS "website_nav_item_parentId_idx" on "website_nav_item" ("parentId");
 CREATE INDEX IF NOT EXISTS "website_blog_post_siteId_idx" on "website_blog_post" ("siteId");
 CREATE INDEX IF NOT EXISTS "website_media_siteId_idx" on "website_media" ("siteId");
 CREATE INDEX IF NOT EXISTS "website_media_workspaceId_idx" on "website_media" ("workspaceId");

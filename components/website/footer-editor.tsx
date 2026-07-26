@@ -8,6 +8,7 @@ import {
   authLabelClassName,
   authSecondaryButtonClassName,
 } from "@/lib/auth/styles";
+import { LivePreview } from "@/components/website/live-preview";
 import { SaveBar, type SaveState } from "@/components/website/ui/save-bar";
 import { Toast } from "@/components/website/ui/toast";
 import type {
@@ -16,12 +17,38 @@ import type {
   WebsiteFooter,
 } from "@/lib/website/types";
 
+const SOCIAL_PRESETS = [
+  { label: "Instagram", placeholder: "https://instagram.com/yourhandle" },
+  { label: "Facebook", placeholder: "https://facebook.com/yourpage" },
+  { label: "X", placeholder: "https://x.com/yourhandle" },
+  { label: "LinkedIn", placeholder: "https://linkedin.com/company/yourbrand" },
+  { label: "YouTube", placeholder: "https://youtube.com/@yourchannel" },
+  { label: "TikTok", placeholder: "https://tiktok.com/@yourhandle" },
+  { label: "WhatsApp", placeholder: "https://wa.me/15551234567" },
+] as const;
+
+function isValidSocialHref(href: string): boolean {
+  const trimmed = href.trim();
+  if (!trimmed) return false;
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      new URL(trimmed);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return trimmed.startsWith("mailto:") || trimmed.startsWith("tel:");
+}
+
 export function FooterEditor({
   siteId,
+  siteSlug,
   footer,
   canManage,
 }: {
   siteId: string;
+  siteSlug: string;
   footer: WebsiteFooter;
   canManage: boolean;
 }) {
@@ -36,6 +63,7 @@ export function FooterEditor({
     message: string;
     tone: "success" | "error";
   } | null>(null);
+  const [previewToken, setPreviewToken] = useState(0);
   const hydrated = useRef(false);
 
   useEffect(() => {
@@ -48,6 +76,18 @@ export function FooterEditor({
 
   async function save() {
     if (!canManage) return;
+    const invalid = socialLinks.find(
+      (link) => link.href.trim() && !isValidSocialHref(link.href),
+    );
+    if (invalid) {
+      setSaveState("error");
+      setToast({
+        message: `Social link “${invalid.label || "Untitled"}” needs a valid http(s), mailto, or tel URL.`,
+        tone: "error",
+      });
+      return;
+    }
+
     setSaveState("saving");
     try {
       const response = await fetch(`/api/website/sites/${siteId}/footer`, {
@@ -55,7 +95,7 @@ export function FooterEditor({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          socialLinks,
+          socialLinks: socialLinks.filter((link) => link.href.trim()),
           columns,
         }),
       });
@@ -71,6 +111,7 @@ export function FooterEditor({
       }
       setSaveState("saved");
       setToast({ message: "Footer saved ✓", tone: "success" });
+      setPreviewToken((current) => current + 1);
       router.refresh();
       window.setTimeout(() => {
         setSaveState((current) => (current === "saved" ? "idle" : current));
@@ -131,65 +172,104 @@ export function FooterEditor({
       </section>
 
       <section className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-zinc-900">Social links</h2>
           {canManage ? (
-            <button
-              type="button"
-              className="text-xs font-medium text-zinc-600 hover:text-zinc-900"
-              onClick={() =>
-                setSocialLinks((current) => [
-                  ...current,
-                  { label: "Instagram", href: "https://" },
-                ])
-              }
-            >
-              Add link
-            </button>
+            <div className="flex flex-wrap gap-2">
+              {SOCIAL_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  className="rounded-md border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-600 hover:border-zinc-300 hover:text-zinc-900"
+                  onClick={() =>
+                    setSocialLinks((current) => {
+                      if (current.some((link) => link.label === preset.label)) {
+                        return current;
+                      }
+                      return [
+                        ...current,
+                        { label: preset.label, href: "" },
+                      ];
+                    })
+                  }
+                >
+                  + {preset.label}
+                </button>
+              ))}
+            </div>
           ) : null}
         </div>
         {socialLinks.length === 0 ? (
-          <p className="text-sm text-zinc-500">No social links yet.</p>
+          <p className="text-sm text-zinc-500">
+            No social links yet. Pick a platform above to add one.
+          </p>
         ) : (
-          socialLinks.map((link, index) => (
-            <div key={index} className="grid gap-2 sm:grid-cols-[1fr_1.4fr_auto]">
-              <input
-                className={authInputClassName}
-                value={link.label}
-                disabled={!canManage}
-                placeholder="Platform"
-                onChange={(event) => {
-                  const next = [...socialLinks];
-                  next[index] = { ...next[index], label: event.target.value };
-                  setSocialLinks(next);
-                }}
-              />
-              <input
-                className={authInputClassName}
-                value={link.href}
-                disabled={!canManage}
-                placeholder="https://"
-                onChange={(event) => {
-                  const next = [...socialLinks];
-                  next[index] = { ...next[index], href: event.target.value };
-                  setSocialLinks(next);
-                }}
-              />
-              {canManage ? (
-                <button
-                  type="button"
-                  className={`${authSecondaryButtonClassName} !w-auto px-3 text-red-700`}
-                  onClick={() =>
-                    setSocialLinks((current) =>
-                      current.filter((_, i) => i !== index),
-                    )
-                  }
-                >
-                  Remove
-                </button>
-              ) : null}
-            </div>
-          ))
+          socialLinks.map((link, index) => {
+            const preset = SOCIAL_PRESETS.find(
+              (item) => item.label === link.label,
+            );
+            const invalid = Boolean(link.href.trim()) && !isValidSocialHref(link.href);
+            return (
+              <div key={index} className="space-y-1">
+                <div className="grid gap-2 sm:grid-cols-[1fr_1.4fr_auto]">
+                  <select
+                    className={authInputClassName}
+                    value={
+                      SOCIAL_PRESETS.some((item) => item.label === link.label)
+                        ? link.label
+                        : "Custom"
+                    }
+                    disabled={!canManage}
+                    onChange={(event) => {
+                      const nextLabel = event.target.value;
+                      const next = [...socialLinks];
+                      next[index] = {
+                        ...next[index],
+                        label: nextLabel === "Custom" ? "Website" : nextLabel,
+                      };
+                      setSocialLinks(next);
+                    }}
+                  >
+                    {SOCIAL_PRESETS.map((item) => (
+                      <option key={item.label} value={item.label}>
+                        {item.label}
+                      </option>
+                    ))}
+                    <option value="Custom">Custom</option>
+                  </select>
+                  <input
+                    className={authInputClassName}
+                    value={link.href}
+                    disabled={!canManage}
+                    placeholder={preset?.placeholder ?? "https://"}
+                    onChange={(event) => {
+                      const next = [...socialLinks];
+                      next[index] = { ...next[index], href: event.target.value };
+                      setSocialLinks(next);
+                    }}
+                  />
+                  {canManage ? (
+                    <button
+                      type="button"
+                      className={`${authSecondaryButtonClassName} !w-auto px-3 text-red-700`}
+                      onClick={() =>
+                        setSocialLinks((current) =>
+                          current.filter((_, i) => i !== index),
+                        )
+                      }
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
+                {invalid ? (
+                  <p className="text-xs text-red-600">
+                    Use a full URL starting with https://
+                  </p>
+                ) : null}
+              </div>
+            );
+          })
         )}
       </section>
 
@@ -327,6 +407,12 @@ export function FooterEditor({
           </div>
         ))}
       </section>
+
+      <LivePreview
+        src={`/p/${siteSlug}?preview=1`}
+        title="Footer preview"
+        refreshToken={previewToken}
+      />
 
       <Toast
         message={toast?.message ?? null}

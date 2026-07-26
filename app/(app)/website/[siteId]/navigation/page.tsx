@@ -21,6 +21,7 @@ export default async function SiteNavigationPage({ params }: PageProps) {
   return (
     <NavigationEditor
       siteId={siteId}
+      siteSlug={site.slug}
       navigation={listNavItems(siteId)}
       pages={listPages(siteId)}
       canManage={isWorkspaceManager(role)}
