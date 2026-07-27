@@ -131,19 +131,11 @@ export function OnboardingQuickActions({
             Create Website
           </Link>
         )}
-        <button
-          type="button"
-          className={`${authSecondaryButtonClassName} !w-auto px-4`}
-          disabled
-          title="Coming soon"
-        >
-          Import Website (Coming Soon)
-        </button>
         <Link
           href="/resources"
           className={`${authSecondaryButtonClassName} !w-auto px-4`}
         >
-          Watch 2-minute Tour
+          Browse guides
         </Link>
         {onSkip ? (
           <button

@@ -12,19 +12,19 @@ const DEVICE_META: Record<
     label: "Desktop",
     width: "100%",
     height: "640px",
-    hint: "Full width · ≥1024px",
+    hint: "Wide screen layout",
   },
   tablet: {
     label: "Tablet",
     width: "768px",
     height: "700px",
-    hint: "768×700 · sm breakpoint",
+    hint: "Tablet width",
   },
   mobile: {
     label: "Mobile",
     width: "390px",
     height: "740px",
-    hint: "390×740 · phone layout",
+    hint: "Phone layout",
   },
 };
 

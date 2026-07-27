@@ -59,8 +59,8 @@ export function ChannelsManager({
       <div>
         <h1 className="text-2xl font-semibold text-zinc-900">Channels</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          API-first channel adapters. Widget, API, and WhatsApp Cloud API are
-          available. Configure WhatsApp credentials under{" "}
+          Connect your chatbot to website embed, WhatsApp, and API channels.
+          Configure WhatsApp credentials under{" "}
           <Link href="/whatsapp/settings" className="underline">
             WhatsApp settings
           </Link>
@@ -95,26 +95,24 @@ export function ChannelsManager({
             <tr>
               <th className="px-4 py-3 font-medium">Channel</th>
               <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Implemented</th>
               <th className="px-4 py-3 font-medium">Notes</th>
             </tr>
           </thead>
           <tbody>
             {channels.map((channel) => (
               <tr key={channel.id} className="border-b border-zinc-100">
-                <td className="px-4 py-3 font-medium text-zinc-900">
+                <td className="px-4 py-3 font-medium capitalize text-zinc-900">
                   {channel.channel}
                 </td>
-                <td className="px-4 py-3 text-zinc-600">{channel.status}</td>
-                <td className="px-4 py-3 text-zinc-600">
-                  {channel.providerImplemented === false ? "stub" : "yes"}
+                <td className="px-4 py-3 capitalize text-zinc-600">
+                  {channel.status}
                 </td>
                 <td className="px-4 py-3 text-zinc-500">
                   {channel.channel === "whatsapp"
-                    ? "WhatsApp Cloud API via Integrations module."
+                    ? "Uses your WhatsApp integration settings."
                     : channel.channel === "widget"
-                      ? "Website embed + public session APIs."
-                      : "Programmatic send/receive over Chatbot APIs."}
+                      ? "Website embed for visitor conversations."
+                      : "Send and receive messages over Chatbot APIs."}
                 </td>
               </tr>
             ))}
