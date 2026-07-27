@@ -470,6 +470,217 @@ export type AiBusinessDNA = {
   sectionPriority: AiDnaField<SectionType[]>;
 };
 
+/** Shared confidence wrapper for strategy signals (same shape as DNA fields). */
+export type AiStrategyField<T> = AiDnaField<T>;
+
+export const AI_BRAND_PROMISES = [
+  "reliable_expertise",
+  "premium_experience",
+  "accessible_quality",
+  "community_care",
+  "innovative_edge",
+  "authentic_craft",
+  "transformative_results",
+  "effortless_convenience",
+] as const;
+export type AiBrandPromise = (typeof AI_BRAND_PROMISES)[number];
+
+export const AI_CORE_MESSAGES = [
+  "expertise_first",
+  "outcome_first",
+  "experience_first",
+  "value_first",
+  "trust_first",
+  "identity_first",
+  "discovery_first",
+  "relationship_first",
+] as const;
+export type AiCoreMessage = (typeof AI_CORE_MESSAGES)[number];
+
+export const AI_UNIQUE_VALUE_PROPOSITIONS = [
+  "specialist_depth",
+  "premium_quality",
+  "local_presence",
+  "speed_convenience",
+  "personal_care",
+  "innovation_leadership",
+  "heritage_craft",
+  "best_value",
+] as const;
+export type AiUniqueValueProposition =
+  (typeof AI_UNIQUE_VALUE_PROPOSITIONS)[number];
+
+export const AI_HERO_MESSAGE_STRATEGIES = [
+  "bold_claim",
+  "empathetic_problem",
+  "aspirational_vision",
+  "proof_led",
+  "offer_led",
+  "invitation",
+  "story_hook",
+  "minimal_statement",
+] as const;
+export type AiHeroMessageStrategy =
+  (typeof AI_HERO_MESSAGE_STRATEGIES)[number];
+
+export const AI_VOICE_TONES = [
+  "authoritative_expert",
+  "warm_guide",
+  "confident_peer",
+  "refined_host",
+  "energetic_coach",
+  "calm_advisor",
+  "playful_friend",
+  "humble_craftsman",
+] as const;
+export type AiVoiceTone = (typeof AI_VOICE_TONES)[number];
+
+export const AI_STORYTELLING_STRATEGIES = [
+  "founder_origin",
+  "customer_transformation",
+  "craft_process",
+  "place_rooted",
+  "mission_driven",
+  "before_after",
+  "day_in_life",
+  "proof_montage",
+] as const;
+export type AiStorytellingStrategy =
+  (typeof AI_STORYTELLING_STRATEGIES)[number];
+
+export const AI_IMAGE_STYLES = [
+  "documentary",
+  "studio_polished",
+  "lifestyle_candid",
+  "editorial_art",
+  "product_hero",
+  "ambient_mood",
+  "process_documentary",
+  "portrait_led",
+] as const;
+export type AiImageStyle = (typeof AI_IMAGE_STYLES)[number];
+
+export const AI_ILLUSTRATION_STYLES = [
+  "none",
+  "flat_geometric",
+  "line_minimal",
+  "hand_drawn_warm",
+  "editorial_ink",
+  "tech_diagram",
+  "organic_watercolor",
+  "bold_graphic",
+] as const;
+export type AiIllustrationStyle = (typeof AI_ILLUSTRATION_STYLES)[number];
+
+export const AI_ICON_STYLES = [
+  "outline_thin",
+  "outline_bold",
+  "solid_simple",
+  "duotone",
+  "filled_rounded",
+  "geometric_sharp",
+  "hand_crafted",
+  "minimal_glyph",
+] as const;
+export type AiIconStyle = (typeof AI_ICON_STYLES)[number];
+
+export const AI_PHOTOGRAPHY_DIRECTIONS = [
+  "natural_light",
+  "dramatic_contrast",
+  "soft_diffused",
+  "bright_airy",
+  "moody_dark",
+  "color_pop",
+  "muted_desaturated",
+  "high_key_clean",
+] as const;
+export type AiPhotographyDirection =
+  (typeof AI_PHOTOGRAPHY_DIRECTIONS)[number];
+
+/** Strategic emphasis pattern — not concrete section generation. */
+export const AI_SECTION_EMPHASES = [
+  "hero_dominant",
+  "proof_forward",
+  "offer_forward",
+  "story_forward",
+  "catalog_forward",
+  "trust_forward",
+  "contact_forward",
+  "balanced_flow",
+] as const;
+export type AiSectionEmphasis = (typeof AI_SECTION_EMPHASES)[number];
+
+export const AI_EMOTIONAL_JOURNEYS = [
+  "curiosity_to_confidence",
+  "anxiety_to_reassurance",
+  "aspiration_to_belonging",
+  "problem_to_relief",
+  "discovery_to_delight",
+  "skepticism_to_trust",
+  "excitement_to_action",
+  "calm_to_commitment",
+] as const;
+export type AiEmotionalJourney = (typeof AI_EMOTIONAL_JOURNEYS)[number];
+
+export const AI_CONVERSION_JOURNEYS = [
+  "awareness_consider_act",
+  "browse_compare_buy",
+  "learn_trust_contact",
+  "inspire_desire_book",
+  "diagnose_advise_convert",
+  "sample_engage_subscribe",
+  "explore_shortlist_enquire",
+  "hook_nurture_close",
+] as const;
+export type AiConversionJourney = (typeof AI_CONVERSION_JOURNEYS)[number];
+
+/** Brand strategy fields that always carry a confidence score. */
+export const AI_BRAND_STRATEGY_FIELDS = [
+  "brandPromise",
+  "coreMessage",
+  "uniqueValueProposition",
+  "heroMessageStrategy",
+  "ctaStrategy",
+  "voiceTone",
+  "trustStrategy",
+  "storytellingStrategy",
+  "colourPsychology",
+  "typographyDirection",
+  "imageStyle",
+  "illustrationStyle",
+  "iconStyle",
+  "photographyDirection",
+  "sectionEmphasis",
+  "emotionalJourney",
+  "conversionJourney",
+] as const;
+export type AiBrandStrategyFieldName =
+  (typeof AI_BRAND_STRATEGY_FIELDS)[number];
+
+/**
+ * Brand Strategy — how the brand communicates visually and emotionally (Sprint C4).
+ * Derived from AiBusinessDNA. Does not generate pages, sections, themes, or blueprints.
+ */
+export type AiBrandStrategy = {
+  brandPromise: AiStrategyField<AiBrandPromise>;
+  coreMessage: AiStrategyField<AiCoreMessage>;
+  uniqueValueProposition: AiStrategyField<AiUniqueValueProposition>;
+  heroMessageStrategy: AiStrategyField<AiHeroMessageStrategy>;
+  ctaStrategy: AiStrategyField<AiCtaStrategy>;
+  voiceTone: AiStrategyField<AiVoiceTone>;
+  trustStrategy: AiStrategyField<AiTrustStrategy>;
+  storytellingStrategy: AiStrategyField<AiStorytellingStrategy>;
+  colourPsychology: AiStrategyField<AiColourPsychology>;
+  typographyDirection: AiStrategyField<AiTypographyDirection>;
+  imageStyle: AiStrategyField<AiImageStyle>;
+  illustrationStyle: AiStrategyField<AiIllustrationStyle>;
+  iconStyle: AiStrategyField<AiIconStyle>;
+  photographyDirection: AiStrategyField<AiPhotographyDirection>;
+  sectionEmphasis: AiStrategyField<AiSectionEmphasis>;
+  emotionalJourney: AiStrategyField<AiEmotionalJourney>;
+  conversionJourney: AiStrategyField<AiConversionJourney>;
+};
+
 /**
  * Theme overlay for AI generation.
  * Prefer a known THEME_PRESETS id, then optional token patches.
