@@ -964,7 +964,7 @@ export type AiGeneratedSiteMeta = {
 };
 
 /**
- * Canonical structured output of the AI Website Generator.
+ * Canonical structured output of the AI Website Generator (composed in C6).
  * Persist only through createSite + apply (later commits) — never as code.
  */
 export type AiWebsiteBlueprint = {

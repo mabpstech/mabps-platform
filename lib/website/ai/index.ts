@@ -1,6 +1,7 @@
 /**
  * AI Website Generator — shared foundation, Business Intelligence (C2),
- * Business DNA (C3), Brand Strategy (C4), and Website Planning (C5).
+ * Business DNA (C3), Brand Strategy (C4), Website Planning (C5),
+ * and Website Composer (C6).
  * Pipeline, LLM, API, and UI land in later commits.
  */
 
@@ -250,3 +251,20 @@ export {
   type AiWebsitePlanProviderId,
   type AiWebsitePlanResult,
 } from "@/lib/website/ai/website-plan";
+
+export {
+  AI_WEBSITE_COMPOSER_PROVIDER_IDS,
+  DeterministicWebsiteComposerProvider,
+  composeWebsite,
+  composeWebsiteBlueprint,
+  composeWebsiteBlueprintFromInputs,
+  composeWebsiteSync,
+  getWebsiteComposerProvider,
+  listWebsiteComposerProviders,
+  registerWebsiteComposerProvider,
+  ROLE_TO_SECTION_TYPE,
+  type AiWebsiteComposerInput,
+  type AiWebsiteComposerProvider,
+  type AiWebsiteComposerProviderId,
+  type AiWebsiteComposerResult,
+} from "@/lib/website/ai/website-composer";
