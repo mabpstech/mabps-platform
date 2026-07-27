@@ -17,9 +17,9 @@ export default async function SiteLayout({ children, params }: LayoutProps) {
   }
 
   return (
-    <div className="flex flex-col gap-8 sm:flex-row">
+    <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
       <SiteSubnav siteId={site.id} siteName={site.name} />
-      <div className="min-w-0 flex-1">{children}</div>
+      <div className="min-w-0 flex-1 pb-10">{children}</div>
     </div>
   );
 }
