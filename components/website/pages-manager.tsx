@@ -215,12 +215,19 @@ export function PagesManager({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
-          Pages ({pages.length})
+      <div className="min-w-0 max-w-xl">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
+          Build
+        </p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900">
+          Pages
+          <span className="ml-2 text-base font-medium tabular-nums text-zinc-400">
+            {pages.length}
+          </span>
         </h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Edit each page of your website. Start with Home for the best first impression.
+        <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
+          Edit each page of your website. Start with Home for the best first
+          impression.
         </p>
       </div>
 

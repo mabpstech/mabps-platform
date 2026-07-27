@@ -13,6 +13,7 @@ import type {
   WebsiteMedia,
   WebsiteMediaFolder,
 } from "@/lib/website/types";
+import { EmptyState } from "@/components/website/ui/empty-state";
 import { Toast } from "@/components/website/ui/toast";
 import { MediaDetailPanel } from "@/components/website/media/media-detail-panel";
 import { MediaEditorModal } from "@/components/website/media/media-editor-modal";
@@ -910,8 +911,12 @@ export function MediaLibrary({
               }
             />
           ) : (
-            <div className="hidden h-full rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/60 p-6 text-sm text-zinc-500 xl:flex xl:items-center xl:justify-center">
-              Select an asset to preview details, usage, and editing tools.
+            <div className="hidden xl:block">
+              <EmptyState
+                compact
+                title="Select an asset"
+                description="Preview details, usage, and editing tools for any file in your library."
+              />
             </div>
           )}
         </div>

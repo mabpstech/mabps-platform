@@ -72,9 +72,14 @@ export function BlogManager({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-zinc-900">Blog</h1>
-        <p className="mt-1 text-sm text-zinc-500">
+      <div className="min-w-0 max-w-xl">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
+          Build
+        </p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900">
+          Blog
+        </h1>
+        <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
           Write and publish posts for the site blog page.
         </p>
       </div>

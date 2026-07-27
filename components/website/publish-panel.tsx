@@ -261,13 +261,24 @@ export function PublishPanel({
   if (showSuccess && current.status === "published") {
     return (
       <div className="space-y-6">
-        <div className="overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-sky-50">
+        <div className="overflow-hidden rounded-2xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50 via-white to-zinc-50 animate-[fadeRise_280ms_ease-out]">
           <div className="px-6 py-10 text-center sm:px-10 sm:py-14">
-            <p className="text-4xl" aria-hidden>
-              ✓
-            </p>
-            <h1 className="mt-4 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
-              Your website is now live!
+            <span
+              className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 shadow-[0_8px_24px_rgba(16,185,129,0.18)]"
+              aria-hidden
+            >
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M5 13l4 4L19 7"
+                  stroke="currentColor"
+                  strokeWidth="2.25"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+            <h1 className="mt-5 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
+              Your website is now live
             </h1>
             <p className="mx-auto mt-2 max-w-md text-sm text-zinc-600">
               {current.name} is published and ready for visitors.
@@ -362,9 +373,14 @@ export function PublishPanel({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-zinc-900">Publish</h1>
-          <p className="mt-1 text-sm text-zinc-500">
+        <div className="min-w-0 max-w-xl">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
+            Grow
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900">
+            Publish
+          </h1>
+          <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
             Review readiness, publish the site, and connect a custom domain.
           </p>
         </div>
@@ -408,18 +424,46 @@ export function PublishPanel({
                 key={item.id}
                 className="flex items-center justify-between gap-3 px-4 py-3 text-sm"
               >
-                <span className="flex items-center gap-2 text-zinc-800">
+                <span className="flex items-center gap-2.5 text-zinc-800">
                   <span
-                    className={
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
                       tone === "ok"
-                        ? "font-medium text-emerald-600"
+                        ? "bg-emerald-100 text-emerald-700"
                         : tone === "required"
-                          ? "font-medium text-red-600"
-                          : "font-medium text-amber-600"
-                    }
+                          ? "bg-red-100 text-red-700"
+                          : "bg-amber-100 text-amber-700"
+                    }`}
                     aria-hidden
                   >
-                    {tone === "ok" ? "✓" : tone === "required" ? "×" : "!"}
+                    {tone === "ok" ? (
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M5 13l4 4L19 7"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    ) : tone === "required" ? (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M6 6l12 12M18 6L6 18"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    ) : (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M12 8v5m0 4h.01"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    )}
                   </span>
                   {item.label}
                 </span>

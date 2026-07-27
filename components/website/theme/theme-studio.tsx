@@ -153,13 +153,13 @@ export function ThemeStudio({
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
             Design
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900">
             Theme Studio
           </h1>
-          <p className="mt-1 max-w-xl text-sm text-zinc-500">
+          <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-zinc-500">
             Shape the visual identity of your website — colors, type, chrome,
             and motion — with instant preview.
           </p>

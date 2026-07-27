@@ -108,11 +108,14 @@ export function SeoEditor({
         />
       ) : null}
 
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+      <div className="min-w-0 max-w-xl">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
+          Grow
+        </p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900">
           Search & SEO
         </h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
           Help customers find your website on Google and social media.
         </p>
       </div>

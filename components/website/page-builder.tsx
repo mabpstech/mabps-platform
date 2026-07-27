@@ -466,7 +466,7 @@ export function PageBuilder({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-[fadeRise_240ms_ease-out]">
       {canManage ? (
         <SaveBar
           state={saveState}

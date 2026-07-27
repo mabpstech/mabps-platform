@@ -57,9 +57,14 @@ export function FormsManager({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-zinc-900">Forms</h1>
-        <p className="mt-1 text-sm text-zinc-500">
+      <div className="min-w-0 max-w-xl">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
+          Build
+        </p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900">
+          Forms
+        </h1>
+        <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
           Build forms, embed them in pages, and review submissions.
         </p>
       </div>

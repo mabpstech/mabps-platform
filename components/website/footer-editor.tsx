@@ -132,11 +132,14 @@ export function FooterEditor({
         <SaveBar state={saveState} onSave={() => void save()} label="Save footer" />
       ) : null}
 
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+      <div className="min-w-0 max-w-xl">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
+          Design
+        </p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900">
           Footer
         </h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
           Copyright, social links, and helpful link columns.
         </p>
       </div>
