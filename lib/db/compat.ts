@@ -31,9 +31,13 @@ export function stripRowMetadata<T>(row: T): T {
   return row;
 }
 
+/** Nesting depth per DB handle — nested `.transaction()` uses SAVEPOINTs. */
+const txnDepthByDb = new WeakMap<object, number>();
+
 /**
  * better-sqlite3-compatible transaction wrapper using explicit SQL boundaries.
  * Same call shape: `const run = db.transaction(fn); run(...args)`.
+ * Nested calls become SAVEPOINT / RELEASE / ROLLBACK TO (composable repositories).
  */
 export function createLibsqlTransaction<F extends VariableArgFunction>(
   db: ExecCapable,
@@ -45,14 +49,35 @@ export function createLibsqlTransaction<F extends VariableArgFunction>(
 
   const wrapTxn = (mode: string) => {
     return (...bindParameters: Parameters<F>): ReturnType<F> => {
-      db.exec(`BEGIN ${mode}`.trimEnd());
+      const depth = txnDepthByDb.get(db) ?? 0;
+      const isRoot = depth === 0;
+      const savepoint = `mabps_sp_${depth}`;
+
+      if (isRoot) {
+        db.exec(`BEGIN ${mode}`.trimEnd());
+      } else {
+        db.exec(`SAVEPOINT ${savepoint}`);
+      }
+      txnDepthByDb.set(db, depth + 1);
+
       try {
         const result = fn(...bindParameters) as ReturnType<F>;
-        db.exec("COMMIT");
+        txnDepthByDb.set(db, depth);
+        if (isRoot) {
+          db.exec("COMMIT");
+        } else {
+          db.exec(`RELEASE ${savepoint}`);
+        }
         return result;
       } catch (err) {
+        txnDepthByDb.set(db, depth);
         try {
-          db.exec("ROLLBACK");
+          if (isRoot) {
+            db.exec("ROLLBACK");
+          } else {
+            db.exec(`ROLLBACK TO ${savepoint}`);
+            db.exec(`RELEASE ${savepoint}`);
+          }
         } catch {
           // Ignore rollback failures (e.g. no active transaction).
         }

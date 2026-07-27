@@ -1,7 +1,7 @@
 /**
  * AI Website Generator — shared foundation, Business Intelligence (C2),
  * Business DNA (C3), Brand Strategy (C4), Website Planning (C5),
- * Website Composer (C6), and Creative Director (C7).
+ * Website Composer (C6), Creative Director (C7), and Blueprint Executor (B1).
  * Pipeline, LLM, API, and UI land in later commits.
  */
 
@@ -310,3 +310,10 @@ export {
   type AiCreativeDirectorProviderId,
   type AiCreativeDirectorResult,
 } from "@/lib/website/ai/creative-director";
+
+export {
+  executeWebsiteBlueprint,
+  executeWebsiteBlueprintOnSite,
+  type AiBlueprintExecuteInput,
+  type AiBlueprintExecuteResult,
+} from "@/lib/website/ai/blueprint-executor";
