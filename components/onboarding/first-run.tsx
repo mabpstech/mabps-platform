@@ -108,7 +108,7 @@ export function OnboardingEncouragement({
 export function OnboardingQuickActions({
   onCreateWebsite,
   onSkip,
-  createHref = "/website?create=1",
+  createHref = "/website/new",
 }: {
   onCreateWebsite?: () => void;
   onSkip?: () => void;
@@ -164,6 +164,7 @@ export function FirstRunPanel({
   showQuickActions = true,
   onCreateWebsite,
   onSkip,
+  createHref,
   headingLevel = 1,
   children,
 }: {
@@ -172,6 +173,7 @@ export function FirstRunPanel({
   showQuickActions?: boolean;
   onCreateWebsite?: () => void;
   onSkip?: () => void;
+  createHref?: string;
   headingLevel?: 1 | 2;
   children?: React.ReactNode;
 }) {
@@ -186,6 +188,7 @@ export function FirstRunPanel({
         <OnboardingQuickActions
           onCreateWebsite={onCreateWebsite}
           onSkip={onSkip}
+          createHref={createHref}
         />
       ) : null}
       {children}

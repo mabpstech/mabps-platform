@@ -12,7 +12,6 @@ import {
   FirstRunPanel,
   OnboardingEncouragement,
 } from "@/components/onboarding/first-run";
-import { CreateSiteWizard } from "@/components/website/create-site-wizard";
 import {
   EmptyState,
   StatusBadge,
@@ -44,7 +43,6 @@ export function SitesDashboard({
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("updated");
-  const [wizardOpen, setWizardOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     message: string;
@@ -56,9 +54,9 @@ export function SitesDashboard({
     if (!canManage || typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("create") === "1") {
-      setWizardOpen(true);
+      router.replace("/website/new");
     }
-  }, [canManage]);
+  }, [canManage, router]);
 
   useEffect(() => {
     if (!menuOpenId) return;
@@ -165,13 +163,12 @@ export function SitesDashboard({
           </p>
         </div>
         {canManage ? (
-          <button
-            type="button"
+          <Link
+            href="/website/new"
             className={`${authButtonClassName} !w-auto px-5`}
-            onClick={() => setWizardOpen(true)}
           >
             Create website
-          </button>
+          </Link>
         ) : null}
       </div>
 
@@ -204,9 +201,7 @@ export function SitesDashboard({
           currentStep="website"
           headingLevel={2}
           encouragement="You are one step away from publishing your first website."
-          onCreateWebsite={
-            canManage ? () => setWizardOpen(true) : undefined
-          }
+          createHref="/website/new"
           onSkip={() => router.push("/dashboard")}
         />
       ) : filtered.length === 0 ? (
@@ -367,12 +362,6 @@ export function SitesDashboard({
           </div>
         </>
       )}
-
-      <CreateSiteWizard
-        open={wizardOpen}
-        onClose={() => setWizardOpen(false)}
-        canManage={canManage}
-      />
 
       <Toast
         message={toast?.message ?? null}
