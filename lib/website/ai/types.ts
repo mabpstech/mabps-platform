@@ -876,6 +876,185 @@ export type AiWebsitePlan = {
   footerStrategy: AiStrategyField<AiFooterStrategy>;
 };
 
+/** Overall art-direction posture (Sprint C7). */
+export const AI_ART_DIRECTIONS = [
+  "minimal_editorial",
+  "bold_expressive",
+  "refined_luxury",
+  "warm_human",
+  "tech_precise",
+  "organic_natural",
+  "playful_dynamic",
+  "corporate_clear",
+] as const;
+export type AiArtDirection = (typeof AI_ART_DIRECTIONS)[number];
+
+/** How visuals carry the narrative across the site — not copy. */
+export const AI_VISUAL_STORYTELLINGS = [
+  "single_hero_narrative",
+  "chaptered_scroll",
+  "montage_gallery",
+  "product_spotlight_chain",
+  "founder_led_arc",
+  "atmosphere_immersion",
+  "proof_cascade",
+  "offer_ladder",
+] as const;
+export type AiVisualStorytelling =
+  (typeof AI_VISUAL_STORYTELLINGS)[number];
+
+/** Hero layout composition — structure only, not section JSON. */
+export const AI_HERO_COMPOSITIONS = [
+  "full_bleed_centered",
+  "split_media_left",
+  "split_media_right",
+  "stacked_statement",
+  "overlay_on_imagery",
+  "minimal_text_field",
+  "product_stage",
+  "cinematic_wide",
+] as const;
+export type AiHeroComposition = (typeof AI_HERO_COMPOSITIONS)[number];
+
+/** Whitespace / negative-space strategy. */
+export const AI_WHITESPACE_STRATEGIES = [
+  "generous_breathing",
+  "balanced_margins",
+  "compact_efficient",
+  "editorial_asymmetric",
+  "tight_grid",
+  "luxury_void",
+] as const;
+export type AiWhitespaceStrategy =
+  (typeof AI_WHITESPACE_STRATEGIES)[number];
+
+/** How quickly sections should feel as the visitor scrolls. */
+export const AI_SECTION_PACINGS = [
+  "slow_cinematic",
+  "measured_reveal",
+  "steady_march",
+  "quick_scan",
+  "burst_then_pause",
+  "dense_catalog",
+] as const;
+export type AiSectionPacing = (typeof AI_SECTION_PACINGS)[number];
+
+/** UI control / chrome density — distinct from content density. */
+export const AI_UI_DENSITIES = [
+  "airy",
+  "comfortable",
+  "compact",
+  "dense",
+] as const;
+export type AiUiDensity = (typeof AI_UI_DENSITIES)[number];
+
+/** Perceived premium / finish level of the creative system. */
+export const AI_PREMIUM_LEVELS = [
+  "essential",
+  "polished",
+  "elevated",
+  "premium",
+  "ultra_luxury",
+] as const;
+export type AiPremiumLevel = (typeof AI_PREMIUM_LEVELS)[number];
+
+/** Recurring visual beat across sections. */
+export const AI_VISUAL_RHYTHMS = [
+  "even_pulse",
+  "hero_then_calm",
+  "staccato_blocks",
+  "wave_emphasis",
+  "gallery_beats",
+  "long_form_flow",
+] as const;
+export type AiVisualRhythm = (typeof AI_VISUAL_RHYTHMS)[number];
+
+/** Motion language — philosophy only, not animation code. */
+export const AI_ANIMATION_PHILOSOPHIES = [
+  "none_static",
+  "subtle_fade",
+  "gentle_rise",
+  "confident_snap",
+  "cinematic_parallax",
+  "playful_micro",
+  "editorial_reveal",
+] as const;
+export type AiAnimationPhilosophy =
+  (typeof AI_ANIMATION_PHILOSOPHIES)[number];
+
+/** Immediate first-viewport emotional read. */
+export const AI_FIRST_IMPRESSIONS = [
+  "calm_authority",
+  "warm_welcome",
+  "bold_impact",
+  "refined_elegance",
+  "curious_invite",
+  "trust_first",
+  "energy_burst",
+  "quiet_confidence",
+] as const;
+export type AiFirstImpression = (typeof AI_FIRST_IMPRESSIONS)[number];
+
+/** Emotional tone of the closing CTA moment — not CTA copy. */
+export const AI_CTA_EMOTIONS = [
+  "confident_clarity",
+  "warm_encouragement",
+  "urgent_momentum",
+  "reassuring_safety",
+  "aspirational_pull",
+  "friendly_invite",
+  "exclusive_access",
+  "practical_next_step",
+] as const;
+export type AiCtaEmotion = (typeof AI_CTA_EMOTIONS)[number];
+
+/** Creative direction fields that always carry a confidence score. */
+export const AI_CREATIVE_DIRECTION_FIELDS = [
+  "artDirection",
+  "visualStorytelling",
+  "heroComposition",
+  "whitespaceStrategy",
+  "sectionPacing",
+  "imageStyle",
+  "photographyDirection",
+  "illustrationDirection",
+  "iconStyle",
+  "uiDensity",
+  "premiumLevel",
+  "visualRhythm",
+  "animationPhilosophy",
+  "emotionalProgression",
+  "firstImpression",
+  "finalCtaEmotion",
+] as const;
+export type AiCreativeDirectionFieldName =
+  (typeof AI_CREATIVE_DIRECTION_FIELDS)[number];
+
+/**
+ * Creative Direction — art direction derived from DNA + Brand Strategy + Plan (Sprint C7).
+ * Does not generate pages, sections, copy, or blueprint JSON.
+ */
+export type AiCreativeDirection = {
+  artDirection: AiStrategyField<AiArtDirection>;
+  visualStorytelling: AiStrategyField<AiVisualStorytelling>;
+  heroComposition: AiStrategyField<AiHeroComposition>;
+  whitespaceStrategy: AiStrategyField<AiWhitespaceStrategy>;
+  sectionPacing: AiStrategyField<AiSectionPacing>;
+  imageStyle: AiStrategyField<AiImageStyle>;
+  photographyDirection: AiStrategyField<AiPhotographyDirection>;
+  /** Illustration posture — reuses AiIllustrationStyle values. */
+  illustrationDirection: AiStrategyField<AiIllustrationStyle>;
+  iconStyle: AiStrategyField<AiIconStyle>;
+  uiDensity: AiStrategyField<AiUiDensity>;
+  premiumLevel: AiStrategyField<AiPremiumLevel>;
+  visualRhythm: AiStrategyField<AiVisualRhythm>;
+  animationPhilosophy: AiStrategyField<AiAnimationPhilosophy>;
+  /** Reuses emotional-journey vocabulary as progression through the site. */
+  emotionalProgression: AiStrategyField<AiEmotionalJourney>;
+  firstImpression: AiStrategyField<AiFirstImpression>;
+  finalCtaEmotion: AiStrategyField<AiCtaEmotion>;
+};
+
 /**
  * Theme overlay for AI generation.
  * Prefer a known THEME_PRESETS id, then optional token patches.
