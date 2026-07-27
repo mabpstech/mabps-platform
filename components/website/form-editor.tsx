@@ -5,13 +5,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   authButtonClassName,
-  authErrorClassName,
   authInputClassName,
   authLabelClassName,
   authSecondaryButtonClassName,
-  authSuccessClassName,
 } from "@/lib/auth/styles";
 import { EmptyState } from "@/components/website/ui/empty-state";
+import { InlineBanner } from "@/components/website/ui/inline-banner";
 import {
   FORM_FIELD_TYPES,
   type FormFieldType,
@@ -130,8 +129,8 @@ export function FormEditor({
         </div>
       </div>
 
-      {error ? <p className={authErrorClassName}>{error}</p> : null}
-      {message ? <p className={authSuccessClassName}>{message}</p> : null}
+      <InlineBanner message={error} tone="error" />
+      <InlineBanner message={message} tone="success" />
 
       <div className="grid gap-4 rounded-xl border border-zinc-200 bg-white p-6 sm:grid-cols-2">
         <div>

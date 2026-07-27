@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   authButtonClassName,
-  authErrorClassName,
   authInputClassName,
   authLabelClassName,
   authSecondaryButtonClassName,
 } from "@/lib/auth/styles";
 import { EmptyState } from "@/components/website/ui/empty-state";
+import { InlineBanner } from "@/components/website/ui/inline-banner";
 import type { WebsiteBlogPost } from "@/lib/website/types";
 
 export function BlogManager({
@@ -79,7 +79,7 @@ export function BlogManager({
         </p>
       </div>
 
-      {error ? <p className={authErrorClassName}>{error}</p> : null}
+      <InlineBanner message={error} tone="error" />
 
       {canManage ? (
         <form

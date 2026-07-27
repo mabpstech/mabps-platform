@@ -5,14 +5,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   authButtonClassName,
-  authErrorClassName,
   authInputClassName,
   authLabelClassName,
   authSecondaryButtonClassName,
-  authSuccessClassName,
 } from "@/lib/auth/styles";
 import type { WebsitePublishEvent, WebsiteSite } from "@/lib/website/types";
 import { StatusBadge } from "@/components/website/ui/empty-state";
+import { InlineBanner } from "@/components/website/ui/inline-banner";
 
 export type PublishChecklistItem = {
   id: string;
@@ -372,8 +371,8 @@ export function PublishPanel({
         <StatusBadge status={displayStatus} />
       </div>
 
-      {error ? <p className={authErrorClassName}>{error}</p> : null}
-      {message ? <p className={authSuccessClassName}>{message}</p> : null}
+      <InlineBanner message={error} tone="error" />
+      <InlineBanner message={message} tone="success" />
 
       <div className="rounded-xl border border-zinc-200 bg-white p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">

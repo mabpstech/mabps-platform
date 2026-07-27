@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import {
   authButtonClassName,
-  authErrorClassName,
   authInputClassName,
   authLabelClassName,
   authSecondaryButtonClassName,
 } from "@/lib/auth/styles";
 import { EmptyState, StatusBadge } from "@/components/website/ui/empty-state";
+import { InlineBanner } from "@/components/website/ui/inline-banner";
 import { formatRelativeTime } from "@/components/website/ui/labels";
 import type { WebsitePage } from "@/lib/website/types";
 
@@ -224,7 +224,7 @@ export function PagesManager({
         </p>
       </div>
 
-      {error ? <p className={authErrorClassName}>{error}</p> : null}
+      <InlineBanner message={error} tone="error" />
 
       {canManage ? (
         <form
