@@ -152,10 +152,11 @@ export function SiteSubnav({
 }) {
   const pathname = usePathname();
   const base = `/website/${siteId}`;
+  const flatLinks = GROUPS.flatMap((group) => group.links);
 
   return (
     <aside className="w-full shrink-0 sm:sticky sm:top-4 sm:w-60 sm:self-start">
-      <div className="space-y-5">
+      <div className="space-y-4 sm:space-y-5">
         <div className="rounded-2xl border border-zinc-200/90 bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.03)]">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
             Editing
@@ -165,7 +166,7 @@ export function SiteSubnav({
           </h2>
           <Link
             href="/website"
-            className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 transition hover:text-zinc-900"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-md text-xs font-medium text-zinc-500 transition hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 focus-visible:ring-offset-2"
           >
             <svg
               width="12"
@@ -183,13 +184,48 @@ export function SiteSubnav({
           </Link>
         </div>
 
-        <nav className="space-y-5 rounded-2xl border border-zinc-200/90 bg-white p-2 shadow-[0_8px_24px_rgba(15,23,42,0.03)]">
+        {/* Mobile: horizontal scroll chips */}
+        <nav
+          aria-label="Website sections"
+          className="-mx-1 overflow-x-auto px-1 pb-1 sm:hidden"
+        >
+          <div className="flex min-w-max gap-1.5">
+            {flatLinks.map((link) => {
+              const href = `${base}${link.href}`;
+              const active =
+                link.href === ""
+                  ? pathname === base
+                  : pathname === href || pathname.startsWith(`${href}/`);
+              return (
+                <Link
+                  key={link.href}
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 focus-visible:ring-offset-2 ${
+                    active
+                      ? "bg-zinc-900 text-white"
+                      : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-zinc-900"
+                  }`}
+                >
+                  <NavGlyph icon={link.icon} />
+                  {link.label}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+
+        {/* Desktop: grouped sidebar */}
+        <nav
+          aria-label="Website sections"
+          className="hidden space-y-5 rounded-2xl border border-zinc-200/90 bg-white p-2 shadow-[0_8px_24px_rgba(15,23,42,0.03)] sm:block"
+        >
           {GROUPS.map((group) => (
             <div key={group.title} className="px-1">
               <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
                 {group.title}
               </p>
-              <div className="flex flex-row flex-wrap gap-0.5 sm:flex-col">
+              <div className="flex flex-col gap-0.5">
                 {group.links.map((link) => {
                   const href = `${base}${link.href}`;
                   const active =
@@ -200,7 +236,8 @@ export function SiteSubnav({
                     <Link
                       key={link.href}
                       href={href}
-                      className={`group flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm font-medium tracking-[-0.01em] transition duration-150 ${
+                      aria-current={active ? "page" : undefined}
+                      className={`group flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm font-medium tracking-[-0.01em] transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 focus-visible:ring-offset-2 ${
                         active
                           ? "bg-zinc-900 text-white shadow-sm"
                           : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"

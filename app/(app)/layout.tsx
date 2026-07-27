@@ -55,11 +55,11 @@ export default async function AppLayout({
   return (
     <div className="flex min-h-full flex-1 flex-col bg-zinc-50">
       <header className="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-3.5">
-          <div className="flex min-w-0 items-center gap-5">
+        <div className="relative mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-5">
             <Link
               href="/dashboard"
-              className="shrink-0 text-lg font-semibold tracking-tight text-zinc-900 transition-opacity duration-200 hover:opacity-70"
+              className="shrink-0 text-lg font-semibold tracking-tight text-zinc-900 transition-opacity duration-200 hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 focus-visible:ring-offset-2"
             >
               MABPS
             </Link>
@@ -82,7 +82,9 @@ export default async function AppLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
+        {children}
+      </main>
     </div>
   );
 }
