@@ -11,6 +11,7 @@ import {
   listSections,
   replaceSections,
 } from "@/lib/website/repository";
+import { parseSectionsPayload } from "@/lib/website/section-payload";
 import { isSectionType, type SectionSettings } from "@/lib/website/types";
 
 type RouteContext = {
@@ -92,29 +93,7 @@ export async function PUT(request: Request, context: RouteContext) {
       );
     }
 
-    const sections = body.sections.map((item, index) => {
-      if (!item || typeof item !== "object") {
-        throw new Error(`Invalid section at index ${index}.`);
-      }
-      const record = item as Record<string, unknown>;
-      if (!isSectionType(record.type)) {
-        throw new Error(`Invalid section type at index ${index}.`);
-      }
-      return {
-        id: typeof record.id === "string" ? record.id : undefined,
-        type: record.type,
-        content:
-          record.content && typeof record.content === "object"
-            ? (record.content as Record<string, unknown>)
-            : undefined,
-        settings:
-          record.settings && typeof record.settings === "object"
-            ? (record.settings as SectionSettings)
-            : undefined,
-      };
-    });
-
-    const saved = replaceSections(pageId, sections);
+    const saved = replaceSections(pageId, parseSectionsPayload(body.sections));
     return NextResponse.json({ sections: saved });
   } catch (error) {
     return websiteErrorResponse(error);

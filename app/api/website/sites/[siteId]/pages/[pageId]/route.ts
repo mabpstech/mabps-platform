@@ -9,8 +9,10 @@ import {
   deletePage,
   getPageById,
   listSections,
+  replaceSections,
   updatePage,
 } from "@/lib/website/repository";
+import { parseSectionsPayload } from "@/lib/website/section-payload";
 import { PAGE_STATUSES } from "@/lib/website/types";
 
 type RouteContext = {
@@ -84,7 +86,14 @@ export async function PATCH(request: Request, context: RouteContext) {
         status === "published" ? new Date().toISOString() : undefined,
     });
 
-    return NextResponse.json({ page: updated });
+    // Sections are saved on this registered page route so editors do not depend
+    // on the nested `/sections` handler (which can 404 under Turbopack).
+    let sections = listSections(pageId);
+    if (body.sections !== undefined) {
+      sections = replaceSections(pageId, parseSectionsPayload(body.sections));
+    }
+
+    return NextResponse.json({ page: updated, sections });
   } catch (error) {
     return websiteErrorResponse(error);
   }

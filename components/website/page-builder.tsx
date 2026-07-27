@@ -209,7 +209,9 @@ export function PageBuilder({
 
       setSaveState("saving");
       try {
-        const metaResponse = await fetch(
+        // Save meta + sections on the page route (registered). Do not use the
+        // nested `/sections` PUT — it can return a framework 404 under Turbopack.
+        const saveResponse = await fetch(
           `/api/website/sites/${siteId}/pages/${page.id}`,
           {
             method: "PATCH",
@@ -222,20 +224,6 @@ export function PageBuilder({
               seoDescription: snapshotSeoDescription || null,
               seoOgImageMediaId: snapshotSeoOgImageMediaId,
               seoRobots: snapshotSeoRobots || null,
-            }),
-          },
-        );
-        const metaData = (await metaResponse.json()) as { error?: string };
-        if (!metaResponse.ok) {
-          throw new Error(metaData.error || "Unable to save page settings.");
-        }
-
-        const sectionsResponse = await fetch(
-          `/api/website/sites/${siteId}/pages/${page.id}/sections`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
               sections: snapshotSections.map((section) => ({
                 id: section.id.startsWith("new-") ? undefined : section.id,
                 type: section.type,
@@ -245,24 +233,24 @@ export function PageBuilder({
             }),
           },
         );
-        const sectionsData = (await sectionsResponse.json()) as {
+        const saveData = (await saveResponse.json()) as {
           error?: string;
           sections?: WebsiteSection[];
         };
-        if (!sectionsResponse.ok) {
-          throw new Error(sectionsData.error || "Unable to save sections.");
+        if (!saveResponse.ok) {
+          throw new Error(saveData.error || "Unable to save page.");
         }
 
         const editedDuringSave = editVersionRef.current !== versionAtStart;
 
-        if (sectionsData.sections) {
+        if (saveData.sections) {
           // ID remap only — never clobber in-progress content from the response.
           // Skip dirty tracking when nothing changed during the request.
           if (!editedDuringSave) {
             skipDirty.current = true;
           }
           setSections((current) =>
-            mergeSavedSections(current, sectionsData.sections!),
+            mergeSavedSections(current, saveData.sections!),
           );
         }
 
