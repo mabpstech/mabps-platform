@@ -46,7 +46,6 @@ export function SitesDashboard({
   const [sort, setSort] = useState<SortKey>("updated");
   const [wizardOpen, setWizardOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     message: string;
     tone: "success" | "error";
@@ -60,6 +59,28 @@ export function SitesDashboard({
       setWizardOpen(true);
     }
   }, [canManage]);
+
+  useEffect(() => {
+    if (!menuOpenId) return;
+
+    function onPointerDown(event: MouseEvent) {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest("[data-site-menu]")) {
+        setMenuOpenId(null);
+      }
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpenId(null);
+    }
+
+    window.addEventListener("mousedown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("mousedown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpenId]);
 
   const hasUnpublished = sites.some((site) => site.status !== "published");
   const hasPublished = sites.some((site) => site.status === "published");
@@ -105,38 +126,6 @@ export function SitesDashboard({
       });
     } finally {
       setDeletingId(null);
-      setMenuOpenId(null);
-    }
-  }
-
-  async function duplicateSite(site: SiteCardData) {
-    if (!canManage) return;
-    setDuplicatingId(site.id);
-    try {
-      const response = await fetch("/api/website/sites", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: `${site.name} Copy`,
-        }),
-      });
-      const data = (await response.json()) as {
-        error?: string;
-        site?: WebsiteSite;
-      };
-      if (!response.ok || !data.site) {
-        throw new Error(data.error || "Unable to duplicate.");
-      }
-      setToast({ message: "Website duplicated", tone: "success" });
-      router.push(`/website/${data.site.id}`);
-      router.refresh();
-    } catch (err) {
-      setToast({
-        message: err instanceof Error ? err.message : "Unable to duplicate.",
-        tone: "error",
-      });
-    } finally {
-      setDuplicatingId(null);
       setMenuOpenId(null);
     }
   }
@@ -223,7 +212,7 @@ export function SitesDashboard({
       ) : filtered.length === 0 ? (
         <EmptyState
           title="No matches"
-          description="Try a different search term or clear filters."
+          description="Try a different name, slug, or domain — or clear the search."
           action={
             <button
               type="button"
@@ -238,6 +227,13 @@ export function SitesDashboard({
         <>
           {hasUnpublished && !hasPublished ? (
             <OnboardingEncouragement message="You are one step away from publishing your first website." />
+          ) : null}
+          {query.trim() ? (
+            <p className="text-sm text-zinc-500">
+              {filtered.length}{" "}
+              {filtered.length === 1 ? "website" : "websites"} match “
+              {query.trim()}”
+            </p>
           ) : null}
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((site) => (
@@ -307,6 +303,7 @@ export function SitesDashboard({
                   <Link
                     href={`/p/${site.slug}`}
                     target="_blank"
+                    rel="noreferrer"
                     className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5 text-xs`}
                   >
                     Preview
@@ -317,17 +314,17 @@ export function SitesDashboard({
                       className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5 text-xs`}
                       onClick={() => void publishSite(site.id)}
                     >
-                      Publish
+                      Publish now
                     </button>
                   ) : (
                     <Link
                       href={`/website/${site.id}/publish`}
                       className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5 text-xs`}
                     >
-                      Publish
+                      Publish settings
                     </Link>
                   )}
-                  <div className="relative ml-auto">
+                  <div className="relative ml-auto" data-site-menu>
                     <button
                       type="button"
                       className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5 text-xs`}
@@ -337,22 +334,19 @@ export function SitesDashboard({
                         )
                       }
                       aria-expanded={menuOpenId === site.id}
+                      aria-haspopup="menu"
+                      aria-label={`More actions for ${site.name}`}
                     >
                       More
                     </button>
                     {menuOpenId === site.id ? (
-                      <div className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-xl border border-zinc-200 bg-white py-1 shadow-lg">
+                      <div
+                        role="menu"
+                        className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-xl border border-zinc-200 bg-white py-1 shadow-lg"
+                      >
                         <MenuLink href={`/analytics/website`}>Analytics</MenuLink>
-                        <MenuButton
-                          onClick={() => void duplicateSite(site)}
-                          disabled={duplicatingId === site.id}
-                        >
-                          {duplicatingId === site.id
-                            ? "Duplicating…"
-                            : "Duplicate"}
-                        </MenuButton>
                         <MenuLink href={`/website/${site.id}`}>
-                          Settings
+                          Overview
                         </MenuLink>
                         {canManage ? (
                           <MenuButton
@@ -421,7 +415,8 @@ function MenuLink({
   return (
     <Link
       href={href}
-      className="block px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50"
+      role="menuitem"
+      className="block px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-none"
     >
       {children}
     </Link>
@@ -442,9 +437,10 @@ function MenuButton({
   return (
     <button
       type="button"
+      role="menuitem"
       onClick={onClick}
       disabled={disabled}
-      className={`block w-full px-3 py-2 text-left text-sm hover:bg-zinc-50 disabled:opacity-50 ${
+      className={`block w-full px-3 py-2 text-left text-sm transition hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-none disabled:opacity-50 ${
         danger ? "text-red-700" : "text-zinc-700"
       }`}
     >
