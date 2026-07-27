@@ -195,15 +195,24 @@ export function CreateSiteWizard({
         throw new Error("Website created, but the theme could not be applied.");
       }
 
-      await fetch(`/api/website/sites/${data.site.id}/header`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          logoText: name.trim(),
-          ctaLabel: category === "retail" ? "Shop now" : "Contact us",
-          ctaHref: category === "retail" ? "/products" : "/contact",
-        }),
-      });
+      const headerResponse = await fetch(
+        `/api/website/sites/${data.site.id}/header`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            logoText: name.trim(),
+            ctaLabel: category === "retail" ? "Shop now" : "Contact us",
+            ctaHref: category === "retail" ? "/products" : "/contact",
+            ctaStyle: "primary",
+          }),
+        },
+      );
+      if (!headerResponse.ok) {
+        throw new Error(
+          "Website created, but the header could not be configured.",
+        );
+      }
 
       router.push(`/website/${data.site.id}/pages`);
       router.refresh();

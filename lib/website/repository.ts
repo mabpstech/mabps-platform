@@ -25,38 +25,39 @@ import {
   normalizeThemeTokens,
 } from "@/lib/website/theme/normalize";
 import type { ThemeTokens } from "@/lib/website/theme/types";
-import type {
-  BlogStatus,
-  ButtonStyle,
-  FooterColumn,
-  FooterSocialLink,
-  FormFieldType,
-  FormStatus,
-  MediaKind,
-  MediaListQuery,
-  MediaVariants,
-  PageStatus,
-  PageType,
-  PublishEventAction,
-  SectionSettings,
-  SectionType,
-  SiteStatus,
-  WebsiteBlogPost,
-  WebsiteFooter,
-  WebsiteForm,
-  WebsiteFormField,
-  WebsiteFormSubmission,
-  WebsiteFormWithFields,
-  WebsiteHeader,
-  WebsiteMedia,
-  WebsiteMediaFolder,
-  WebsiteNavItem,
-  WebsitePage,
-  WebsitePublishEvent,
-  WebsiteSection,
-  WebsiteSeo,
-  WebsiteSite,
-  WebsiteTheme,
+import {
+  isButtonStyle,
+  type BlogStatus,
+  type ButtonStyle,
+  type FooterColumn,
+  type FooterSocialLink,
+  type FormFieldType,
+  type FormStatus,
+  type MediaKind,
+  type MediaListQuery,
+  type MediaVariants,
+  type PageStatus,
+  type PageType,
+  type PublishEventAction,
+  type SectionSettings,
+  type SectionType,
+  type SiteStatus,
+  type WebsiteBlogPost,
+  type WebsiteFooter,
+  type WebsiteForm,
+  type WebsiteFormField,
+  type WebsiteFormSubmission,
+  type WebsiteFormWithFields,
+  type WebsiteHeader,
+  type WebsiteMedia,
+  type WebsiteMediaFolder,
+  type WebsiteNavItem,
+  type WebsitePage,
+  type WebsitePublishEvent,
+  type WebsiteSection,
+  type WebsiteSeo,
+  type WebsiteSite,
+  type WebsiteTheme,
 } from "@/lib/website/types";
 import { sqlite } from "@/lib/db";
 
@@ -353,6 +354,7 @@ function rowToSubmission(row: Record<string, unknown>): WebsiteFormSubmission {
 export function ensureWebsiteReady(): void {
   migrateWebsiteSchema();
   ensureWebsiteHeaderExtrasColumn();
+  ensureWebsiteNavParentIdColumn();
   ensureWebsiteThemeTokensColumn();
   ensureMediaDamColumns();
 }
@@ -365,6 +367,15 @@ function ensureWebsiteHeaderExtrasColumn(): void {
     sqlite.exec(
       `ALTER TABLE "website_header" ADD COLUMN "uxExtras" text not null default '{}'`,
     );
+  }
+}
+
+function ensureWebsiteNavParentIdColumn(): void {
+  const columns = sqlite
+    .prepare(`PRAGMA table_info("website_nav_item")`)
+    .all() as Array<{ name: string }>;
+  if (!columns.some((column) => column.name === "parentId")) {
+    sqlite.exec(`ALTER TABLE "website_nav_item" ADD COLUMN "parentId" text`);
   }
 }
 
@@ -1092,7 +1103,15 @@ export function updateHeader(
   const existing = getHeaderBySiteId(siteId);
   if (!existing) throw new Error("Header not found.");
   const timestamp = nowIso();
-  const next = { ...existing, ...input };
+  // Partial API/wizard payloads often include `ctaStyle: undefined`. Spreading that
+  // would wipe the seeded value and fail the NOT NULL constraint on write.
+  const patch = Object.fromEntries(
+    Object.entries(input).filter(([, value]) => value !== undefined),
+  ) as Partial<typeof input>;
+  const next = { ...existing, ...patch };
+  const ctaStyle = isButtonStyle(next.ctaStyle)
+    ? next.ctaStyle
+    : DEFAULT_HEADER.ctaStyle;
   const uxExtras = JSON.stringify({
     logoSize: next.logoSize ?? "md",
     announcementText: next.announcementText ?? null,
@@ -1117,7 +1136,7 @@ export function updateHeader(
       next.textColor,
       next.ctaLabel,
       next.ctaHref,
-      next.ctaStyle,
+      ctaStyle,
       uxExtras,
       timestamp,
       siteId,
