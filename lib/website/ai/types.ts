@@ -214,10 +214,267 @@ export type AiBusinessProfile = {
 };
 
 /**
+ * Single DNA signal: a chosen value plus 0–1 confidence.
+ * Low confidence means later stages should treat the value as a soft hint.
+ */
+export type AiDnaField<T> = {
+  value: T;
+  confidence: number;
+};
+
+export const AI_BRAND_POSITIONS = [
+  "leader",
+  "challenger",
+  "specialist",
+  "community",
+  "lifestyle",
+  "heritage",
+  "innovator",
+  "accessible",
+] as const;
+export type AiBrandPosition = (typeof AI_BRAND_POSITIONS)[number];
+
+export const AI_MARKET_POSITIONS = [
+  "niche",
+  "mass_market",
+  "premium_niche",
+  "regional_leader",
+  "emerging",
+  "established",
+] as const;
+export type AiMarketPosition = (typeof AI_MARKET_POSITIONS)[number];
+
+export const AI_PRICE_SEGMENTS = [
+  "budget",
+  "value",
+  "mid_market",
+  "premium",
+  "luxury",
+] as const;
+export type AiPriceSegment = (typeof AI_PRICE_SEGMENTS)[number];
+
+export const AI_EMOTIONAL_STYLES = [
+  "warm",
+  "calm",
+  "energetic",
+  "inspiring",
+  "reassuring",
+  "bold",
+  "intimate",
+  "aspirational",
+] as const;
+export type AiEmotionalStyle = (typeof AI_EMOTIONAL_STYLES)[number];
+
+export const AI_COMMUNICATION_STYLES = [
+  "direct",
+  "storytelling",
+  "educational",
+  "conversational",
+  "authoritative",
+  "empathetic",
+  "witty",
+  "minimal",
+] as const;
+export type AiCommunicationStyle = (typeof AI_COMMUNICATION_STYLES)[number];
+
+export const AI_TRUST_STRATEGIES = [
+  "social_proof",
+  "credentials",
+  "transparency",
+  "guarantees",
+  "expertise",
+  "community",
+  "heritage",
+  "results",
+] as const;
+export type AiTrustStrategy = (typeof AI_TRUST_STRATEGIES)[number];
+
+export const AI_CONVERSION_STRATEGIES = [
+  "soft_nurture",
+  "direct_cta",
+  "booking_first",
+  "catalog_browse",
+  "lead_capture",
+  "consultative",
+  "urgency",
+  "relationship",
+] as const;
+export type AiConversionStrategy = (typeof AI_CONVERSION_STRATEGIES)[number];
+
+export const AI_HERO_STRATEGIES = [
+  "product_focus",
+  "lifestyle",
+  "founder_story",
+  "offer_led",
+  "atmosphere",
+  "problem_solution",
+  "social_proof",
+  "minimal_statement",
+] as const;
+export type AiHeroStrategy = (typeof AI_HERO_STRATEGIES)[number];
+
+export const AI_CTA_STRATEGIES = [
+  "single_primary",
+  "dual_primary_secondary",
+  "soft_secondary",
+  "contact_first",
+  "shop_first",
+  "book_first",
+  "multi_path",
+] as const;
+export type AiCtaStrategy = (typeof AI_CTA_STRATEGIES)[number];
+
+export const AI_VISUAL_IDENTITIES = [
+  "clean_minimal",
+  "bold_graphic",
+  "elegant_refined",
+  "warm_organic",
+  "tech_sharp",
+  "editorial_magazine",
+  "playful_colorful",
+  "corporate_polished",
+] as const;
+export type AiVisualIdentity = (typeof AI_VISUAL_IDENTITIES)[number];
+
+export const AI_CONTENT_DENSITIES = [
+  "sparse",
+  "balanced",
+  "rich",
+  "dense",
+] as const;
+export type AiContentDensity = (typeof AI_CONTENT_DENSITIES)[number];
+
+/** Modern ←→ classic axis (how the site should feel temporally). */
+export const AI_MODERN_CLASSIC_AXIS = [
+  "modern",
+  "lean_modern",
+  "balanced",
+  "lean_classic",
+  "classic",
+] as const;
+export type AiModernClassicAxis = (typeof AI_MODERN_CLASSIC_AXIS)[number];
+
+/** Luxury ←→ friendly axis. */
+export const AI_LUXURY_FRIENDLY_AXIS = [
+  "luxury",
+  "elevated",
+  "balanced",
+  "approachable",
+  "friendly",
+] as const;
+export type AiLuxuryFriendlyAxis = (typeof AI_LUXURY_FRIENDLY_AXIS)[number];
+
+/** Formal ←→ casual axis. */
+export const AI_FORMAL_CASUAL_AXIS = [
+  "formal",
+  "polished",
+  "balanced",
+  "relaxed",
+  "casual",
+] as const;
+export type AiFormalCasualAxis = (typeof AI_FORMAL_CASUAL_AXIS)[number];
+
+/** Local ←→ global axis. */
+export const AI_LOCAL_GLOBAL_AXIS = [
+  "hyperlocal",
+  "local",
+  "regional",
+  "national",
+  "global",
+] as const;
+export type AiLocalGlobalAxis = (typeof AI_LOCAL_GLOBAL_AXIS)[number];
+
+export const AI_IMAGE_DIRECTIONS = [
+  "product",
+  "people",
+  "place",
+  "lifestyle",
+  "abstract",
+  "process",
+  "food",
+  "architecture",
+] as const;
+export type AiImageDirection = (typeof AI_IMAGE_DIRECTIONS)[number];
+
+export const AI_TYPOGRAPHY_DIRECTIONS = [
+  "geometric_sans",
+  "humanist_sans",
+  "classic_serif",
+  "modern_serif",
+  "mixed_editorial",
+  "display_accent",
+  "monospace_tech",
+] as const;
+export type AiTypographyDirection = (typeof AI_TYPOGRAPHY_DIRECTIONS)[number];
+
+export const AI_COLOUR_PSYCHOLOGIES = [
+  "trust_blue",
+  "energy_warm",
+  "calm_nature",
+  "luxury_dark",
+  "fresh_vibrant",
+  "soft_pastel",
+  "grounded_earth",
+  "clean_neutral",
+] as const;
+export type AiColourPsychology = (typeof AI_COLOUR_PSYCHOLOGIES)[number];
+
+/** DNA fields that always carry a confidence score. */
+export const AI_BUSINESS_DNA_FIELDS = [
+  "brandPosition",
+  "marketPosition",
+  "priceSegment",
+  "emotionalStyle",
+  "communicationStyle",
+  "trustStrategy",
+  "conversionStrategy",
+  "heroStrategy",
+  "ctaStrategy",
+  "visualIdentity",
+  "contentDensity",
+  "modernClassic",
+  "luxuryFriendly",
+  "formalCasual",
+  "localGlobal",
+  "imageDirection",
+  "typographyDirection",
+  "colourPsychology",
+  "sectionPriority",
+] as const;
+export type AiBusinessDnaFieldName = (typeof AI_BUSINESS_DNA_FIELDS)[number];
+
+/**
+ * Business DNA — how the website should feel (Sprint C3).
+ * Derived from AiBusinessProfile. Does not generate pages, sections, or themes.
+ */
+export type AiBusinessDNA = {
+  brandPosition: AiDnaField<AiBrandPosition>;
+  marketPosition: AiDnaField<AiMarketPosition>;
+  priceSegment: AiDnaField<AiPriceSegment>;
+  emotionalStyle: AiDnaField<AiEmotionalStyle>;
+  communicationStyle: AiDnaField<AiCommunicationStyle>;
+  trustStrategy: AiDnaField<AiTrustStrategy>;
+  conversionStrategy: AiDnaField<AiConversionStrategy>;
+  heroStrategy: AiDnaField<AiHeroStrategy>;
+  ctaStrategy: AiDnaField<AiCtaStrategy>;
+  visualIdentity: AiDnaField<AiVisualIdentity>;
+  contentDensity: AiDnaField<AiContentDensity>;
+  modernClassic: AiDnaField<AiModernClassicAxis>;
+  luxuryFriendly: AiDnaField<AiLuxuryFriendlyAxis>;
+  formalCasual: AiDnaField<AiFormalCasualAxis>;
+  localGlobal: AiDnaField<AiLocalGlobalAxis>;
+  imageDirection: AiDnaField<AiImageDirection>;
+  typographyDirection: AiDnaField<AiTypographyDirection>;
+  colourPsychology: AiDnaField<AiColourPsychology>;
+  /** Preferred home-page section order / emphasis — not generated sections. */
+  sectionPriority: AiDnaField<SectionType[]>;
+};
+
+/**
  * Theme overlay for AI generation.
  * Prefer a known THEME_PRESETS id, then optional token patches.
- * Full ThemeTokens are resolved later (C3) via normalizeThemeTokens — do not
- * invent a parallel theme schema.
+ * Full ThemeTokens are resolved in a later sprint via normalizeThemeTokens —
+ * do not invent a parallel theme schema.
  */
 export type AiThemeTokenPatch = {
   brand?: Partial<ThemeBrandTokens>;
