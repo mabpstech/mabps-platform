@@ -681,6 +681,201 @@ export type AiBrandStrategy = {
   conversionJourney: AiStrategyField<AiConversionJourney>;
 };
 
+/** Primary job the website must accomplish (Sprint C5). */
+export const AI_WEBSITE_PURPOSES = [
+  "generate_leads",
+  "drive_sales",
+  "book_appointments",
+  "build_authority",
+  "showcase_brand",
+  "inform_educate",
+  "nurture_community",
+  "support_customers",
+] as const;
+export type AiWebsitePurpose = (typeof AI_WEBSITE_PURPOSES)[number];
+
+/** High-level visitor path across the site — not copy or page content. */
+export const AI_USER_JOURNEYS = [
+  "land_explore_act",
+  "land_learn_trust_contact",
+  "land_browse_buy",
+  "land_inspire_book",
+  "land_diagnose_convert",
+  "land_story_belong",
+  "land_compare_enquire",
+  "land_sample_subscribe",
+] as const;
+export type AiUserJourney = (typeof AI_USER_JOURNEYS)[number];
+
+/** Primary navigation pattern — structure only, no labels/copy. */
+export const AI_NAV_PATTERNS = [
+  "minimal_core",
+  "offer_forward",
+  "catalog_forward",
+  "story_forward",
+  "authority_forward",
+  "trust_forward",
+  "utility_dense",
+] as const;
+export type AiNavPattern = (typeof AI_NAV_PATTERNS)[number];
+
+/**
+ * Planned navigation skeleton.
+ * PageType refs only — no nav labels, hrefs, or generated items.
+ */
+export type AiPlanNavigationStructure = {
+  pattern: AiNavPattern;
+  primaryPages: PageType[];
+  secondaryPages: PageType[];
+  /** Page the primary site CTA should target. */
+  ctaPage: PageType;
+};
+
+/**
+ * Section roles in priority order for later assembly.
+ * Roles are planning signals — not generated sections or content.
+ */
+export const AI_PLAN_SECTION_ROLES = [
+  "hero",
+  "value_proposition",
+  "offer",
+  "proof",
+  "story",
+  "catalog",
+  "trust",
+  "faq",
+  "contact",
+  "cta",
+] as const;
+export type AiPlanSectionRole = (typeof AI_PLAN_SECTION_ROLES)[number];
+
+/** Where and how CTAs should sequence across the site. */
+export const AI_CTA_FLOWS = [
+  "single_primary_everywhere",
+  "hero_mid_footer",
+  "soft_then_hard",
+  "offer_then_contact",
+  "shop_path",
+  "book_path",
+  "multi_path_by_intent",
+] as const;
+export type AiCtaFlow = (typeof AI_CTA_FLOWS)[number];
+
+/** Site-level conversion path between pages / intents. */
+export const AI_CONVERSION_FLOWS = [
+  "home_to_contact",
+  "home_to_offer_to_contact",
+  "home_to_catalog_to_purchase",
+  "home_to_about_to_contact",
+  "home_to_blog_to_contact",
+  "home_to_book",
+  "multi_touch_nurture",
+] as const;
+export type AiConversionFlow = (typeof AI_CONVERSION_FLOWS)[number];
+
+/** Ordered trust-building approach — not testimonials copy. */
+export const AI_TRUST_BUILDING_FLOWS = [
+  "proof_early",
+  "credentials_first",
+  "story_then_proof",
+  "results_montage",
+  "community_voices",
+  "transparency_then_offer",
+  "heritage_then_craft",
+  "guarantees_near_cta",
+] as const;
+export type AiTrustBuildingFlow = (typeof AI_TRUST_BUILDING_FLOWS)[number];
+
+/** SEO emphasis buckets — keywords stay in BI; this is priority order. */
+export const AI_SEO_PRIORITIES = [
+  "local_presence",
+  "brand_name",
+  "service_keywords",
+  "product_keywords",
+  "category_authority",
+  "informational_content",
+  "conversion_landing",
+  "location_modifiers",
+] as const;
+export type AiSeoPriority = (typeof AI_SEO_PRIORITIES)[number];
+
+/** What content work should emphasize first — not generated copy. */
+export const AI_CONTENT_PRIORITIES = [
+  "offer_clarity",
+  "proof_and_trust",
+  "brand_story",
+  "educational_depth",
+  "visual_showcase",
+  "practical_details",
+  "community_social",
+  "faq_objections",
+] as const;
+export type AiContentPriority = (typeof AI_CONTENT_PRIORITIES)[number];
+
+/** How pages should interlink — structure only. */
+export const AI_INTERNAL_LINKING_STRATEGIES = [
+  "hub_spoke_home",
+  "linear_funnel",
+  "catalog_cross_sell",
+  "blog_to_service",
+  "proof_to_contact",
+  "about_to_offer",
+  "reciprocal_core_pages",
+] as const;
+export type AiInternalLinkingStrategy =
+  (typeof AI_INTERNAL_LINKING_STRATEGIES)[number];
+
+/** Footer composition strategy — not footer copy or columns JSON. */
+export const AI_FOOTER_STRATEGIES = [
+  "minimal_legal",
+  "nav_mirror",
+  "contact_heavy",
+  "trust_and_contact",
+  "sitemap_dense",
+  "brand_story_brief",
+  "multi_column_utility",
+] as const;
+export type AiFooterStrategy = (typeof AI_FOOTER_STRATEGIES)[number];
+
+/** Website plan fields that always carry a confidence score. */
+export const AI_WEBSITE_PLAN_FIELDS = [
+  "websitePurpose",
+  "userJourney",
+  "requiredPages",
+  "pageOrder",
+  "navigationStructure",
+  "sectionPriority",
+  "ctaFlow",
+  "conversionFlow",
+  "trustBuildingFlow",
+  "seoPriorities",
+  "contentPriorities",
+  "internalLinkingStrategy",
+  "footerStrategy",
+] as const;
+export type AiWebsitePlanFieldName = (typeof AI_WEBSITE_PLAN_FIELDS)[number];
+
+/**
+ * Website Plan — site architecture derived from BI + DNA + Brand Strategy (Sprint C5).
+ * Does not generate sections, themes, copy, or blueprint JSON.
+ */
+export type AiWebsitePlan = {
+  websitePurpose: AiStrategyField<AiWebsitePurpose>;
+  userJourney: AiStrategyField<AiUserJourney>;
+  requiredPages: AiStrategyField<PageType[]>;
+  pageOrder: AiStrategyField<PageType[]>;
+  navigationStructure: AiStrategyField<AiPlanNavigationStructure>;
+  /** Ordered section roles for later builders — not section instances. */
+  sectionPriority: AiStrategyField<AiPlanSectionRole[]>;
+  ctaFlow: AiStrategyField<AiCtaFlow>;
+  conversionFlow: AiStrategyField<AiConversionFlow>;
+  trustBuildingFlow: AiStrategyField<AiTrustBuildingFlow>;
+  seoPriorities: AiStrategyField<AiSeoPriority[]>;
+  contentPriorities: AiStrategyField<AiContentPriority[]>;
+  internalLinkingStrategy: AiStrategyField<AiInternalLinkingStrategy>;
+  footerStrategy: AiStrategyField<AiFooterStrategy>;
+};
+
 /**
  * Theme overlay for AI generation.
  * Prefer a known THEME_PRESETS id, then optional token patches.
