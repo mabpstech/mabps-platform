@@ -582,12 +582,17 @@ export function PageBuilder({
         </div>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
-        <aside className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-3">
-          <div className="space-y-2 px-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-              Sections ({sections.length})
-            </p>
+      <div className="grid gap-4 lg:grid-cols-[17rem_minmax(0,1fr)]">
+        <aside className="space-y-3 rounded-2xl border border-zinc-200/90 bg-white p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.03)]">
+          <div className="space-y-2.5 px-0.5">
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+                Sections
+              </p>
+              <span className="tabular-nums text-[11px] font-medium text-zinc-400">
+                {sections.length}
+              </span>
+            </div>
             <select
               className={authInputClassName}
               value={addType}
@@ -605,9 +610,21 @@ export function PageBuilder({
             {canManage ? (
               <button
                 type="button"
-                className={`${authButtonClassName} !w-full`}
+                className={`${authButtonClassName} !w-full gap-1.5 py-2`}
                 onClick={addSection}
               >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  aria-hidden
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
                 Add section
               </button>
             ) : null}
@@ -665,13 +682,13 @@ export function PageBuilder({
                   }}
                   onDragEnd={clearDragState}
                   onClick={() => setSelectedId(section.clientKey)}
-                  className={`group relative cursor-pointer rounded-xl border px-3 py-3 transition-[transform,box-shadow,border-color,background-color,opacity,color] duration-100 ease-out ${
+                  className={`group relative cursor-pointer rounded-xl border px-3 py-2.5 transition-[transform,box-shadow,border-color,background-color,opacity,color] duration-150 ease-out ${
                     isDragging
                       ? "z-10 scale-[1.02] border-zinc-300 bg-white opacity-90 shadow-[0_10px_28px_rgba(15,23,42,0.14)]"
                       : active
                         ? "border-zinc-900 bg-zinc-900 text-white shadow-sm"
-                        : "border-transparent bg-zinc-50 text-zinc-900 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-white hover:shadow-sm"
-                  } ${hidden && !isDragging ? "opacity-50" : ""}`}
+                        : "border-zinc-200/70 bg-zinc-50/80 text-zinc-900 hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-white hover:shadow-sm"
+                  } ${hidden && !isDragging ? "opacity-55" : ""}`}
                 >
                   <div
                     aria-hidden
@@ -689,41 +706,52 @@ export function PageBuilder({
                         : "scale-x-50 opacity-0"
                     }`}
                   />
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2">
+                    <span
+                      className={`mt-1 flex h-5 w-4 shrink-0 items-center justify-center ${
+                        active ? "text-zinc-400" : "text-zinc-300"
+                      }`}
+                      aria-hidden
+                    >
+                      <DragHandleIcon />
+                    </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[11px] uppercase tracking-wide opacity-60">
-                        {index + 1}
-                      </p>
-                      <p className="truncate text-sm font-medium">
-                        {SECTION_LABELS[section.type]}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="truncate text-sm font-medium tracking-[-0.01em]">
+                          {SECTION_LABELS[section.type]}
+                        </p>
+                        {hidden ? (
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium ${
+                              active
+                                ? "bg-white/10 text-zinc-300"
+                                : "bg-zinc-200/70 text-zinc-600"
+                            }`}
+                          >
+                            <EyeOffIcon />
+                            Hidden
+                          </span>
+                        ) : null}
+                      </div>
                       <p
                         className={`mt-0.5 line-clamp-1 text-xs ${active ? "text-zinc-300" : "text-zinc-500"}`}
                       >
+                        <span className="tabular-nums opacity-70">
+                          {index + 1}.{" "}
+                        </span>
                         {String(
                           section.content.heading ||
                             section.content.subheading ||
                             "Empty section",
                         )}
                       </p>
-                      {hidden ? (
-                        <p
-                          className={`mt-1 text-[11px] font-medium ${active ? "text-zinc-300" : "text-zinc-500"}`}
-                        >
-                          👁 Hidden
-                        </p>
-                      ) : null}
                     </div>
-                    <span
-                      className={`mt-0.5 shrink-0 text-xs ${active ? "text-zinc-400" : "text-zinc-300"}`}
-                      aria-hidden
-                    >
-                      ⋮⋮
-                    </span>
                   </div>
                   {canManage ? (
                     <div
-                      className="mt-2 flex flex-wrap gap-1"
+                      className={`mt-2.5 flex flex-wrap gap-1 border-t pt-2 ${
+                        active ? "border-white/10" : "border-zinc-200/80"
+                      }`}
                       onClick={(event) => event.stopPropagation()}
                       onMouseDown={(event) => event.stopPropagation()}
                     >
@@ -2042,6 +2070,38 @@ function SectionSettingsPanel({
   );
 }
 
+function DragHandleIcon() {
+  return (
+    <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor" aria-hidden>
+      <circle cx="2.5" cy="2.5" r="1.1" />
+      <circle cx="7.5" cy="2.5" r="1.1" />
+      <circle cx="2.5" cy="7" r="1.1" />
+      <circle cx="7.5" cy="7" r="1.1" />
+      <circle cx="2.5" cy="11.5" r="1.1" />
+      <circle cx="7.5" cy="11.5" r="1.1" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden
+    >
+      <path d="M3 3l18 18" />
+      <path d="M10.6 10.7a2 2 0 002.8 2.8" />
+      <path d="M9.9 5.1A10.4 10.4 0 0112 5c5 0 8.5 4 10 7-0.5 1.1-1.3 2.3-2.4 3.4M6.1 6.1C4.2 7.5 2.8 9.3 2 12c1.5 3 5 7 10 7 1.4 0 2.7-.3 3.9-.8" />
+    </svg>
+  );
+}
+
 function SectionQuickAction({
   label,
   onClick,
@@ -2057,7 +2117,7 @@ function SectionQuickAction({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-colors duration-100 ${
+      className={`rounded-md px-2 py-1 text-[11px] font-medium tracking-[-0.01em] transition-colors duration-100 ${
         danger
           ? active
             ? "text-red-300 hover:bg-white/10 hover:text-red-200"
