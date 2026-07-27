@@ -23,7 +23,12 @@ import {
   AI_GENERATION_STATUSES,
   AI_GENERATION_TONES,
   AI_WEBSITE_BLUEPRINT_VERSION,
+  type AiBrandPersonality,
   type AiBusinessProfile,
+  type AiBusinessProfileConfidence,
+  type AiBusinessType,
+  type AiColourDirection,
+  type AiContactPreference,
   type AiGeneratedFooter,
   type AiGeneratedHeader,
   type AiGeneratedNavItem,
@@ -35,9 +40,18 @@ import {
   type AiGenerationIntent,
   type AiGenerationStatus,
   type AiGenerationTone,
+  type AiPrimaryCta,
   type AiThemeTokenPatch,
+  type AiVisualStyle,
   type AiWebsiteBlueprint,
 } from "@/lib/website/ai/types";
+import {
+  isAiBrandPersonality,
+  isAiBusinessType,
+  isAiColourDirection,
+  isAiContactPreference,
+  isAiVisualStyle,
+} from "@/lib/website/ai/intelligence/engine";
 
 export type AiBlueprintValidationIssue = {
   path: string;
@@ -350,6 +364,164 @@ function parseBrand(
     issues.push(issue(`${path}.name`, "name is required."));
     return null;
   }
+
+  let category: AiBusinessProfile["category"] = null;
+  if (value.category !== undefined && value.category !== null) {
+    if (!isSiteCategoryId(value.category)) {
+      issues.push(issue(`${path}.category`, "invalid site category."));
+    } else {
+      category = value.category;
+    }
+  }
+
+  let businessType: AiBusinessType | null = null;
+  if (value.businessType !== undefined && value.businessType !== null) {
+    if (!isAiBusinessType(value.businessType)) {
+      issues.push(issue(`${path}.businessType`, "invalid business type."));
+    } else {
+      businessType = value.businessType;
+    }
+  }
+
+  let tone: AiGenerationTone | null = null;
+  if (value.tone !== undefined && value.tone !== null) {
+    if (!isAiGenerationTone(value.tone)) {
+      issues.push(issue(`${path}.tone`, "invalid tone."));
+    } else {
+      tone = value.tone;
+    }
+  }
+
+  const brandPersonality: AiBrandPersonality[] = [];
+  if (value.brandPersonality !== undefined && value.brandPersonality !== null) {
+    if (!Array.isArray(value.brandPersonality)) {
+      issues.push(
+        issue(`${path}.brandPersonality`, "must be an array of personalities."),
+      );
+    } else {
+      for (let i = 0; i < value.brandPersonality.length; i += 1) {
+        const item = value.brandPersonality[i];
+        if (!isAiBrandPersonality(item)) {
+          issues.push(
+            issue(`${path}.brandPersonality[${i}]`, "invalid personality."),
+          );
+          continue;
+        }
+        brandPersonality.push(item);
+      }
+    }
+  }
+
+  let primaryCta: AiPrimaryCta | null = null;
+  if (value.primaryCta !== undefined && value.primaryCta !== null) {
+    if (!isPlainObject(value.primaryCta)) {
+      issues.push(issue(`${path}.primaryCta`, "must be an object."));
+    } else {
+      const label = asString(value.primaryCta.label).trim();
+      const href = asString(value.primaryCta.href).trim();
+      if (!label || !href) {
+        issues.push(
+          issue(`${path}.primaryCta`, "label and href are required."),
+        );
+      } else {
+        primaryCta = { label, href };
+      }
+    }
+  }
+
+  const suggestedPages: PageType[] = [];
+  if (value.suggestedPages !== undefined && value.suggestedPages !== null) {
+    if (!Array.isArray(value.suggestedPages)) {
+      issues.push(
+        issue(`${path}.suggestedPages`, "must be an array of page types."),
+      );
+    } else {
+      for (let i = 0; i < value.suggestedPages.length; i += 1) {
+        const pageType = value.suggestedPages[i];
+        if (!isPageType(pageType)) {
+          issues.push(
+            issue(`${path}.suggestedPages[${i}]`, "invalid page type."),
+          );
+          continue;
+        }
+        suggestedPages.push(pageType);
+      }
+    }
+  }
+
+  const contactPreferences: AiContactPreference[] = [];
+  if (
+    value.contactPreferences !== undefined &&
+    value.contactPreferences !== null
+  ) {
+    if (!Array.isArray(value.contactPreferences)) {
+      issues.push(
+        issue(`${path}.contactPreferences`, "must be an array."),
+      );
+    } else {
+      for (let i = 0; i < value.contactPreferences.length; i += 1) {
+        const pref = value.contactPreferences[i];
+        if (!isAiContactPreference(pref)) {
+          issues.push(
+            issue(`${path}.contactPreferences[${i}]`, "invalid preference."),
+          );
+          continue;
+        }
+        contactPreferences.push(pref);
+      }
+    }
+  }
+
+  let visualStyle: AiVisualStyle | null = null;
+  if (value.visualStyle !== undefined && value.visualStyle !== null) {
+    if (!isAiVisualStyle(value.visualStyle)) {
+      issues.push(issue(`${path}.visualStyle`, "invalid visual style."));
+    } else {
+      visualStyle = value.visualStyle;
+    }
+  }
+
+  let colourDirection: AiColourDirection | null = null;
+  if (value.colourDirection !== undefined && value.colourDirection !== null) {
+    if (!isAiColourDirection(value.colourDirection)) {
+      issues.push(
+        issue(`${path}.colourDirection`, "invalid colour direction."),
+      );
+    } else {
+      colourDirection = value.colourDirection;
+    }
+  }
+
+  const confidence: AiBusinessProfileConfidence = {};
+  if (value.confidence !== undefined && value.confidence !== null) {
+    if (!isPlainObject(value.confidence)) {
+      issues.push(issue(`${path}.confidence`, "must be an object."));
+    } else {
+      for (const [key, score] of Object.entries(value.confidence)) {
+        if (typeof score === "number" && Number.isFinite(score)) {
+          confidence[key as keyof AiBusinessProfileConfidence] = score;
+        }
+      }
+    }
+  }
+
+  const asStringArray = (raw: unknown, field: string): string[] => {
+    if (raw === undefined || raw === null) return [];
+    if (!Array.isArray(raw)) {
+      issues.push(issue(`${path}.${field}`, "must be an array of strings."));
+      return [];
+    }
+    const out: string[] = [];
+    for (let i = 0; i < raw.length; i += 1) {
+      if (typeof raw[i] !== "string") {
+        issues.push(issue(`${path}.${field}[${i}]`, "must be a string."));
+        continue;
+      }
+      out.push(raw[i]);
+    }
+    return out;
+  };
+
   return {
     name,
     description: asString(value.description),
@@ -357,6 +529,26 @@ function parseBrand(
     industry: asNullableString(value.industry),
     locale: asString(value.locale, "en") || "en",
     audience: asNullableString(value.audience),
+    category,
+    businessType,
+    tone,
+    brandPersonality,
+    language: asNullableString(value.language) ?? "en",
+    country: asNullableString(value.country),
+    region: asNullableString(value.region),
+    primaryCta,
+    suggestedPages:
+      suggestedPages.length > 0
+        ? suggestedPages
+        : ["home", "about", "contact"],
+    suggestedFeatures: asStringArray(value.suggestedFeatures, "suggestedFeatures"),
+    trustSignals: asStringArray(value.trustSignals, "trustSignals"),
+    contactPreferences:
+      contactPreferences.length > 0 ? contactPreferences : ["form", "email"],
+    seoKeywords: asStringArray(value.seoKeywords, "seoKeywords"),
+    visualStyle,
+    colourDirection,
+    confidence,
   };
 }
 

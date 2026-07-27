@@ -78,6 +78,22 @@ export function createEmptyBusinessProfile(
     industry: null,
     locale: "en",
     audience: null,
+    category: null,
+    businessType: null,
+    tone: null,
+    brandPersonality: [],
+    language: "en",
+    country: null,
+    region: null,
+    primaryCta: null,
+    suggestedPages: ["home", "about", "contact"],
+    suggestedFeatures: [],
+    trustSignals: [],
+    contactPreferences: ["form", "email"],
+    seoKeywords: [],
+    visualStyle: null,
+    colourDirection: null,
+    confidence: {},
   };
 }
 

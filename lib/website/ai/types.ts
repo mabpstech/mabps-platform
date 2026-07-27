@@ -73,17 +73,144 @@ export type AiGenerationIntent = {
   requestedPageTypes: PageType[];
 };
 
+/** High-level business model inferred from the prompt (C2). */
+export const AI_BUSINESS_TYPES = [
+  "local_business",
+  "online_store",
+  "service_provider",
+  "restaurant",
+  "professional_practice",
+  "creator",
+  "nonprofit",
+  "saas",
+  "other",
+] as const;
+export type AiBusinessType = (typeof AI_BUSINESS_TYPES)[number];
+
+export const AI_CONTACT_PREFERENCES = [
+  "form",
+  "phone",
+  "email",
+  "whatsapp",
+  "booking",
+  "chat",
+] as const;
+export type AiContactPreference = (typeof AI_CONTACT_PREFERENCES)[number];
+
+export const AI_VISUAL_STYLES = [
+  "minimal",
+  "bold",
+  "elegant",
+  "playful",
+  "corporate",
+  "organic",
+  "tech",
+  "editorial",
+] as const;
+export type AiVisualStyle = (typeof AI_VISUAL_STYLES)[number];
+
+export const AI_COLOUR_DIRECTIONS = [
+  "warm",
+  "cool",
+  "neutral",
+  "earth",
+  "vibrant",
+  "monochrome",
+  "pastel",
+  "dark_luxury",
+] as const;
+export type AiColourDirection = (typeof AI_COLOUR_DIRECTIONS)[number];
+
+export const AI_BRAND_PERSONALITIES = [
+  "trustworthy",
+  "innovative",
+  "friendly",
+  "premium",
+  "caring",
+  "expert",
+  "energetic",
+  "calm",
+  "authentic",
+  "modern",
+] as const;
+export type AiBrandPersonality = (typeof AI_BRAND_PERSONALITIES)[number];
+
+/** Profile fields that may carry a 0–1 confidence score. */
+export const AI_BUSINESS_PROFILE_CONFIDENCE_FIELDS = [
+  "name",
+  "description",
+  "slogan",
+  "category",
+  "industry",
+  "businessType",
+  "audience",
+  "tone",
+  "brandPersonality",
+  "language",
+  "country",
+  "region",
+  "primaryCta",
+  "suggestedPages",
+  "suggestedFeatures",
+  "trustSignals",
+  "contactPreferences",
+  "seoKeywords",
+  "visualStyle",
+  "colourDirection",
+] as const;
+export type AiBusinessProfileConfidenceField =
+  (typeof AI_BUSINESS_PROFILE_CONFIDENCE_FIELDS)[number];
+
+export type AiBusinessProfileConfidence = Partial<
+  Record<AiBusinessProfileConfidenceField, number>
+>;
+
+export type AiPrimaryCta = {
+  label: string;
+  href: string;
+};
+
 /**
  * Brand / business profile used across theme.brand, header, SEO, and copy.
  * Maps onto existing ThemeBrandTokens + site name — no separate brand table.
+ *
+ * C2 expands this into the Business Intelligence output: inferred fields plus
+ * per-field confidence. Low-confidence fields stay null/empty rather than guessed.
  */
 export type AiBusinessProfile = {
   name: string;
   description: string;
   slogan: string | null;
   industry: string | null;
+  /** BCP-47-ish locale (language + optional region), e.g. "en", "en-IN", "ml". */
   locale: string;
   audience: string | null;
+
+  /** Site category mapped to Website Builder categories. */
+  category: SiteCategoryId | null;
+  businessType: AiBusinessType | null;
+  tone: AiGenerationTone | null;
+  brandPersonality: AiBrandPersonality[];
+  /** ISO 639-1 language code when detectable. */
+  language: string | null;
+  /** ISO 3166-1 alpha-2 country code when detectable. */
+  country: string | null;
+  /** Free-text region / city / state when detectable. */
+  region: string | null;
+  primaryCta: AiPrimaryCta | null;
+  suggestedPages: PageType[];
+  suggestedFeatures: string[];
+  trustSignals: string[];
+  contactPreferences: AiContactPreference[];
+  seoKeywords: string[];
+  visualStyle: AiVisualStyle | null;
+  colourDirection: AiColourDirection | null;
+
+  /**
+   * Confidence 0–1 per field. Always recorded for uncertain inferences;
+   * omit only when the engine did not evaluate that field.
+   */
+  confidence: AiBusinessProfileConfidence;
 };
 
 /**

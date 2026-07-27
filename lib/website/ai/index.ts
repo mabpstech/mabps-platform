@@ -1,13 +1,25 @@
 /**
- * AI Website Generator — shared foundation (types, validators, helpers).
+ * AI Website Generator — shared foundation + Business Intelligence (C2).
  * Pipeline, LLM, API, and UI land in later commits.
  */
 
 export {
+  AI_BRAND_PERSONALITIES,
+  AI_BUSINESS_PROFILE_CONFIDENCE_FIELDS,
+  AI_BUSINESS_TYPES,
+  AI_COLOUR_DIRECTIONS,
+  AI_CONTACT_PREFERENCES,
   AI_GENERATION_STATUSES,
   AI_GENERATION_TONES,
+  AI_VISUAL_STYLES,
   AI_WEBSITE_BLUEPRINT_VERSION,
+  type AiBrandPersonality,
   type AiBusinessProfile,
+  type AiBusinessProfileConfidence,
+  type AiBusinessProfileConfidenceField,
+  type AiBusinessType,
+  type AiColourDirection,
+  type AiContactPreference,
   type AiGeneratedFooter,
   type AiGeneratedHeader,
   type AiGeneratedNavItem,
@@ -20,8 +32,10 @@ export {
   type AiGenerationOptions,
   type AiGenerationStatus,
   type AiGenerationTone,
+  type AiPrimaryCta,
   type AiResolvedThemeTokens,
   type AiThemeTokenPatch,
+  type AiVisualStyle,
   type AiWebsiteBlueprint,
   type AiWebsiteBlueprintVersion,
   type AiWebsiteGenerateInput,
@@ -61,3 +75,27 @@ export {
   resolveNavHref,
   type AiTextLimitKey,
 } from "@/lib/website/ai/helpers";
+
+export {
+  AI_BUSINESS_INTELLIGENCE_PROVIDER_IDS,
+  AI_CONFIDENCE_THRESHOLD,
+  CATEGORY_DEFAULTS,
+  DeterministicBusinessIntelligenceProvider,
+  analyzeBusinessPrompt,
+  analyzeBusinessPromptSync,
+  getBusinessIntelligenceProvider,
+  inferBusinessProfile,
+  inferBusinessProfileFromPrompt,
+  isAiBrandPersonality,
+  isAiBusinessType,
+  isAiColourDirection,
+  isAiContactPreference,
+  isAiVisualStyle,
+  listBusinessIntelligenceProviders,
+  profileToGenerationIntentFields,
+  registerBusinessIntelligenceProvider,
+  type AiBusinessIntelligenceInput,
+  type AiBusinessIntelligenceProvider,
+  type AiBusinessIntelligenceProviderId,
+  type AiBusinessIntelligenceResult,
+} from "@/lib/website/ai/intelligence";
