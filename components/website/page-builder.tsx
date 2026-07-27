@@ -15,7 +15,6 @@ import {
   authButtonClassName,
   authInputClassName,
   authLabelClassName,
-  authSecondaryButtonClassName,
 } from "@/lib/auth/styles";
 import { LivePreview } from "@/components/website/live-preview";
 import { MediaPicker } from "@/components/website/media-picker";
@@ -25,7 +24,12 @@ import {
   SECTION_LABELS,
 } from "@/components/website/ui/labels";
 import { EmptyState } from "@/components/website/ui/empty-state";
-import { SaveBar, type SaveState } from "@/components/website/ui/save-bar";
+import {
+  EditorHeaderActions,
+  SaveBar,
+  authSecondaryButtonClassName,
+  type SaveState,
+} from "@/components/website/ui/save-bar";
 import { Toast } from "@/components/website/ui/toast";
 import {
   PAGE_STATUSES,
@@ -470,30 +474,36 @@ export function PageBuilder({
         />
       ) : null}
 
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 max-w-xl">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
             Page editor
           </p>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+          <h1 className="mt-1 truncate text-2xl font-semibold tracking-tight text-zinc-900">
             {page.title}
           </h1>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
             Select a section on the left, edit on the right, preview instantly.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <EditorHeaderActions>
           <button
             type="button"
-            className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5`}
+            className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5 ${
+              showSettings ? "border-zinc-900 bg-zinc-50" : ""
+            }`}
             onClick={() => setShowSettings((value) => !value)}
+            aria-pressed={showSettings}
           >
             {showSettings ? "Hide settings" : "Page settings"}
           </button>
           <button
             type="button"
-            className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5`}
+            className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5 ${
+              showPreview ? "border-zinc-900 bg-zinc-50" : ""
+            }`}
             onClick={() => setShowPreview((value) => !value)}
+            aria-pressed={showPreview}
           >
             {showPreview ? "Hide preview" : "Show preview"}
           </button>
@@ -503,7 +513,7 @@ export function PageBuilder({
           >
             All pages
           </Link>
-        </div>
+        </EditorHeaderActions>
       </div>
 
       {showSettings ? (
@@ -788,9 +798,9 @@ export function PageBuilder({
           </ul>
         </aside>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.03)] sm:p-6">
           {!selected ? (
-            <div className="flex h-full min-h-64 items-center justify-center">
+            <div className="flex h-full min-h-72 items-center justify-center">
               <EmptyState
                 compact
                 title="Select a section"
@@ -1461,11 +1471,11 @@ function HeroField({
 
 function InspectorHeading({ type }: { type: SectionType }) {
   return (
-    <div>
-      <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400">
-        Editing
+    <div className="border-b border-zinc-100 pb-4">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
+        Editing section
       </p>
-      <h2 className="mt-1 text-lg font-semibold text-zinc-900">
+      <h2 className="mt-1 text-lg font-semibold tracking-tight text-zinc-900">
         {SECTION_LABELS[type]}
       </h2>
     </div>
@@ -2141,12 +2151,14 @@ function RemoveButton({
 }) {
   if (!canManage) return null;
   return (
-    <button
-      type="button"
-      className={`${authSecondaryButtonClassName} text-red-700`}
-      onClick={onRemove}
-    >
-      Remove section
-    </button>
+    <div className="flex justify-end border-t border-zinc-100 pt-4">
+      <button
+        type="button"
+        className={`${authSecondaryButtonClassName} !w-auto border-red-200 px-3.5 py-2 text-red-700 hover:border-red-300 hover:bg-red-50`}
+        onClick={onRemove}
+      >
+        Remove section
+      </button>
+    </div>
   );
 }
