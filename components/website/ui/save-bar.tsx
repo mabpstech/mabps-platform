@@ -97,7 +97,8 @@ export function SaveBar({
         <StatusDot state={state} />
         <p
           className={`truncate text-sm font-medium tracking-[-0.01em] ${statusTone}`}
-          aria-live="polite"
+          role={state === "error" ? "alert" : "status"}
+          aria-live={state === "error" ? "assertive" : "polite"}
         >
           {status}
         </p>

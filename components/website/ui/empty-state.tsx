@@ -80,7 +80,7 @@ export function LoadingSkeleton({
     return (
       <div
         className="animate-pulse space-y-4 rounded-2xl border border-zinc-200 bg-white p-5"
-        aria-busy
+        aria-busy="true"
         aria-label="Loading editor"
       >
         <div className="h-3 w-24 rounded bg-zinc-100" />
@@ -97,7 +97,7 @@ export function LoadingSkeleton({
 
   if (variant === "list") {
     return (
-      <div className="space-y-2.5" aria-busy aria-label="Loading">
+      <div className="space-y-2.5" aria-busy="true" aria-label="Loading">
         {Array.from({ length: rows }).map((_, index) => (
           <div
             key={index}
@@ -118,7 +118,7 @@ export function LoadingSkeleton({
   return (
     <div
       className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
-      aria-busy
+      aria-busy="true"
       aria-label="Loading"
     >
       {Array.from({ length: rows }).map((_, index) => (
@@ -126,9 +126,18 @@ export function LoadingSkeleton({
           key={index}
           className="animate-pulse rounded-2xl border border-zinc-200 bg-white p-5"
         >
-          <div className="mb-4 h-12 w-12 rounded-xl bg-zinc-100" />
-          <div className="mb-2 h-4 w-2/3 rounded bg-zinc-100" />
-          <div className="mb-4 h-3 w-1/2 rounded bg-zinc-100" />
+          <div className="mb-4 h-2 w-full rounded-full bg-zinc-100" />
+          <div className="mb-4 flex items-start gap-3">
+            <div className="h-12 w-12 rounded-xl bg-zinc-100" />
+            <div className="flex-1 space-y-2 pt-1">
+              <div className="h-4 w-2/3 rounded bg-zinc-100" />
+              <div className="h-3 w-1/2 rounded bg-zinc-50" />
+            </div>
+          </div>
+          <div className="mb-4 space-y-2">
+            <div className="h-3 w-full rounded bg-zinc-50" />
+            <div className="h-3 w-4/5 rounded bg-zinc-50" />
+          </div>
           <div className="h-8 w-full rounded-lg bg-zinc-50" />
         </div>
       ))}

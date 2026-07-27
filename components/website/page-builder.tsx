@@ -2015,24 +2015,32 @@ function FormSlugPicker({
   return (
     <div>
       <label className={authLabelClassName}>Form</label>
-      <select
-        className={authInputClassName}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        disabled={disabled || loading}
-      >
-        {forms.length === 0 ? (
-          <option value={value}>{value || "contact"}</option>
-        ) : (
-          forms.map((form) => (
-            <option key={form.slug} value={form.slug}>
-              {form.name} ({form.slug})
-            </option>
-          ))
-        )}
-      </select>
+      {loading ? (
+        <div
+          className="h-10 animate-pulse rounded-md border border-zinc-200 bg-zinc-50"
+          aria-busy="true"
+          aria-label="Loading forms"
+        />
+      ) : (
+        <select
+          className={authInputClassName}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          disabled={disabled}
+        >
+          {forms.length === 0 ? (
+            <option value={value}>{value || "contact"}</option>
+          ) : (
+            forms.map((form) => (
+              <option key={form.slug} value={form.slug}>
+                {form.name}
+              </option>
+            ))
+          )}
+        </select>
+      )}
       <p className="mt-1.5 text-[11px] text-zinc-500">
-        Choose which published form this section should render.
+        Choose which form visitors will see in this section.
       </p>
     </div>
   );

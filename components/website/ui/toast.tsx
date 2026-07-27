@@ -80,9 +80,9 @@ export function Toast({
 
   return (
     <div
-      role="status"
-      aria-live="polite"
-      className={`fixed bottom-6 right-6 z-50 max-w-sm animate-[fadeRise_220ms_ease-out] rounded-2xl border px-3.5 py-3 text-sm shadow-[0_18px_40px_rgba(15,23,42,0.12)] backdrop-blur-md ${toneClass}`}
+      role={tone === "error" ? "alert" : "status"}
+      aria-live={tone === "error" ? "assertive" : "polite"}
+      className={`fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-sm animate-[fadeRise_220ms_ease-out] rounded-2xl border px-3.5 py-3 text-sm shadow-[0_18px_40px_rgba(15,23,42,0.12)] backdrop-blur-md sm:bottom-6 sm:left-auto sm:right-6 sm:mx-0 ${toneClass}`}
     >
       <div className="flex items-start gap-3">
         <ToastIcon tone={tone} />
@@ -92,7 +92,7 @@ export function Toast({
         <button
           type="button"
           onClick={onDismiss}
-          className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-current opacity-45 transition hover:bg-black/5 hover:opacity-100"
+          className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-current opacity-45 transition hover:bg-black/5 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/30"
           aria-label="Dismiss notification"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
