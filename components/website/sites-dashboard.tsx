@@ -96,7 +96,7 @@ export function SitesDashboard({
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error || "Unable to delete.");
-      setToast({ message: "Website deleted.", tone: "success" });
+      setToast({ message: "Website deleted", tone: "success" });
       router.refresh();
     } catch (err) {
       setToast({
@@ -127,7 +127,7 @@ export function SitesDashboard({
       if (!response.ok || !data.site) {
         throw new Error(data.error || "Unable to duplicate.");
       }
-      setToast({ message: "Website duplicated.", tone: "success" });
+      setToast({ message: "Website duplicated", tone: "success" });
       router.push(`/website/${data.site.id}`);
       router.refresh();
     } catch (err) {
@@ -151,7 +151,7 @@ export function SitesDashboard({
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error || "Unable to publish.");
-      setToast({ message: "Website is now live.", tone: "success" });
+      setToast({ message: "Website is now live", tone: "success" });
       router.refresh();
     } catch (err) {
       setToast({

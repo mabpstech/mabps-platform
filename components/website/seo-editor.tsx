@@ -72,7 +72,7 @@ export function SeoEditor({
       }
       if (seoData.seo) setForm(seoData.seo);
       setSaveState("saved");
-      setToast({ message: "Search settings saved ✓", tone: "success" });
+      setToast({ message: "Search settings saved", tone: "success" });
       router.refresh();
       window.setTimeout(() => {
         setSaveState((current) => (current === "saved" ? "idle" : current));
@@ -80,7 +80,10 @@ export function SeoEditor({
     } catch (err) {
       setSaveState("error");
       setToast({
-        message: err instanceof Error ? err.message : "Unable to save SEO.",
+        message:
+          err instanceof Error
+            ? err.message
+            : "Couldn’t save search settings. Try again.",
         tone: "error",
       });
     }

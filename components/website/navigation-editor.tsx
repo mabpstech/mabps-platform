@@ -151,7 +151,7 @@ export function NavigationEditor({
         setItems(toDraft(data.navigation));
       }
       setSaveState("saved");
-      setToast({ message: "Menu saved ✓", tone: "success" });
+      setToast({ message: "Menu saved", tone: "success" });
       setPreviewToken((current) => current + 1);
       router.refresh();
       window.setTimeout(() => {
@@ -161,7 +161,9 @@ export function NavigationEditor({
       setSaveState("error");
       setToast({
         message:
-          err instanceof Error ? err.message : "Unable to save navigation.",
+          err instanceof Error
+            ? err.message
+            : "Couldn’t save the menu. Try again.",
         tone: "error",
       });
     }

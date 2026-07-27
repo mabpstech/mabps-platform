@@ -91,7 +91,7 @@ export function HeaderEditor({
         setLogoSize(readLogoSize(data.header));
       }
       setSaveState("saved");
-      setToast({ message: "Header saved ✓", tone: "success" });
+      setToast({ message: "Header saved", tone: "success" });
       setPreviewToken((current) => current + 1);
       router.refresh();
       window.setTimeout(() => {
@@ -100,7 +100,8 @@ export function HeaderEditor({
     } catch (err) {
       setSaveState("error");
       setToast({
-        message: err instanceof Error ? err.message : "Unable to save header.",
+        message:
+          err instanceof Error ? err.message : "Couldn’t save the header. Try again.",
         tone: "error",
       });
     }

@@ -242,7 +242,7 @@ export function MediaLibrary({
     }
     setMedia((current) => current.filter((item) => item.id !== mediaId));
     setSelectedId(null);
-    setToast({ message: "Asset deleted.", tone: "success" });
+    setToast({ message: "Asset deleted", tone: "success" });
     router.refresh();
   }
 
@@ -270,7 +270,7 @@ export function MediaLibrary({
     }
     setFolders((current) => [...current, data.folder!]);
     setFolderName("");
-    setToast({ message: "Folder created.", tone: "success" });
+    setToast({ message: "Folder created", tone: "success" });
   }
 
   async function renameFolder(folder: WebsiteMediaFolder) {
@@ -380,7 +380,7 @@ export function MediaLibrary({
       }
       setCheckedIds([]);
       setToast({
-        message: `${data.processed ?? 0} asset${(data.processed ?? 0) === 1 ? "" : "s"} updated ✓`,
+        message: `${data.processed ?? 0} asset${(data.processed ?? 0) === 1 ? "" : "s"} updated`,
         tone: "success",
       });
       void refresh();
@@ -625,8 +625,8 @@ export function MediaLibrary({
                 setToast({
                   message:
                     uploaded.length === 1
-                      ? "Upload complete ✓"
-                      : `${uploaded.length} files uploaded ✓`,
+                      ? "Upload complete"
+                      : `${uploaded.length} files uploaded`,
                   tone: "success",
                 });
                 router.refresh();
@@ -926,7 +926,7 @@ export function MediaLibrary({
             setMedia((current) =>
               current.map((item) => (item.id === next.id ? next : item)),
             );
-            setToast({ message: "Image updated.", tone: "success" });
+            setToast({ message: "Image updated", tone: "success" });
             router.refresh();
           }}
         />
@@ -957,7 +957,7 @@ export function MediaLibrary({
                       item.id === uploaded[0]!.id ? uploaded[0]! : item,
                     ),
                   );
-                  setToast({ message: "File replaced.", tone: "success" });
+                  setToast({ message: "File replaced", tone: "success" });
                   setReplacing(false);
                   router.refresh();
                 }

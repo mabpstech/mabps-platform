@@ -74,7 +74,7 @@ export function ThemeStudio({
         setCustomCss(data.theme.customCss);
       }
       setSaveState("saved");
-      setToast({ message: "Theme saved ✓", tone: "success" });
+      setToast({ message: "Theme saved", tone: "success" });
       router.refresh();
       window.setTimeout(() => {
         setSaveState((current) => (current === "saved" ? "idle" : current));
@@ -82,7 +82,8 @@ export function ThemeStudio({
     } catch (err) {
       setSaveState("error");
       setToast({
-        message: err instanceof Error ? err.message : "Unable to save theme.",
+        message:
+          err instanceof Error ? err.message : "Couldn’t save the theme. Try again.",
         tone: "error",
       });
     }
@@ -105,10 +106,16 @@ export function ThemeStudio({
       const next = parseThemeImport(importText);
       setTokens(next);
       setImportText("");
-      setToast({ message: "Theme imported — save to apply", tone: "success" });
+      setToast({
+        message: "Theme imported. Save to apply it to your site.",
+        tone: "success",
+      });
     } catch (err) {
       setToast({
-        message: err instanceof Error ? err.message : "Import failed.",
+        message:
+          err instanceof Error
+            ? err.message
+            : "Couldn’t import that theme file.",
         tone: "error",
       });
     }
@@ -117,7 +124,7 @@ export function ThemeStudio({
   function handleDuplicate() {
     setTokens(duplicateThemeTokens(tokens));
     setToast({
-      message: "Theme duplicated locally — save to keep changes",
+      message: "Theme duplicated. Save to keep your changes.",
       tone: "success",
     });
   }
@@ -132,7 +139,10 @@ export function ThemeStudio({
     }
     setTokens(resetThemeTokens());
     setCustomCss(null);
-    setToast({ message: "Theme reset — save to apply", tone: "success" });
+    setToast({
+      message: "Theme reset to defaults. Save to apply.",
+      tone: "success",
+    });
   }
 
   return (

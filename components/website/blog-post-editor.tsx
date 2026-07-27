@@ -61,13 +61,14 @@ export function BlogPostEditor({
       if (data.post) setForm(data.post);
       setToast({
         message:
-          status === "published" ? "Post published ✓" : "Post saved ✓",
+          status === "published" ? "Post published" : "Post saved",
         tone: "success",
       });
       router.refresh();
     } catch (err) {
       setToast({
-        message: err instanceof Error ? err.message : "Unable to save post.",
+        message:
+          err instanceof Error ? err.message : "Couldn’t save the post. Try again.",
         tone: "error",
       });
     } finally {

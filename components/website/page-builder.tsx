@@ -266,7 +266,7 @@ export function PageBuilder({
           setSaveState("saved");
           setPreviewToken((current) => current + 1);
           if (!silent) {
-            setToast({ message: "Page saved ✓", tone: "success" });
+            setToast({ message: "Page saved", tone: "success" });
             router.refresh();
           }
           window.setTimeout(() => {
@@ -278,7 +278,8 @@ export function PageBuilder({
       } catch (err) {
         setSaveState("error");
         setToast({
-          message: err instanceof Error ? err.message : "Unable to save page.",
+          message:
+            err instanceof Error ? err.message : "Couldn’t save the page. Try again.",
           tone: "error",
         });
       } finally {

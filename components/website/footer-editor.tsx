@@ -110,7 +110,7 @@ export function FooterEditor({
         setColumns(data.footer.columns);
       }
       setSaveState("saved");
-      setToast({ message: "Footer saved ✓", tone: "success" });
+      setToast({ message: "Footer saved", tone: "success" });
       setPreviewToken((current) => current + 1);
       router.refresh();
       window.setTimeout(() => {
@@ -119,7 +119,8 @@ export function FooterEditor({
     } catch (err) {
       setSaveState("error");
       setToast({
-        message: err instanceof Error ? err.message : "Unable to save footer.",
+        message:
+          err instanceof Error ? err.message : "Couldn’t save the footer. Try again.",
         tone: "error",
       });
     }
