@@ -186,6 +186,13 @@ export function PageBuilder({
     return `${path}?preview=1`;
   }, [page.pageType, page.slug, siteSlug]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      setShowPreview(false);
+    }
+  }, []);
+
   const saveAll = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {
       if (!canManage || savingRef.current) return;
@@ -453,9 +460,28 @@ export function PageBuilder({
     );
   }
 
+  function moveSection(clientKey: string, direction: -1 | 1) {
+    setSections((current) => {
+      const index = current.findIndex((item) => item.clientKey === clientKey);
+      const nextIndex = index + direction;
+      if (index < 0 || nextIndex < 0 || nextIndex >= current.length) {
+        return current;
+      }
+      const next = [...current];
+      const [moved] = next.splice(index, 1);
+      next.splice(nextIndex, 0, moved);
+      return next.map((item, order) => ({ ...item, sortOrder: order }));
+    });
+  }
+
   function deleteSection(clientKey: string) {
+    const section = sections.find((item) => item.clientKey === clientKey);
+    const label = section
+      ? SECTION_LABELS[section.type]
+      : "this section";
+    if (!window.confirm(`Remove ${label} from this page?`)) return;
     setSections((current) =>
-      current.filter((section) => section.clientKey !== clientKey),
+      current.filter((item) => item.clientKey !== clientKey),
     );
     setSelectedId((current) => (current === clientKey ? null : current));
   }
@@ -641,7 +667,7 @@ export function PageBuilder({
             ) : null}
           </div>
 
-          <ul className="space-y-1.5">
+          <ul className="space-y-1.5" role="listbox" aria-label="Page sections">
             {sections.map((section, index) => {
               const active = selectedId === section.clientKey;
               const hidden = Boolean(section.settings.hidden);
@@ -692,8 +718,26 @@ export function PageBuilder({
                     clearDragState();
                   }}
                   onDragEnd={clearDragState}
+                  role="option"
+                  aria-selected={active}
+                  tabIndex={0}
                   onClick={() => setSelectedId(section.clientKey)}
-                  className={`group relative cursor-pointer rounded-xl border px-3 py-2.5 transition-[transform,box-shadow,border-color,background-color,opacity,color] duration-150 ease-out ${
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedId(section.clientKey);
+                    }
+                    if (!canManage) return;
+                    if (event.key === "ArrowUp" && (event.metaKey || event.altKey)) {
+                      event.preventDefault();
+                      moveSection(section.clientKey, -1);
+                    }
+                    if (event.key === "ArrowDown" && (event.metaKey || event.altKey)) {
+                      event.preventDefault();
+                      moveSection(section.clientKey, 1);
+                    }
+                  }}
+                  className={`group relative cursor-pointer rounded-xl border px-3 py-2.5 transition-[transform,box-shadow,border-color,background-color,opacity,color] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/25 focus-visible:ring-offset-2 ${
                     isDragging
                       ? "z-10 scale-[1.02] border-zinc-300 bg-white opacity-90 shadow-[0_10px_28px_rgba(15,23,42,0.14)]"
                       : active
@@ -766,6 +810,18 @@ export function PageBuilder({
                       onClick={(event) => event.stopPropagation()}
                       onMouseDown={(event) => event.stopPropagation()}
                     >
+                      <SectionQuickAction
+                        active={active}
+                        label="Up"
+                        disabled={index === 0}
+                        onClick={() => moveSection(section.clientKey, -1)}
+                      />
+                      <SectionQuickAction
+                        active={active}
+                        label="Down"
+                        disabled={index === sections.length - 1}
+                        onClick={() => moveSection(section.clientKey, 1)}
+                      />
                       <SectionQuickAction
                         active={active}
                         label="Duplicate"
@@ -1387,7 +1443,7 @@ function HeroEditorCard({
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition hover:bg-zinc-50/80"
+        className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition hover:bg-zinc-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/15"
         aria-expanded={open}
       >
         <div className="min-w-0">
@@ -1401,12 +1457,20 @@ function HeroEditorCard({
           ) : null}
         </div>
         <span
-          className={`shrink-0 text-xs text-zinc-400 transition-transform ${
+          className={`shrink-0 text-zinc-400 transition-transform ${
             open ? "rotate-180" : ""
           }`}
           aria-hidden
         >
-          ▾
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M6 9l6 6 6-6"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </span>
       </button>
       {open ? (
@@ -2118,24 +2182,27 @@ function SectionQuickAction({
   onClick,
   active,
   danger = false,
+  disabled = false,
 }: {
   label: string;
   onClick: () => void;
   active: boolean;
   danger?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-md px-2 py-1 text-[11px] font-medium tracking-[-0.01em] transition-colors duration-100 ${
+      disabled={disabled}
+      className={`rounded-md px-2 py-1 text-[11px] font-medium tracking-[-0.01em] transition-colors duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-35 ${
         danger
           ? active
-            ? "text-red-300 hover:bg-white/10 hover:text-red-200"
-            : "text-red-600 hover:bg-red-50"
+            ? "text-red-300 hover:bg-white/10 hover:text-red-200 focus-visible:ring-white/40"
+            : "text-red-600 hover:bg-red-50 focus-visible:ring-red-200"
           : active
-            ? "text-zinc-300 hover:bg-white/10 hover:text-white"
-            : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+            ? "text-zinc-300 hover:bg-white/10 hover:text-white focus-visible:ring-white/40"
+            : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 focus-visible:ring-zinc-300"
       }`}
     >
       {label}
