@@ -9,6 +9,7 @@ import {
   authSecondaryButtonClassName,
 } from "@/lib/auth/styles";
 import { LivePreview } from "@/components/website/live-preview";
+import { EmptyState } from "@/components/website/ui/empty-state";
 import { SaveBar, type SaveState } from "@/components/website/ui/save-bar";
 import { Toast } from "@/components/website/ui/toast";
 import type { WebsiteNavItem, WebsitePage } from "@/lib/website/types";
@@ -360,19 +361,23 @@ export function NavigationEditor({
           );
         })}
         {items.length === 0 ? (
-          <li className="rounded-xl border border-dashed border-zinc-300 px-4 py-10 text-center text-sm text-zinc-500">
-            Add your first menu item to build the site navigation.
-            {canManage ? (
-              <div className="mt-3">
-                <button
-                  type="button"
-                  className={`${authSecondaryButtonClassName} !w-auto px-3`}
-                  onClick={() => addItem(null)}
-                >
-                  Add item
-                </button>
-              </div>
-            ) : null}
+          <li>
+            <EmptyState
+              compact
+              title="No menu items yet"
+              description="Add links to pages or custom URLs so visitors can move through your site."
+              action={
+                canManage ? (
+                  <button
+                    type="button"
+                    className={`${authButtonClassName} !w-auto px-4 py-2`}
+                    onClick={() => addItem(null)}
+                  >
+                    Add first item
+                  </button>
+                ) : null
+              }
+            />
           </li>
         ) : null}
       </ul>

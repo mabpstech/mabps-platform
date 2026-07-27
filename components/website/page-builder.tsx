@@ -24,6 +24,7 @@ import {
   CONTENT_FIELD_LABELS,
   SECTION_LABELS,
 } from "@/components/website/ui/labels";
+import { EmptyState } from "@/components/website/ui/empty-state";
 import { SaveBar, type SaveState } from "@/components/website/ui/save-bar";
 import { Toast } from "@/components/website/ui/toast";
 import {
@@ -748,8 +749,12 @@ export function PageBuilder({
               );
             })}
             {sections.length === 0 ? (
-              <li className="rounded-xl border border-dashed border-zinc-300 px-3 py-10 text-center text-sm text-zinc-500">
-                Add your first section to start building this page.
+              <li>
+                <EmptyState
+                  compact
+                  title="Start with a section"
+                  description="Hero, text, and image blocks stack to build the page."
+                />
               </li>
             ) : null}
           </ul>
@@ -757,13 +762,12 @@ export function PageBuilder({
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-5">
           {!selected ? (
-            <div className="flex h-full min-h-64 flex-col items-center justify-center text-center">
-              <p className="text-sm font-medium text-zinc-900">
-                Select a section
-              </p>
-              <p className="mt-1 max-w-xs text-sm text-zinc-500">
-                Choose a section from the left to edit its content.
-              </p>
+            <div className="flex h-full min-h-64 items-center justify-center">
+              <EmptyState
+                compact
+                title="Select a section"
+                description="Choose a section on the left to edit its content and settings."
+              />
             </div>
           ) : (
             <SectionInspector

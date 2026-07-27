@@ -10,6 +10,7 @@ import {
   authLabelClassName,
   authSecondaryButtonClassName,
 } from "@/lib/auth/styles";
+import { EmptyState } from "@/components/website/ui/empty-state";
 import type { WebsiteBlogPost } from "@/lib/website/types";
 
 export function BlogManager({
@@ -107,9 +108,17 @@ export function BlogManager({
 
       <div className="space-y-3">
         {posts.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-zinc-300 p-8 text-sm text-zinc-500">
-            No posts yet.
-          </div>
+          <EmptyState
+            title="No posts yet"
+            description="Write your first article to start building an audience and keep content in one place."
+            action={
+              canManage ? (
+                <p className="text-xs font-medium text-zinc-500">
+                  Use the form above to create a post
+                </p>
+              ) : null
+            }
+          />
         ) : (
           posts.map((post) => (
             <div

@@ -11,6 +11,7 @@ import {
   authSecondaryButtonClassName,
   authSuccessClassName,
 } from "@/lib/auth/styles";
+import { EmptyState } from "@/components/website/ui/empty-state";
 import {
   FORM_FIELD_TYPES,
   type FormFieldType,
@@ -339,9 +340,11 @@ export function FormEditor({
           Submissions ({submissions.length})
         </h2>
         {submissions.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-zinc-300 p-6 text-sm text-zinc-500">
-            No submissions yet.
-          </div>
+          <EmptyState
+            compact
+            title="No submissions yet"
+            description="Responses will appear here once visitors submit this form on your site."
+          />
         ) : (
           submissions.map((submission) => (
             <div

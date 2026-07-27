@@ -10,6 +10,7 @@ import {
   authLabelClassName,
   authSecondaryButtonClassName,
 } from "@/lib/auth/styles";
+import { EmptyState } from "@/components/website/ui/empty-state";
 import type { WebsiteFormWithFields } from "@/lib/website/types";
 
 export function FormsManager({
@@ -91,30 +92,44 @@ export function FormsManager({
       ) : null}
 
       <div className="space-y-3">
-        {forms.map((form) => (
-          <div
-            key={form.id}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white p-4"
-          >
-            <div>
+        {forms.length === 0 ? (
+          <EmptyState
+            title="No forms yet"
+            description="Create a contact, lead, or signup form, then embed it on any page."
+            action={
+              canManage ? (
+                <p className="text-xs font-medium text-zinc-500">
+                  Name a form above to get started
+                </p>
+              ) : null
+            }
+          />
+        ) : (
+          forms.map((form) => (
+            <div
+              key={form.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white p-4"
+            >
+              <div>
+                <Link
+                  href={`/website/${siteId}/forms/${form.id}`}
+                  className="font-medium text-zinc-900 hover:underline"
+                >
+                  {form.name}
+                </Link>
+                <p className="mt-1 text-sm text-zinc-500">
+                  /{form.slug} · {form.fields.length} fields · {form.status}
+                </p>
+              </div>
               <Link
                 href={`/website/${siteId}/forms/${form.id}`}
-                className="font-medium text-zinc-900 hover:underline"
+                className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5`}
               >
-                {form.name}
+                Manage
               </Link>
-              <p className="mt-1 text-sm text-zinc-500">
-                /{form.slug} · {form.fields.length} fields · {form.status}
-              </p>
             </div>
-            <Link
-              href={`/website/${siteId}/forms/${form.id}`}
-              className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5`}
-            >
-              Manage
-            </Link>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
