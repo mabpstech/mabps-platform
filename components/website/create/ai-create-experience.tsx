@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   authButtonClassName,
   authSecondaryButtonClassName,
@@ -36,44 +37,44 @@ const EXAMPLE_PROMPTS = [
   },
 ] as const;
 
-/** Fake pipeline stages for the progress UX (maps to generation statuses). */
+/** Pipeline stages aligned with generation progress UX. */
 const PROGRESS_STAGES = [
   {
     id: "parsing",
     label: "Understanding your vision",
     detail: "Reading intent, audience, and tone from your prompt.",
-    durationMs: 1800,
   },
   {
     id: "generating",
     label: "Designing your website",
     detail: "Shaping pages, layout, and brand direction.",
-    durationMs: 2600,
   },
   {
     id: "validating",
     label: "Refining the details",
     detail: "Checking structure, navigation, and content balance.",
-    durationMs: 1800,
   },
   {
     id: "applying",
     label: "Assembling your site",
-    detail: "Preparing an editable website in the builder.",
-    durationMs: 2200,
+    detail: "Opening an editable website in the builder.",
   },
 ] as const;
 
-type Phase = "prompt" | "progress" | "complete";
+type Phase = "prompt" | "progress" | "error";
 
 export function AiCreateExperience({ canManage }: { canManage: boolean }) {
+  const router = useRouter();
   const [phase, setPhase] = useState<Phase>("prompt");
   const [prompt, setPrompt] = useState("");
   const [activeExample, setActiveExample] = useState<string | null>(null);
   const [stageIndex, setStageIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const submittedPrompt = useRef("");
+  const generationDone = useRef(false);
 
   useEffect(() => {
     if (phase !== "prompt") return;
@@ -86,36 +87,27 @@ export function AiCreateExperience({ canManage }: { canManage: boolean }) {
     let cancelled = false;
     let frame = 0;
     let stage = 0;
-    let stageStartedAt = performance.now();
-    const stageWeights = PROGRESS_STAGES.map((item) => item.durationMs);
-    const totalDuration = stageWeights.reduce((sum, ms) => sum + ms, 0);
+    const stageDurationMs = 2200;
+    const startedAt = performance.now();
 
     function tick(now: number) {
       if (cancelled) return;
 
-      const elapsedInStage = now - stageStartedAt;
-      const stageDuration = stageWeights[stage] ?? 1;
-      const completedBefore = stageWeights
-        .slice(0, stage)
-        .reduce((sum, ms) => sum + ms, 0);
-      const stageProgress = Math.min(1, elapsedInStage / stageDuration);
-      const overall = Math.min(
-        0.98,
-        (completedBefore + stageProgress * stageDuration) / totalDuration,
+      const elapsed = now - startedAt;
+      const rawStage = Math.min(
+        PROGRESS_STAGES.length - 1,
+        Math.floor(elapsed / stageDurationMs),
       );
+      stage = generationDone.current
+        ? PROGRESS_STAGES.length - 1
+        : Math.min(rawStage, PROGRESS_STAGES.length - 2);
+
+      const overall = generationDone.current
+        ? 100
+        : Math.min(92, (elapsed / (stageDurationMs * PROGRESS_STAGES.length)) * 100);
 
       setStageIndex(stage);
-      setProgress(overall * 100);
-
-      if (elapsedInStage >= stageDuration) {
-        if (stage >= PROGRESS_STAGES.length - 1) {
-          setProgress(100);
-          setPhase("complete");
-          return;
-        }
-        stage += 1;
-        stageStartedAt = now;
-      }
+      setProgress(overall);
 
       frame = requestAnimationFrame(tick);
     }
@@ -133,38 +125,78 @@ export function AiCreateExperience({ canManage }: { canManage: boolean }) {
     textareaRef.current?.focus();
   }
 
-  function startGeneration() {
-    if (!canManage) return;
-    const value = prompt.trim();
-    if (!value || phase !== "prompt") return;
-    submittedPrompt.current = value;
-    setStageIndex(0);
-    setProgress(0);
-    setPhase("progress");
-  }
-
   function resetToPrompt() {
+    generationDone.current = false;
     setPhase("prompt");
     setStageIndex(0);
     setProgress(0);
+    setErrorMessage(null);
   }
 
-  if (phase === "progress" || phase === "complete") {
-    const stage = PROGRESS_STAGES[Math.min(stageIndex, PROGRESS_STAGES.length - 1)];
-    const done = phase === "complete";
+  function startGeneration() {
+    if (!canManage || isPending) return;
+    const value = prompt.trim();
+    if (!value || phase === "progress") return;
+
+    submittedPrompt.current = value;
+    generationDone.current = false;
+    setErrorMessage(null);
+    setStageIndex(0);
+    setProgress(0);
+    setPhase("progress");
+
+    startTransition(async () => {
+      try {
+        const response = await fetch("/api/website/ai/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: value }),
+        });
+        const data = (await response.json().catch(() => ({}))) as {
+          error?: string;
+          siteId?: string;
+          builderHref?: string;
+        };
+
+        if (!response.ok || !data.siteId) {
+          throw new Error(
+            data.error || "Website generation failed. Please try again.",
+          );
+        }
+
+        generationDone.current = true;
+        setProgress(100);
+        setStageIndex(PROGRESS_STAGES.length - 1);
+        router.push(data.builderHref || `/website/${data.siteId}/pages`);
+      } catch (error) {
+        generationDone.current = false;
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Website generation failed. Please try again.",
+        );
+        setPhase("error");
+      }
+    });
+  }
+
+  if (phase === "progress" || phase === "error") {
+    const stage =
+      PROGRESS_STAGES[Math.min(stageIndex, PROGRESS_STAGES.length - 1)];
+    const failed = phase === "error";
 
     return (
       <CreateJourneyShell
         eyebrow="Generate with AI"
-        title={done ? "Your website is taking shape" : "Creating your website"}
+        title={failed ? "Generation paused" : "Creating your website"}
         description={
-          done
-            ? "We've walked through the full generation experience. Live AI creation will open your editable site in the builder next."
+          failed
+            ? "Something went wrong while creating your site. Your prompt is saved — try again."
             : "Sit tight — we're shaping something beautiful from your description."
         }
-        backHref={done ? "/website/new" : undefined}
-        backLabel={done ? "Choose path" : "Edit prompt"}
-        onBack={done ? undefined : resetToPrompt}
+        backHref={failed ? "/website/new" : undefined}
+        backLabel={failed ? "Choose path" : "Edit prompt"}
+        onBack={failed ? undefined : resetToPrompt}
       >
         <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
           <div className="relative px-6 py-10 sm:px-10 sm:py-14">
@@ -176,32 +208,19 @@ export function AiCreateExperience({ canManage }: { canManage: boolean }) {
             <div className="relative mx-auto flex max-w-md flex-col items-center text-center">
               <div
                 className={`relative flex h-16 w-16 items-center justify-center rounded-full ${
-                  done ? "bg-zinc-900" : "bg-zinc-100"
+                  failed ? "bg-red-50" : "bg-zinc-100"
                 }`}
               >
-                {!done ? (
+                {!failed ? (
                   <span
                     aria-hidden
                     className="absolute inset-0 animate-[createPulse_2.4s_ease-in-out_infinite] rounded-full bg-zinc-900/10"
                   />
                 ) : null}
-                {done ? (
-                  <svg
-                    width="28"
-                    height="28"
-                    viewBox="0 0 28 28"
-                    fill="none"
-                    className="animate-[fadeRise_0.45s_ease-out]"
-                    aria-hidden
-                  >
-                    <path
-                      d="M7 14.5 11.5 19 21 9.5"
-                      stroke="white"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                {failed ? (
+                  <span className="text-lg font-semibold text-red-600" aria-hidden>
+                    !
+                  </span>
                 ) : (
                   <span
                     aria-hidden
@@ -214,37 +233,39 @@ export function AiCreateExperience({ canManage }: { canManage: boolean }) {
                 className="mt-8 text-xl font-semibold tracking-tight text-zinc-900 transition-opacity duration-300"
                 aria-live="polite"
               >
-                {done ? "Ready when generation connects" : stage.label}
+                {failed ? "Couldn’t finish generation" : stage.label}
               </p>
               <p className="mt-2 text-sm leading-relaxed text-zinc-500">
-                {done
-                  ? "Your prompt is saved in this session. No website was created yet."
+                {failed
+                  ? errorMessage || "Please try again in a moment."
                   : stage.detail}
               </p>
 
-              <div className="mt-8 w-full">
-                <div
-                  className="h-1.5 overflow-hidden rounded-full bg-zinc-100"
-                  role="progressbar"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={Math.round(progress)}
-                  aria-label="Website generation progress"
-                >
+              {!failed ? (
+                <div className="mt-8 w-full">
                   <div
-                    className="h-full rounded-full bg-zinc-900 transition-[width] duration-300 ease-out"
-                    style={{ width: `${progress}%` }}
-                  />
+                    className="h-1.5 overflow-hidden rounded-full bg-zinc-100"
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round(progress)}
+                    aria-label="Website generation progress"
+                  >
+                    <div
+                      className="h-full rounded-full bg-zinc-900 transition-[width] duration-300 ease-out"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs tabular-nums text-zinc-400">
+                    {Math.round(progress)}%
+                  </p>
                 </div>
-                <p className="mt-2 text-xs tabular-nums text-zinc-400">
-                  {Math.round(progress)}%
-                </p>
-              </div>
+              ) : null}
 
               <ol className="mt-10 w-full space-y-3 text-left">
                 {PROGRESS_STAGES.map((item, index) => {
-                  const complete = done || index < stageIndex;
-                  const active = !done && index === stageIndex;
+                  const complete = !failed && index < stageIndex;
+                  const active = !failed && index === stageIndex;
                   return (
                     <li
                       key={item.id}
@@ -286,21 +307,22 @@ export function AiCreateExperience({ canManage }: { canManage: boolean }) {
                 </blockquote>
               ) : null}
 
-              {done ? (
+              {failed ? (
                 <div className="mt-8 flex w-full flex-wrap justify-center gap-3">
                   <button
                     type="button"
                     className={`${authButtonClassName} !w-auto px-5`}
+                    onClick={startGeneration}
+                  >
+                    Try again
+                  </button>
+                  <button
+                    type="button"
+                    className={`${authSecondaryButtonClassName} !w-auto px-5`}
                     onClick={resetToPrompt}
                   >
-                    Try another prompt
+                    Edit prompt
                   </button>
-                  <Link
-                    href="/website"
-                    className={`${authSecondaryButtonClassName} !w-auto px-5`}
-                  >
-                    Back to websites
-                  </Link>
                 </div>
               ) : (
                 <button
@@ -372,7 +394,7 @@ export function AiCreateExperience({ canManage }: { canManage: boolean }) {
               <button
                 type="button"
                 className={`${authButtonClassName} !w-auto px-5`}
-                disabled={prompt.trim().length === 0}
+                disabled={prompt.trim().length === 0 || isPending}
                 onClick={startGeneration}
               >
                 Generate website

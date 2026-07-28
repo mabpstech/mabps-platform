@@ -1,8 +1,8 @@
 /**
  * AI Website Generator — shared foundation, Business Intelligence (C2),
  * Business DNA (C3), Brand Strategy (C4), Website Planning (C5),
- * Website Composer (C6), Creative Director (C7), and Blueprint Executor (B1).
- * Pipeline, LLM, API, and UI land in later commits.
+ * Website Composer (C6), Creative Director (C7), Blueprint Executor (B1),
+ * and Generation pipeline (B3: OpenAI → engines → builder).
  */
 
 export {
@@ -317,3 +317,34 @@ export {
   type AiBlueprintExecuteInput,
   type AiBlueprintExecuteResult,
 } from "@/lib/website/ai/blueprint-executor";
+
+export {
+  AI_WEBSITE_LLM_FORBIDDEN_KEYS,
+  AI_WEBSITE_LLM_PROVIDER_IDS,
+  AI_WEBSITE_LLM_SYSTEM_PROMPT,
+  AI_WEBSITE_PROMPT_SIGNAL_KEYS,
+  OpenAiWebsiteLlmProvider,
+  buildPromptSignalsJsonSchemaPrompt,
+  extractJsonObject,
+  getWebsiteLlmProvider,
+  hasOpenAiWebsiteCredentials,
+  listWebsiteLlmProviders,
+  parseAiWebsitePromptSignals,
+  parseAiWebsitePromptSignalsFromContent,
+  registerWebsiteLlmProvider,
+  type AiWebsiteLlmExtractInput,
+  type AiWebsiteLlmExtractResult,
+  type AiWebsiteLlmParseResult,
+  type AiWebsiteLlmProvider,
+  type AiWebsiteLlmProviderId,
+  type AiWebsitePromptSignalKey,
+  type AiWebsitePromptSignals,
+} from "@/lib/website/ai/llm";
+
+export {
+  generateWebsiteFromPrompt,
+  mergePromptSignalsIntoProfile,
+  type AiWebsiteGeneratePipelineMeta,
+  type AiWebsiteGeneratePipelineResult,
+  type AiWebsiteGenerateServiceOptions,
+} from "@/lib/website/ai/generation";
