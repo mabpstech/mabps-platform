@@ -1,9 +1,15 @@
 /**
- * Generation Orchestrator contracts (AI Pipeline Phase 2.5).
- * Builds an ordered generation queue only — never generates content.
+ * Generation Orchestrator contracts (AI Pipeline Phase 2.5–3).
+ * Phase 2.5: build ordered generation queue.
+ * Phase 3: dispatch implemented generators (hero only) through the orchestrator.
  */
 
 import type { BusinessPlan } from "@/lib/website/ai/business-planner/types";
+import type {
+  HeroGeneratorLlmCompleter,
+  HeroGeneratorMeta,
+  HeroSectionContent,
+} from "@/lib/website/ai/generators/hero/types";
 import type { WebsitePlan } from "@/lib/website/ai/website-planner/types";
 
 /** One section-generation step in the ordered queue. */
@@ -27,4 +33,42 @@ export type GenerationPlan = {
 export type CreateGenerationPlanInput = {
   businessPlan: BusinessPlan;
   websitePlan: WebsitePlan;
+};
+
+/** Outcome of running a single queued task via the orchestrator. */
+export type GenerationTaskResult = {
+  task: GenerationTask;
+  /** "generated" for implemented generators; others are skipped in Phase 3. */
+  status: "generated" | "skipped";
+  /** Present when status is generated and generator is hero-generator. */
+  hero?: HeroSectionContent;
+  /** Hero generator meta when hero ran. */
+  heroMeta?: HeroGeneratorMeta;
+  /** Why a task was skipped (unimplemented generator, etc.). */
+  skipReason?: string;
+};
+
+export type GenerationRunResult = {
+  plan: GenerationPlan;
+  results: GenerationTaskResult[];
+  /** First generated hero section content, if any. */
+  hero: HeroSectionContent | null;
+  heroMeta: HeroGeneratorMeta | null;
+};
+
+export type RunGenerationPlanInput = {
+  businessPlan: BusinessPlan;
+  websitePlan: WebsitePlan;
+  /** Optional pre-built plan; otherwise created from WebsitePlan. */
+  plan?: GenerationPlan;
+  workspaceId?: string;
+  apiKey?: string;
+  baseUrl?: string | null;
+  model?: string | null;
+};
+
+export type RunGenerationPlanOptions = {
+  skipLlm?: boolean;
+  /** Inject hero JSON completer (tests / alternate providers). */
+  heroCompleteJson?: HeroGeneratorLlmCompleter;
 };

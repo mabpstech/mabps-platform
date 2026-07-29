@@ -1,12 +1,14 @@
 /**
- * AI Website Generation service (Sprint B3 + Phase 1–2.5 planners).
+ * AI Website Generation service (Sprint B3 + Phase 1–3 planners/generators).
  *
  * User Prompt → Business Planner → Website Planner → Generation Orchestrator →
- * OpenAI prompt signals → validate → Business Intelligence → DNA → Brand Strategy →
- * Website Plan → Creative Direction → Website Composer → Blueprint Executor.
+ * (Phase 3: hero-generator via orchestrator) → OpenAI prompt signals → validate →
+ * Business Intelligence → DNA → Brand Strategy → Website Plan → Creative Direction →
+ * Website Composer → Blueprint Executor.
  *
- * Phase 1–2.5: planner/orchestrator outputs are logged and passed through only —
- * downstream generation logic is unchanged (orchestrator does not call generators).
+ * Phase 1–2.5 planners are logged and passed through. Phase 3 hero content is
+ * produced only through the orchestrator (not Builder/Editor). Downstream
+ * blueprint execution is unchanged.
  *
  * LLM never writes Website Builder data. Validation failure falls back to
  * deterministic inference — generation must not fail because of the LLM.
@@ -35,9 +37,12 @@ import {
   type AiWebsiteLlmProviderId,
   type AiWebsitePromptSignals,
 } from "@/lib/website/ai/llm";
+import type { HeroGeneratorLlmCompleter } from "@/lib/website/ai/generators/hero";
 import {
   createGenerationPlan,
+  runGenerationPlan,
   type GenerationPlan,
+  type GenerationRunResult,
 } from "@/lib/website/ai/orchestrator";
 import type {
   AiBrandStrategy,
@@ -78,8 +83,10 @@ export type AiWebsiteGeneratePipelineResult = AiWebsiteGenerateResult & {
   /** Phase 2 website planner output (pass-through; not yet consumed downstream). */
   websitePlan: WebsitePlan;
   websitePlannerMeta: WebsitePlannerMeta;
-  /** Phase 2.5 orchestrator queue (pass-through; generators not invoked yet). */
+  /** Phase 2.5 orchestrator queue. */
   generationPlan: GenerationPlan;
+  /** Phase 3 orchestrator run (hero-generator only; other tasks skipped). */
+  generationRun: GenerationRunResult;
   profile: AiBusinessProfile;
   dna: AiBusinessDNA;
   strategy: AiBrandStrategy;
@@ -97,6 +104,8 @@ export type AiWebsiteGenerateServiceOptions = {
   businessPlannerCompleteJson?: BusinessPlannerLlmCompleter;
   /** Inject a website-planner LLM completer (tests). */
   websitePlannerCompleteJson?: WebsitePlannerLlmCompleter;
+  /** Inject a hero-generator LLM completer (tests). */
+  heroCompleteJson?: HeroGeneratorLlmCompleter;
   /** Skip LLM entirely and use deterministic inference only. */
   skipLlm?: boolean;
   /** Force an API key for the OpenAI adapter. */
@@ -267,7 +276,7 @@ export async function generateWebsiteFromPrompt(
     meta: websitePlannerResult.meta,
   });
 
-  // 0c. Generation Orchestrator (Phase 2.5) — ordered queue only; no generators
+  // 0c. Generation Orchestrator (Phase 2.5–3) — queue + hero-generator dispatch
   const generationPlan = createGenerationPlan({
     businessPlan: plannerResult.plan,
     websitePlan: websitePlannerResult.plan,
@@ -277,6 +286,22 @@ export async function generateWebsiteFromPrompt(
     websitePlan: websitePlannerResult.plan,
     generationPlan,
   });
+
+  const generationRun = await runGenerationPlan(
+    {
+      businessPlan: plannerResult.plan,
+      websitePlan: websitePlannerResult.plan,
+      plan: generationPlan,
+      workspaceId: normalized.workspaceId,
+      apiKey: options.apiKey,
+      baseUrl: options.baseUrl,
+      model: options.model,
+    },
+    {
+      skipLlm: options.skipLlm,
+      heroCompleteJson: options.heroCompleteJson,
+    },
+  );
 
   const { signals, meta } = await extractValidatedSignals(
     normalized.prompt,
@@ -338,6 +363,7 @@ export async function generateWebsiteFromPrompt(
     websitePlan: websitePlannerResult.plan,
     websitePlannerMeta: websitePlannerResult.meta,
     generationPlan,
+    generationRun,
     profile,
     dna,
     strategy,

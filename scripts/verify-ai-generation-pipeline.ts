@@ -138,6 +138,23 @@ async function main() {
           (task) => task.section === "Footer" && task.generator === "footer-generator",
         ),
       );
+      assert.ok(result.generationRun.hero);
+      assert.equal(result.generationRun.hero?.style.length > 0, true);
+      assert.ok(result.generationRun.hero?.headline);
+      assert.ok(
+        result.generationRun.results.filter(
+          (entry) =>
+            entry.task.generator === "hero-generator" &&
+            entry.status === "generated",
+        ).length === 1,
+      );
+      assert.ok(
+        result.generationRun.results.some(
+          (entry) =>
+            entry.task.generator !== "hero-generator" &&
+            entry.status === "skipped",
+        ),
+      );
       assert.equal(isAiWebsiteBlueprint(result.blueprint), true);
       assert.ok(result.direction.artDirection.value);
       assert.ok(result.plan.requiredPages.value.length >= 1);
