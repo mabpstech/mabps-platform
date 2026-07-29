@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   authButtonClassName,
@@ -71,9 +70,9 @@ export function AiCreateExperience({ canManage }: { canManage: boolean }) {
   const [stageIndex, setStageIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [submittedPrompt, setSubmittedPrompt] = useState("");
   const [isPending, startTransition] = useTransition();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const submittedPrompt = useRef("");
   const generationDone = useRef(false);
 
   useEffect(() => {
@@ -138,7 +137,7 @@ export function AiCreateExperience({ canManage }: { canManage: boolean }) {
     const value = prompt.trim();
     if (!value || phase === "progress") return;
 
-    submittedPrompt.current = value;
+    setSubmittedPrompt(value);
     generationDone.current = false;
     setErrorMessage(null);
     setStageIndex(0);
@@ -180,167 +179,164 @@ export function AiCreateExperience({ canManage }: { canManage: boolean }) {
     });
   }
 
-  if (phase === "progress" || phase === "error") {
-    const stage =
-      PROGRESS_STAGES[Math.min(stageIndex, PROGRESS_STAGES.length - 1)];
-    const failed = phase === "error";
+  const showProgress = phase === "progress" || phase === "error";
+  const stage =
+    PROGRESS_STAGES[Math.min(stageIndex, PROGRESS_STAGES.length - 1)];
+  const failed = phase === "error";
 
-    return (
-      <CreateJourneyShell
-        eyebrow="Generate with AI"
-        title={failed ? "Generation paused" : "Creating your website"}
-        description={
-          failed
-            ? "Something went wrong while creating your site. Your prompt is saved — try again."
-            : "Sit tight — we're shaping something beautiful from your description."
-        }
-        backHref={failed ? "/website/new" : undefined}
-        backLabel={failed ? "Choose path" : "Edit prompt"}
-        onBack={failed ? undefined : resetToPrompt}
-      >
-        <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
-          <div className="relative px-6 py-10 sm:px-10 sm:py-14">
+  return showProgress ? (
+    <CreateJourneyShell
+      eyebrow="Generate with AI"
+      title={failed ? "Generation paused" : "Creating your website"}
+      description={
+        failed
+          ? "Something went wrong while creating your site. Your prompt is saved — try again."
+          : "Sit tight — we're shaping something beautiful from your description."
+      }
+      backHref={failed ? "/website/new" : undefined}
+      backLabel={failed ? "Choose path" : "Edit prompt"}
+      onBack={failed ? undefined : resetToPrompt}
+    >
+      <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
+        <div className="relative px-6 py-10 sm:px-10 sm:py-14">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(24,24,27,0.04),transparent_55%)]"
+          />
+
+          <div className="relative mx-auto flex max-w-md flex-col items-center text-center">
             <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(24,24,27,0.04),transparent_55%)]"
-            />
-
-            <div className="relative mx-auto flex max-w-md flex-col items-center text-center">
-              <div
-                className={`relative flex h-16 w-16 items-center justify-center rounded-full ${
-                  failed ? "bg-red-50" : "bg-zinc-100"
-                }`}
-              >
-                {!failed ? (
-                  <span
-                    aria-hidden
-                    className="absolute inset-0 animate-[createPulse_2.4s_ease-in-out_infinite] rounded-full bg-zinc-900/10"
-                  />
-                ) : null}
-                {failed ? (
-                  <span className="text-lg font-semibold text-red-600" aria-hidden>
-                    !
-                  </span>
-                ) : (
-                  <span
-                    aria-hidden
-                    className="h-3 w-3 rounded-full bg-zinc-900 animate-[createDot_1.2s_ease-in-out_infinite]"
-                  />
-                )}
-              </div>
-
-              <p
-                className="mt-8 text-xl font-semibold tracking-tight text-zinc-900 transition-opacity duration-300"
-                aria-live="polite"
-              >
-                {failed ? "Couldn’t finish generation" : stage.label}
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-500">
-                {failed
-                  ? errorMessage || "Please try again in a moment."
-                  : stage.detail}
-              </p>
-
+              className={`relative flex h-16 w-16 items-center justify-center rounded-full ${
+                failed ? "bg-red-50" : "bg-zinc-100"
+              }`}
+            >
               {!failed ? (
-                <div className="mt-8 w-full">
-                  <div
-                    className="h-1.5 overflow-hidden rounded-full bg-zinc-100"
-                    role="progressbar"
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={Math.round(progress)}
-                    aria-label="Website generation progress"
-                  >
-                    <div
-                      className="h-full rounded-full bg-zinc-900 transition-[width] duration-300 ease-out"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <p className="mt-2 text-xs tabular-nums text-zinc-400">
-                    {Math.round(progress)}%
-                  </p>
-                </div>
+                <span
+                  aria-hidden
+                  className="absolute inset-0 animate-[createPulse_2.4s_ease-in-out_infinite] rounded-full bg-zinc-900/10"
+                />
               ) : null}
-
-              <ol className="mt-10 w-full space-y-3 text-left">
-                {PROGRESS_STAGES.map((item, index) => {
-                  const complete = !failed && index < stageIndex;
-                  const active = !failed && index === stageIndex;
-                  return (
-                    <li
-                      key={item.id}
-                      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition duration-300 ${
-                        active ? "bg-zinc-50" : ""
-                      }`}
-                    >
-                      <span
-                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
-                          complete
-                            ? "bg-zinc-900 text-white"
-                            : active
-                              ? "bg-zinc-900/10 text-zinc-900 ring-1 ring-zinc-900/20"
-                              : "bg-zinc-100 text-zinc-400"
-                        }`}
-                      >
-                        {complete ? "✓" : index + 1}
-                      </span>
-                      <span
-                        className={`text-sm ${
-                          complete || active
-                            ? "font-medium text-zinc-900"
-                            : "text-zinc-400"
-                        }`}
-                      >
-                        {item.label}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ol>
-
-              {submittedPrompt.current ? (
-                <blockquote className="mt-8 w-full rounded-2xl border border-zinc-100 bg-zinc-50/80 px-4 py-3 text-left text-sm leading-relaxed text-zinc-600">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-                    Your prompt
-                  </p>
-                  <p className="mt-1.5 line-clamp-3">{submittedPrompt.current}</p>
-                </blockquote>
-              ) : null}
-
               {failed ? (
-                <div className="mt-8 flex w-full flex-wrap justify-center gap-3">
-                  <button
-                    type="button"
-                    className={`${authButtonClassName} !w-auto px-5`}
-                    onClick={startGeneration}
-                  >
-                    Try again
-                  </button>
-                  <button
-                    type="button"
-                    className={`${authSecondaryButtonClassName} !w-auto px-5`}
-                    onClick={resetToPrompt}
-                  >
-                    Edit prompt
-                  </button>
-                </div>
+                <span className="text-lg font-semibold text-red-600" aria-hidden>
+                  !
+                </span>
               ) : (
-                <button
-                  type="button"
-                  className="mt-8 text-sm text-zinc-400 underline-offset-2 transition hover:text-zinc-700 hover:underline"
-                  onClick={resetToPrompt}
-                >
-                  Cancel
-                </button>
+                <span
+                  aria-hidden
+                  className="h-3 w-3 rounded-full bg-zinc-900 animate-[createDot_1.2s_ease-in-out_infinite]"
+                />
               )}
             </div>
+
+            <p
+              className="mt-8 text-xl font-semibold tracking-tight text-zinc-900 transition-opacity duration-300"
+              aria-live="polite"
+            >
+              {failed ? "Couldn’t finish generation" : stage.label}
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-zinc-500">
+              {failed
+                ? errorMessage || "Please try again in a moment."
+                : stage.detail}
+            </p>
+
+            {!failed ? (
+              <div className="mt-8 w-full">
+                <div
+                  className="h-1.5 overflow-hidden rounded-full bg-zinc-100"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(progress)}
+                  aria-label="Website generation progress"
+                >
+                  <div
+                    className="h-full rounded-full bg-zinc-900 transition-[width] duration-300 ease-out"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-xs tabular-nums text-zinc-400">
+                  {Math.round(progress)}%
+                </p>
+              </div>
+            ) : null}
+
+            <ol className="mt-10 w-full space-y-3 text-left">
+              {PROGRESS_STAGES.map((item, index) => {
+                const complete = !failed && index < stageIndex;
+                const active = !failed && index === stageIndex;
+                return (
+                  <li
+                    key={item.id}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition duration-300 ${
+                      active ? "bg-zinc-50" : ""
+                    }`}
+                  >
+                    <span
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
+                        complete
+                          ? "bg-zinc-900 text-white"
+                          : active
+                            ? "bg-zinc-900/10 text-zinc-900 ring-1 ring-zinc-900/20"
+                            : "bg-zinc-100 text-zinc-400"
+                      }`}
+                    >
+                      {complete ? "✓" : index + 1}
+                    </span>
+                    <span
+                      className={`text-sm ${
+                        complete || active
+                          ? "font-medium text-zinc-900"
+                          : "text-zinc-400"
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+
+            {submittedPrompt ? (
+              <blockquote className="mt-8 w-full rounded-2xl border border-zinc-100 bg-zinc-50/80 px-4 py-3 text-left text-sm leading-relaxed text-zinc-600">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+                  Your prompt
+                </p>
+                <p className="mt-1.5 line-clamp-3">{submittedPrompt}</p>
+              </blockquote>
+            ) : null}
+
+            {failed ? (
+              <div className="mt-8 flex w-full flex-wrap justify-center gap-3">
+                <button
+                  type="button"
+                  className={`${authButtonClassName} !w-auto px-5`}
+                  onClick={startGeneration}
+                >
+                  Try again
+                </button>
+                <button
+                  type="button"
+                  className={`${authSecondaryButtonClassName} !w-auto px-5`}
+                  onClick={resetToPrompt}
+                >
+                  Edit prompt
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="mt-8 text-sm text-zinc-400 underline-offset-2 transition hover:text-zinc-700 hover:underline"
+                onClick={resetToPrompt}
+              >
+                Cancel
+              </button>
+            )}
           </div>
         </div>
-      </CreateJourneyShell>
-    );
-  }
-
-  return (
+      </div>
+    </CreateJourneyShell>
+  ) : (
     <CreateJourneyShell
       eyebrow="Generate with AI"
       title="Describe the website you want"
