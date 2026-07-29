@@ -1,6 +1,7 @@
 /**
  * AI Website Generator — shared foundation, Business Planner (Phase 1),
  * Website Planner (Phase 2), Generation Orchestrator (Phase 2.5),
+ * Hero Generator (Phase 3), Builder Adapter (Phase 3.5),
  * Business Intelligence (C2), Business DNA (C3), Brand Strategy (C4),
  * Website Planning (C5), Website Composer (C6), Creative Director (C7),
  * Blueprint Executor (B1), and Generation pipeline (B3: OpenAI → engines → builder).
@@ -304,6 +305,27 @@ export {
   type HeroSectionParseResult,
   type HeroStyle,
 } from "@/lib/website/ai/generators/hero";
+
+export {
+  DEFAULT_PRIMARY_HREF,
+  DEFAULT_SECONDARY_HREF,
+  EXAMPLE_BUILDER_HERO_SECTION,
+  EXAMPLE_BUILDER_JSON,
+  EXAMPLE_GENERATION_RUN_WITH_HERO,
+  HERO_LAYOUT_TO_BUILDER,
+  HERO_STYLE_TO_BUILDER,
+  adaptGenerationRun,
+  adaptGenerationRunToBuilder,
+  adaptHeroContent,
+  adaptHeroToBuilderSection,
+  resolveHeroLayoutFields,
+  type AdaptGenerationRunInput,
+  type AdaptHeroInput,
+  type BuilderAdapterOptions,
+  type BuilderHeroContent,
+  type BuilderJson,
+  type BuilderSectionJson,
+} from "@/lib/website/ai/builder-adapter";
 
 export {
   AI_BUSINESS_INTELLIGENCE_PROVIDER_IDS,
