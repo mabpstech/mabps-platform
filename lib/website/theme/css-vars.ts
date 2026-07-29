@@ -3,30 +3,45 @@ import { resolveActiveColors } from "@/lib/website/theme/normalize";
 
 const SHADOW_CSS: Record<ThemeShadowLevel, string> = {
   none: "none",
-  soft: "0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.08)",
-  medium: "0 4px 12px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06)",
-  strong: "0 16px 40px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.1)",
+  soft: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px rgba(15,23,42,0.06)",
+  medium: "0 4px 16px rgba(15,23,42,0.08), 0 12px 32px rgba(15,23,42,0.08)",
+  strong: "0 16px 48px rgba(15,23,42,0.14), 0 8px 20px rgba(15,23,42,0.08)",
 };
 
 const SECTION_PADDING: Record<ThemeTokens["spacing"]["sectionPadding"], string> = {
-  sm: "2.5rem",
-  md: "3.5rem",
-  lg: "4.5rem",
-  xl: "6rem",
+  sm: "3rem",
+  md: "4.5rem",
+  lg: "6rem",
+  xl: "7.5rem",
 };
 
 const FONT_SCALE: Record<
   ThemeTokens["typography"]["scale"],
   { h1: string; h2: string; body: string; small: string }
 > = {
-  sm: { h1: "2rem", h2: "1.5rem", body: "0.9375rem", small: "0.8125rem" },
-  md: { h1: "2.5rem", h2: "1.75rem", body: "1rem", small: "0.875rem" },
-  lg: { h1: "3rem", h2: "2rem", body: "1.0625rem", small: "0.9375rem" },
+  sm: {
+    h1: "clamp(2rem, 4.5vw, 2.5rem)",
+    h2: "clamp(1.375rem, 2.5vw, 1.625rem)",
+    body: "0.9375rem",
+    small: "0.8125rem",
+  },
+  md: {
+    h1: "clamp(2.35rem, 5vw, 3.25rem)",
+    h2: "clamp(1.5rem, 3vw, 2rem)",
+    body: "1.0625rem",
+    small: "0.875rem",
+  },
+  lg: {
+    h1: "clamp(2.75rem, 6vw, 4rem)",
+    h2: "clamp(1.75rem, 3.5vw, 2.375rem)",
+    body: "1.125rem",
+    small: "0.9375rem",
+  },
 };
 
 const CONTAINER_WIDTH: Record<ThemeTokens["sections"]["containerPreset"], string> = {
   narrow: "48rem",
-  default: "64rem",
+  default: "72rem",
   wide: "80rem",
   full: "100%",
 };
@@ -137,7 +152,48 @@ export function themeTokensToStyleTag(tokens: ThemeTokens): string {
 }`
     : "";
 
-  return `:root, .mabps-site {\n${declarations}\n}${reduceMotion}`;
+  const hoverRules = `
+.mabps-site .site-card {
+  transition: transform var(--site-animation-duration) ease, box-shadow var(--site-animation-duration) ease, border-color var(--site-animation-duration) ease;
+}
+.mabps-site .site-card[data-hover-lift="true"]:hover {
+  transform: translateY(-4px);
+  box-shadow: ${SHADOW_CSS.medium};
+}
+.mabps-site .site-card[data-hover-scale="true"]:hover {
+  transform: translateY(-2px) scale(1.01);
+}
+.mabps-site .site-btn {
+  transition: transform var(--site-animation-duration) ease, box-shadow var(--site-animation-duration) ease, opacity var(--site-animation-duration) ease, background-color var(--site-animation-duration) ease;
+}
+.mabps-site .site-btn:hover {
+  opacity: 0.94;
+}
+.mabps-site .site-btn[data-hover="lift"]:hover {
+  transform: translateY(-2px);
+  box-shadow: ${SHADOW_CSS.medium};
+}
+.mabps-site .site-btn[data-hover="scale"]:hover {
+  transform: scale(1.03);
+}
+.mabps-site .site-btn[data-hover="glow"]:hover {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--site-color-primary) 22%, transparent), ${SHADOW_CSS.medium};
+}
+.mabps-site .site-nav-link {
+  position: relative;
+  transition: color var(--site-animation-duration) ease, opacity var(--site-animation-duration) ease;
+}
+.mabps-site .site-nav-link:hover {
+  color: var(--site-color-text);
+  opacity: 1;
+}
+.mabps-site a:focus-visible,
+.mabps-site button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--site-color-accent) 70%, transparent);
+  outline-offset: 3px;
+}`;
+
+  return `:root, .mabps-site {\n${declarations}\n}${hoverRules}${reduceMotion}`;
 }
 
 export function shadowCss(level: ThemeShadowLevel): string {

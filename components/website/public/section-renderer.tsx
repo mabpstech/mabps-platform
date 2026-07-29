@@ -1,7 +1,9 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { PublicForm } from "@/components/website/public/public-form";
 import { mediaPublicUrl } from "@/lib/website/media-url";
 import { sanitizeRichHtml } from "@/lib/website/sanitize";
+import { readableOn } from "@/lib/website/theme";
 import type {
   WebsiteBlogPost,
   WebsiteFormWithFields,
@@ -14,14 +16,63 @@ function paddingClass(value?: string): string {
     case "none":
       return "py-0";
     case "sm":
-      return "py-6";
+      return "py-10 sm:py-12";
     case "lg":
-      return "py-20";
+      return "py-20 sm:py-24";
     case "xl":
-      return "py-28";
+      return "py-24 sm:py-32";
     default:
-      return "py-14";
+      return "py-16 sm:py-20";
   }
+}
+
+function containerClass(theme: WebsiteTheme, fullWidth?: boolean): string {
+  if (fullWidth) return "mx-auto max-w-none";
+  const preset = theme.tokens.sections.containerPreset;
+  if (preset === "narrow") return "mx-auto w-full max-w-3xl";
+  if (preset === "wide") return "mx-auto w-full max-w-7xl";
+  if (preset === "full") return "mx-auto w-full max-w-none";
+  return "mx-auto w-full max-w-6xl";
+}
+
+function buttonRadius(theme: WebsiteTheme): string {
+  if (theme.tokens.buttons.shape === "pill") return "9999px";
+  if (theme.tokens.buttons.shape === "square") return "0px";
+  return `var(--site-radius-button, ${theme.borderRadius})`;
+}
+
+function sectionHeadingStyle(theme: WebsiteTheme): CSSProperties {
+  return {
+    fontFamily: "var(--site-font-heading, " + theme.fontHeading + ")",
+    fontSize: "var(--site-font-size-h2)",
+    fontWeight: "var(--site-font-heading-weight)" as unknown as number,
+    letterSpacing: "var(--site-letter-spacing)",
+    color: "var(--site-color-text, " + theme.textColor + ")",
+    lineHeight: 1.15,
+  };
+}
+
+function cardStyle(theme: WebsiteTheme): CSSProperties {
+  const cards = theme.tokens.cards;
+  const radius = cards.radius || "var(--site-radius-card)";
+  return {
+    background:
+      cards.style === "flat"
+        ? "transparent"
+        : "var(--site-color-surface, " + theme.backgroundColor + ")",
+    border:
+      cards.border || cards.style === "outlined"
+        ? "1px solid var(--site-color-border)"
+        : "1px solid transparent",
+    borderRadius: radius,
+    boxShadow:
+      cards.style === "elevated"
+        ? "var(--site-shadow-card)"
+        : cards.shadow !== "none"
+          ? "var(--site-shadow-card)"
+          : "none",
+    padding: "var(--site-card-padding)",
+  };
 }
 
 export function SectionRenderer({
@@ -45,9 +96,9 @@ export function SectionRenderer({
         ? "text-right items-end"
         : "text-center items-center";
 
-  const style = {
+  const style: CSSProperties = {
     background: section.settings.background || undefined,
-    color: theme.textColor,
+    color: "var(--site-color-text, " + theme.textColor + ")",
   };
 
   if (section.type === "spacer") {
@@ -62,9 +113,6 @@ export function SectionRenderer({
     return <div className={height} aria-hidden />;
   }
 
-  const maxWidthClass = section.settings.fullWidth
-    ? "mx-auto max-w-none"
-    : "mx-auto max-w-5xl";
   const responsiveVisibility = [
     section.settings.hideOnMobile ? "hidden sm:block" : "",
     section.settings.hideOnDesktop ? "sm:hidden" : "",
@@ -72,24 +120,36 @@ export function SectionRenderer({
     .filter(Boolean)
     .join(" ");
 
+  if (section.type === "hero") {
+    return (
+      <section className={responsiveVisibility} style={style}>
+        <HeroBlock
+          content={content}
+          theme={theme}
+          basePath={basePath}
+          align={align}
+        />
+      </section>
+    );
+  }
+
+  const shell = containerClass(theme, section.settings.fullWidth);
+
   return (
     <section
-      className={`${paddingClass(section.settings.paddingY)} px-6 ${responsiveVisibility}`}
+      className={`${paddingClass(section.settings.paddingY)} px-5 sm:px-8 ${responsiveVisibility}`}
       style={style}
     >
-      <div className={maxWidthClass}>
-        {section.type === "hero" ? (
-          <HeroBlock
-            content={content}
-            theme={theme}
-            basePath={basePath}
-            align={align}
-          />
-        ) : null}
-
+      <div className={shell}>
         {section.type === "richText" ? (
           <div
-            className="prose max-w-none"
+            className="prose mx-auto max-w-none"
+            style={{
+              maxWidth: "var(--site-paragraph-width)",
+              fontSize: "var(--site-font-size-body)",
+              lineHeight: "var(--site-line-height)",
+              color: "var(--site-color-text-secondary)",
+            }}
             dangerouslySetInnerHTML={{
               __html: sanitizeRichHtml(String(content.html ?? "")),
             }}
@@ -103,12 +163,12 @@ export function SectionRenderer({
               src={mediaPublicUrl(String(content.mediaId), "large")}
               alt={String(content.alt ?? "")}
               className="w-full object-cover"
-              style={{ borderRadius: theme.borderRadius }}
+              style={{ borderRadius: "var(--site-radius-image)" }}
             />
             {content.caption ? (
               <figcaption
-                className="mt-2 text-sm"
-                style={{ color: theme.mutedColor }}
+                className="mt-3 text-sm"
+                style={{ color: "var(--site-color-muted)" }}
               >
                 {String(content.caption)}
               </figcaption>
@@ -117,130 +177,25 @@ export function SectionRenderer({
         ) : null}
 
         {section.type === "features" ? (
-          <div>
-            {content.heading ? (
-              <h2
-                className="mb-8 text-3xl font-semibold"
-                style={{ fontFamily: theme.fontHeading }}
-              >
-                {String(content.heading)}
-              </h2>
-            ) : null}
-            <div className="grid gap-6 sm:grid-cols-3">
-              {asArray(content.items).map((item, index) => (
-                <div key={index}>
-                  <h3 className="text-lg font-medium">
-                    {String(item.title ?? "Feature")}
-                  </h3>
-                  <p
-                    className="mt-2 text-sm leading-6"
-                    style={{ color: theme.mutedColor }}
-                  >
-                    {String(item.description ?? "")}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
+          <FeaturesBlock content={content} theme={theme} />
         ) : null}
 
         {section.type === "cta" ? (
-          <div
-            className="rounded-xl px-8 py-10 text-center"
-            style={{
-              background: theme.secondaryColor,
-              color: "#fff",
-              borderRadius: theme.borderRadius,
-            }}
-          >
-            <h2
-              className="text-3xl font-semibold"
-              style={{ fontFamily: theme.fontHeading }}
-            >
-              {String(content.heading ?? "")}
-            </h2>
-            {content.body ? (
-              <p className="mx-auto mt-3 max-w-2xl text-sm opacity-90">
-                {String(content.body)}
-              </p>
-            ) : null}
-            {content.buttonLabel ? (
-              <Link
-                href={hrefWithBase(
-                  basePath,
-                  String(content.buttonHref || "/"),
-                )}
-                className="mt-6 inline-block bg-white px-4 py-2 text-sm font-medium"
-                style={{
-                  color: theme.secondaryColor,
-                  borderRadius: theme.borderRadius,
-                }}
-              >
-                {String(content.buttonLabel)}
-              </Link>
-            ) : null}
-          </div>
+          <CtaBlock content={content} theme={theme} basePath={basePath} />
         ) : null}
 
         {(section.type === "products" || section.type === "collections") && (
-          <div>
-            {content.heading ? (
-              <h2
-                className="mb-8 text-3xl font-semibold"
-                style={{ fontFamily: theme.fontHeading }}
-              >
-                {String(content.heading)}
-              </h2>
-            ) : null}
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {asArray(content.items).map((item, index) => (
-                <Link
-                  key={index}
-                  href={
-                    item.href
-                      ? hrefWithBase(basePath, String(item.href))
-                      : "#"
-                  }
-                  className="overflow-hidden border transition hover:shadow-sm"
-                  style={{ borderRadius: theme.borderRadius }}
-                >
-                  {typeof item.mediaId === "string" && item.mediaId ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={mediaPublicUrl(item.mediaId, "medium")}
-                      alt=""
-                      className="h-40 w-full object-cover"
-                    />
-                  ) : null}
-                  <div className="p-5">
-                    <h3 className="text-lg font-medium">
-                      {String(item.name ?? item.title ?? "Item")}
-                    </h3>
-                    <p
-                      className="mt-2 text-sm"
-                      style={{ color: theme.mutedColor }}
-                    >
-                      {String(item.description ?? "")}
-                    </p>
-                    {item.price ? (
-                      <p className="mt-3 text-sm font-medium">
-                        {String(item.price)}
-                      </p>
-                    ) : null}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
+          <CatalogBlock
+            content={content}
+            theme={theme}
+            basePath={basePath}
+          />
         )}
 
         {section.type === "form" ? (
-          <div>
+          <div className="mx-auto max-w-xl">
             {content.heading ? (
-              <h2
-                className="mb-6 text-3xl font-semibold"
-                style={{ fontFamily: theme.fontHeading }}
-              >
+              <h2 className="mb-8 tracking-tight" style={sectionHeadingStyle(theme)}>
                 {String(content.heading)}
               </h2>
             ) : null}
@@ -251,7 +206,7 @@ export function SectionRenderer({
                 borderRadius={theme.borderRadius}
               />
             ) : (
-              <p style={{ color: theme.mutedColor }}>Form unavailable.</p>
+              <p style={{ color: "var(--site-color-muted)" }}>Form unavailable.</p>
             )}
           </div>
         ) : null}
@@ -259,28 +214,34 @@ export function SectionRenderer({
         {section.type === "blogList" ? (
           <div>
             {content.heading ? (
-              <h2
-                className="mb-8 text-3xl font-semibold"
-                style={{ fontFamily: theme.fontHeading }}
-              >
+              <h2 className="mb-10 tracking-tight" style={sectionHeadingStyle(theme)}>
                 {String(content.heading)}
               </h2>
             ) : null}
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div
+              className="grid gap-6 sm:grid-cols-2"
+              style={{ gap: "var(--site-grid-gap)" }}
+            >
               {blogPosts
                 .slice(0, Number(content.limit ?? 6))
                 .map((post) => (
                   <Link
                     key={post.id}
                     href={`${basePath}/blog/${post.slug}`}
-                    className="border p-5"
-                    style={{ borderRadius: theme.borderRadius }}
+                    className="site-card block"
+                    data-hover-lift={theme.tokens.cards.hoverLift ? "true" : undefined}
+                    style={cardStyle(theme)}
                   >
-                    <h3 className="text-lg font-medium">{post.title}</h3>
+                    <h3
+                      className="text-lg font-semibold tracking-tight"
+                      style={{ fontFamily: "var(--site-font-heading)" }}
+                    >
+                      {post.title}
+                    </h3>
                     {post.excerpt ? (
                       <p
-                        className="mt-2 text-sm"
-                        style={{ color: theme.mutedColor }}
+                        className="mt-2 text-sm leading-relaxed"
+                        style={{ color: "var(--site-color-muted)" }}
                       >
                         {post.excerpt}
                       </p>
@@ -294,22 +255,22 @@ export function SectionRenderer({
         {section.type === "gallery" ? (
           <div>
             {content.heading ? (
-              <h2
-                className="mb-8 text-3xl font-semibold"
-                style={{ fontFamily: theme.fontHeading }}
-              >
+              <h2 className="mb-10 tracking-tight" style={sectionHeadingStyle(theme)}>
                 {String(content.heading)}
               </h2>
             ) : null}
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div
+              className="grid gap-4 sm:grid-cols-3"
+              style={{ gap: "var(--site-grid-gap)" }}
+            >
               {asStringArray(content.mediaIds).map((mediaId) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   key={mediaId}
                   src={mediaPublicUrl(mediaId, "medium")}
                   alt=""
-                  className="h-48 w-full object-cover"
-                  style={{ borderRadius: theme.borderRadius }}
+                  className="aspect-[4/3] h-auto w-full object-cover"
+                  style={{ borderRadius: "var(--site-radius-image)" }}
                 />
               ))}
             </div>
@@ -317,6 +278,221 @@ export function SectionRenderer({
         ) : null}
       </div>
     </section>
+  );
+}
+
+function FeaturesBlock({
+  content,
+  theme,
+}: {
+  content: Record<string, unknown>;
+  theme: WebsiteTheme;
+}) {
+  const items = asArray(content.items);
+  return (
+    <div>
+      {content.heading ? (
+        <div className="mx-auto mb-12 max-w-2xl text-center sm:mb-16">
+          <h2 className="tracking-tight" style={sectionHeadingStyle(theme)}>
+            {String(content.heading)}
+          </h2>
+        </div>
+      ) : null}
+      <div
+        className={`grid ${
+          items.length === 2
+            ? "sm:grid-cols-2"
+            : items.length >= 4
+              ? "sm:grid-cols-2 lg:grid-cols-4"
+              : "sm:grid-cols-3"
+        }`}
+        style={{ gap: "var(--site-grid-gap)" }}
+      >
+        {items.map((item, index) => (
+          <div
+            key={index}
+            className="site-card flex flex-col"
+            data-hover-lift={theme.tokens.cards.hoverLift ? "true" : undefined}
+            data-hover-scale={theme.tokens.cards.hoverScale ? "true" : undefined}
+            style={cardStyle(theme)}
+          >
+            <div
+              className="mb-5 flex h-10 w-10 items-center justify-center text-sm font-semibold"
+              style={{
+                background:
+                  "color-mix(in srgb, var(--site-color-primary) 12%, transparent)",
+                color: "var(--site-color-primary)",
+                borderRadius: "var(--site-radius)",
+              }}
+              aria-hidden
+            >
+              {String(index + 1).padStart(2, "0")}
+            </div>
+            <h3
+              className="text-lg font-semibold tracking-tight"
+              style={{
+                fontFamily: "var(--site-font-heading)",
+                color: "var(--site-color-text)",
+              }}
+            >
+              {String(item.title ?? "Feature")}
+            </h3>
+            <p
+              className="mt-3 text-sm leading-relaxed sm:text-[0.9375rem]"
+              style={{
+                color: "var(--site-color-muted)",
+                lineHeight: "var(--site-line-height)",
+              }}
+            >
+              {String(item.description ?? "")}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CtaBlock({
+  content,
+  theme,
+  basePath,
+}: {
+  content: Record<string, unknown>;
+  theme: WebsiteTheme;
+  basePath: string;
+}) {
+  const fg = readableOn(theme.tokens.colors.primary);
+  return (
+    <div
+      className="relative overflow-hidden px-8 py-14 text-center sm:px-12 sm:py-16"
+      style={{
+        background: `linear-gradient(135deg, var(--site-color-primary), color-mix(in srgb, var(--site-color-primary) 70%, var(--site-color-secondary)))`,
+        color: fg,
+        borderRadius: "var(--site-radius-card)",
+        boxShadow: "var(--site-shadow-card)",
+      }}
+    >
+      <div
+        className="pointer-events-none absolute inset-0 opacity-40"
+        style={{
+          background:
+            "radial-gradient(ellipse at 20% 0%, color-mix(in srgb, var(--site-color-accent) 45%, transparent), transparent 55%)",
+        }}
+        aria-hidden
+      />
+      <div className="relative z-10 mx-auto max-w-2xl">
+        <h2
+          className="tracking-tight"
+          style={{
+            fontFamily: "var(--site-font-heading)",
+            fontSize: "var(--site-font-size-h2)",
+            fontWeight: "var(--site-font-heading-weight)" as unknown as number,
+            letterSpacing: "var(--site-letter-spacing)",
+            lineHeight: 1.15,
+          }}
+        >
+          {String(content.heading ?? "")}
+        </h2>
+        {content.body ? (
+          <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed opacity-90">
+            {String(content.body)}
+          </p>
+        ) : null}
+        {content.buttonLabel ? (
+          <Link
+            href={hrefWithBase(basePath, String(content.buttonHref || "/"))}
+            className="site-btn mt-8 inline-flex items-center px-6 py-3 text-sm font-semibold"
+            data-hover={theme.tokens.buttons.hoverAnimation}
+            style={{
+              background: fg,
+              color: "var(--site-color-primary)",
+              borderRadius: buttonRadius(theme),
+              fontFamily: "var(--site-font-button)",
+              boxShadow: "var(--site-shadow-button)",
+            }}
+          >
+            {String(content.buttonLabel)}
+          </Link>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function CatalogBlock({
+  content,
+  theme,
+  basePath,
+}: {
+  content: Record<string, unknown>;
+  theme: WebsiteTheme;
+  basePath: string;
+}) {
+  return (
+    <div>
+      {content.heading ? (
+        <h2 className="mb-10 tracking-tight" style={sectionHeadingStyle(theme)}>
+          {String(content.heading)}
+        </h2>
+      ) : null}
+      <div
+        className="grid sm:grid-cols-2 lg:grid-cols-3"
+        style={{ gap: "var(--site-grid-gap)" }}
+      >
+        {asArray(content.items).map((item, index) => (
+          <Link
+            key={index}
+            href={item.href ? hrefWithBase(basePath, String(item.href)) : "#"}
+            className="site-card group overflow-hidden"
+            data-hover-lift={theme.tokens.cards.hoverLift ? "true" : undefined}
+            style={{
+              ...cardStyle(theme),
+              padding: 0,
+            }}
+          >
+            {typeof item.mediaId === "string" && item.mediaId ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={mediaPublicUrl(item.mediaId, "medium")}
+                alt=""
+                className="aspect-[16/10] h-auto w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+              />
+            ) : (
+              <div
+                className="aspect-[16/10] w-full"
+                style={{
+                  background:
+                    "linear-gradient(135deg, color-mix(in srgb, var(--site-color-primary) 18%, transparent), color-mix(in srgb, var(--site-color-accent) 22%, transparent))",
+                }}
+              />
+            )}
+            <div style={{ padding: "var(--site-card-padding)" }}>
+              <h3
+                className="text-lg font-semibold tracking-tight"
+                style={{ fontFamily: "var(--site-font-heading)" }}
+              >
+                {String(item.name ?? item.title ?? "Item")}
+              </h3>
+              <p
+                className="mt-2 text-sm leading-relaxed"
+                style={{ color: "var(--site-color-muted)" }}
+              >
+                {String(item.description ?? "")}
+              </p>
+              {item.price ? (
+                <p
+                  className="mt-4 text-sm font-semibold"
+                  style={{ color: "var(--site-color-primary)" }}
+                >
+                  {String(item.price)}
+                </p>
+              ) : null}
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -364,27 +540,45 @@ function HeroBlock({
   const overlay = Math.min(80, Math.max(0, Number(content.overlay ?? 0)));
   const heightClass =
     content.height === "sm"
-      ? "min-h-[280px] py-12"
+      ? "min-h-[340px] py-16 sm:py-20"
       : content.height === "lg"
-        ? "min-h-[560px] py-24"
+        ? "min-h-[640px] py-24 sm:py-28"
         : content.height === "xl"
-          ? "min-h-[72vh] py-28"
-          : "min-h-[420px] py-16";
+          ? "min-h-[85vh] py-28 sm:py-32"
+          : "min-h-[520px] py-20 sm:py-24";
   const animationClass =
     content.animation === "rise"
-      ? "animate-[fadeRise_700ms_ease-out]"
+      ? "animate-[fadeRise_800ms_ease-out]"
       : content.animation === "fade"
-        ? "animate-[fadeIn_700ms_ease-out]"
+        ? "animate-[fadeIn_800ms_ease-out]"
         : "";
   const hasMedia = Boolean(desktopId || mobileId || videoUrl);
-  const textColor = hasMedia ? "#ffffff" : theme.textColor;
-  const mutedColor = hasMedia ? "rgba(255,255,255,0.85)" : theme.mutedColor;
+  const textColor = hasMedia
+    ? "#ffffff"
+    : "var(--site-color-text, " + theme.textColor + ")";
+  const mutedColor = hasMedia
+    ? "rgba(255,255,255,0.82)"
+    : "var(--site-color-muted, " + theme.mutedColor + ")";
+  const primaryFg = readableOn(theme.tokens.colors.primary);
+  const isCentered = !align.includes("items-start") && !align.includes("items-end");
+  const contentMax = isCentered ? "max-w-3xl" : "max-w-2xl";
 
   return (
-    <div
-      className={`relative overflow-hidden rounded-2xl ${heightClass}`}
-      style={{ borderRadius: theme.borderRadius }}
-    >
+    <div className={`relative overflow-hidden ${heightClass}`}>
+      {!hasMedia ? (
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, var(--site-color-primary) 14%, transparent), transparent 55%),
+              radial-gradient(ellipse 50% 40% at 100% 100%, color-mix(in srgb, var(--site-color-accent) 12%, transparent), transparent 50%),
+              linear-gradient(180deg, var(--site-color-background), color-mix(in srgb, var(--site-color-surface) 80%, var(--site-color-background)))
+            `,
+          }}
+          aria-hidden
+        />
+      ) : null}
+
       {videoUrl ? (
         <video
           className="absolute inset-0 h-full w-full object-cover"
@@ -413,43 +607,66 @@ function HeroBlock({
           className="absolute inset-0 h-full w-full object-cover sm:hidden"
         />
       ) : null}
-      {hasMedia && overlay > 0 ? (
+      {hasMedia ? (
         <div
           className="absolute inset-0"
-          style={{ background: `rgba(0,0,0,${overlay / 100})` }}
+          style={{
+            background:
+              overlay > 0
+                ? `linear-gradient(180deg, rgba(0,0,0,${overlay / 140}) 0%, rgba(0,0,0,${overlay / 100}) 55%, rgba(0,0,0,${Math.min(0.85, overlay / 90)}) 100%)`
+                : "linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45))",
+          }}
         />
       ) : null}
+
       <div
-        className={`relative z-10 flex h-full flex-col justify-center gap-4 px-6 sm:px-10 ${align} ${animationClass}`}
+        className={`relative z-10 mx-auto flex h-full w-full flex-col justify-center gap-5 px-5 sm:gap-6 sm:px-8 ${containerClass(theme)} ${align} ${animationClass}`}
         style={{ color: textColor }}
       >
         {content.eyebrow ? (
           <p
-            className="text-sm uppercase tracking-[0.18em]"
+            className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] sm:text-xs"
             style={{ color: mutedColor }}
           >
             {String(content.eyebrow)}
           </p>
         ) : null}
         <h1
-          className="max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl"
-          style={{ fontFamily: theme.fontHeading }}
+          className={`${contentMax} tracking-tight`}
+          style={{
+            fontFamily: "var(--site-font-heading, " + theme.fontHeading + ")",
+            fontSize: "var(--site-font-size-h1)",
+            fontWeight: "var(--site-font-heading-weight)" as unknown as number,
+            letterSpacing: "var(--site-letter-spacing)",
+            lineHeight: 1.05,
+          }}
         >
           {String(content.heading ?? "")}
         </h1>
         {content.subheading ? (
-          <p className="max-w-2xl text-lg" style={{ color: mutedColor }}>
+          <p
+            className={`${contentMax} text-base leading-relaxed sm:text-lg`}
+            style={{
+              color: mutedColor,
+              lineHeight: "var(--site-line-height)",
+              maxWidth: isCentered
+                ? "var(--site-paragraph-width)"
+                : undefined,
+            }}
+          >
             {String(content.subheading)}
           </p>
         ) : null}
-        <div className="mt-2 flex flex-wrap gap-3">
+        <div className="mt-2 flex flex-wrap gap-3 sm:gap-4">
           {content.primaryLabel ? (
             <Link
               href={hrefWithBase(basePath, String(content.primaryHref || "/"))}
-              className="px-4 py-2 text-sm font-medium text-white"
+              className="site-btn inline-flex items-center px-6 py-3 text-sm font-semibold"
+              data-hover={theme.tokens.buttons.hoverAnimation}
               style={{
                 background: "var(--site-color-primary, " + theme.primaryColor + ")",
-                borderRadius: "var(--site-radius-button, " + theme.borderRadius + ")",
+                color: primaryFg,
+                borderRadius: buttonRadius(theme),
                 fontFamily: "var(--site-font-button, " + theme.fontBody + ")",
                 boxShadow: "var(--site-shadow-button, none)",
               }}
@@ -463,16 +680,21 @@ function HeroBlock({
                 basePath,
                 String(content.secondaryHref || "/"),
               )}
-              className="border px-4 py-2 text-sm font-medium"
+              className="site-btn inline-flex items-center border px-6 py-3 text-sm font-semibold"
+              data-hover={theme.tokens.buttons.hoverAnimation}
               style={{
                 borderColor: hasMedia
-                  ? "#ffffff"
-                  : `var(--site-color-primary, ${theme.primaryColor})`,
+                  ? "rgba(255,255,255,0.55)"
+                  : "var(--site-color-border)",
+                background: hasMedia
+                  ? "rgba(255,255,255,0.08)"
+                  : "transparent",
                 color: hasMedia
                   ? "#ffffff"
-                  : `var(--site-color-primary, ${theme.primaryColor})`,
-                borderRadius: `var(--site-radius-button, ${theme.borderRadius})`,
+                  : "var(--site-color-text, " + theme.textColor + ")",
+                borderRadius: buttonRadius(theme),
                 fontFamily: `var(--site-font-button, ${theme.fontBody})`,
+                backdropFilter: hasMedia ? "blur(8px)" : undefined,
               }}
             >
               {String(content.secondaryLabel)}

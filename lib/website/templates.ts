@@ -286,6 +286,9 @@ function homeHero(copy: Copy, extras: Record<string, unknown> = {}) {
       secondaryLabel: copy.secondaryLabel,
       secondaryHref: copy.secondaryHref,
       align: "center",
+      height: "lg",
+      overlay: 45,
+      animation: "rise",
       ...extras,
     },
   };

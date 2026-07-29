@@ -1633,9 +1633,21 @@ function defaultSectionContent(type: SectionType): Record<string, unknown> {
   switch (type) {
     case "hero":
       return {
+        eyebrow: "",
         heading: "New section",
         subheading: "Describe this section.",
+        primaryLabel: "Get started",
+        primaryHref: "/contact",
+        secondaryLabel: "Learn more",
+        secondaryHref: "/about",
         align: "center",
+        height: "lg",
+        overlay: 45,
+        animation: "rise",
+        backgroundMediaId: null,
+        mobileMediaId: null,
+        desktopMediaId: null,
+        backgroundVideoUrl: "",
       };
     case "richText":
       return { html: "<p>Write something here.</p>" };

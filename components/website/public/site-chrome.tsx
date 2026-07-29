@@ -32,9 +32,9 @@ function logoHeight(size?: WebsiteHeader["logoSize"]): string {
 
 function containerClass(preset: string): string {
   if (preset === "narrow") return "max-w-3xl";
-  if (preset === "wide") return "max-w-6xl";
+  if (preset === "wide") return "max-w-7xl";
   if (preset === "full") return "max-w-none";
-  return "max-w-5xl";
+  return "max-w-6xl";
 }
 
 export function SiteChrome({
@@ -172,7 +172,7 @@ export function SiteChrome({
           </div>
 
           <nav
-            className={`hidden items-center gap-5 text-sm md:flex ${
+            className={`hidden items-center gap-7 text-[0.8125rem] font-medium tracking-wide md:flex ${
               tokens.header.menuAlignment === "center"
                 ? "flex-1 justify-center"
                 : tokens.header.menuAlignment === "left"
@@ -191,7 +191,7 @@ export function SiteChrome({
                   href={resolveHref(basePath, group.parent.href)}
                   target={group.parent.openInNewTab ? "_blank" : undefined}
                   rel={group.parent.openInNewTab ? "noreferrer" : undefined}
-                  className="opacity-80 transition hover:opacity-100"
+                  className="site-nav-link opacity-75"
                 >
                   {group.parent.label}
                 </Link>
@@ -201,24 +201,26 @@ export function SiteChrome({
                     href={resolveHref(basePath, group.parent.href)}
                     target={group.parent.openInNewTab ? "_blank" : undefined}
                     rel={group.parent.openInNewTab ? "noreferrer" : undefined}
-                    className="inline-flex items-center gap-1 opacity-80 transition hover:opacity-100"
+                    className="site-nav-link inline-flex items-center gap-1 opacity-75"
                     aria-haspopup="menu"
                   >
                     {group.parent.label}
-                    <span aria-hidden className="text-[10px]">
+                    <span aria-hidden className="text-[10px] opacity-60">
                       ▾
                     </span>
                   </Link>
                   <div
-                    className="invisible absolute left-0 top-full z-30 min-w-[11rem] pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+                    className="invisible absolute left-0 top-full z-30 min-w-[12rem] pt-2 opacity-0 transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
                     role="menu"
                   >
                     <div
-                      className="rounded-lg border py-1 shadow-lg"
+                      className="rounded-xl border py-1.5 shadow-lg"
                       style={{
                         background: "var(--site-color-surface, #fff)",
                         borderColor: "var(--site-color-border)",
                         color: "var(--site-color-text)",
+                        boxShadow: "var(--site-shadow-dropdown)",
+                        borderRadius: "var(--site-radius-card)",
                       }}
                     >
                       {group.children.map((child) => (
@@ -227,7 +229,7 @@ export function SiteChrome({
                           href={resolveHref(basePath, child.href)}
                           target={child.openInNewTab ? "_blank" : undefined}
                           rel={child.openInNewTab ? "noreferrer" : undefined}
-                          className="block px-3 py-2 text-sm opacity-80 transition hover:opacity-100"
+                          className="block px-3.5 py-2 text-sm opacity-80 transition hover:opacity-100"
                           role="menuitem"
                         >
                           {child.label}
@@ -240,11 +242,12 @@ export function SiteChrome({
             )}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {header.ctaLabel ? (
               <Link
                 href={resolveHref(basePath, header.ctaHref)}
-                className="hidden px-3 py-1.5 text-sm font-medium sm:inline-flex"
+                className="site-btn hidden px-4 py-2 text-sm font-semibold sm:inline-flex"
+                data-hover={theme.tokens.buttons.hoverAnimation}
                 style={ctaStyle(header, theme)}
               >
                 {header.ctaLabel}
@@ -252,8 +255,12 @@ export function SiteChrome({
             ) : null}
             <button
               type="button"
-              className="rounded-md border px-2.5 py-1.5 text-xs font-medium md:hidden"
-              style={{ borderColor: "var(--site-color-border)", color: headerFg }}
+              className="rounded-lg border px-3 py-2 text-xs font-semibold md:hidden"
+              style={{
+                borderColor: "var(--site-color-border)",
+                color: headerFg,
+                borderRadius: "var(--site-radius-button)",
+              }}
               onClick={() => setMobileOpen((open) => !open)}
               aria-expanded={mobileOpen}
               aria-label="Open menu"
@@ -302,7 +309,8 @@ export function SiteChrome({
                 <Link
                   href={resolveHref(basePath, header.ctaHref)}
                   onClick={() => setMobileOpen(false)}
-                  className="mt-1 inline-flex w-fit px-3 py-1.5 text-sm font-medium"
+                  className="site-btn mt-2 inline-flex w-fit px-4 py-2 text-sm font-semibold"
+                  data-hover={theme.tokens.buttons.hoverAnimation}
                   style={ctaStyle(header, theme)}
                 >
                   {header.ctaLabel}
@@ -316,7 +324,7 @@ export function SiteChrome({
       <main>{children}</main>
 
       <footer
-        className="mt-16 border-t"
+        className="mt-20 border-t sm:mt-24"
         style={{
           background: footerBg,
           color: footerFg,
@@ -325,7 +333,7 @@ export function SiteChrome({
         }}
       >
         <div
-          className={`mx-auto grid w-full gap-8 px-6 py-12 sm:grid-cols-2 ${
+          className={`mx-auto grid w-full gap-10 px-6 py-14 sm:grid-cols-2 ${
             tokens.footer.columns <= 2
               ? "lg:grid-cols-2"
               : tokens.footer.columns === 3

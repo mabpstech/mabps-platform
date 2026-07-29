@@ -103,9 +103,11 @@ export const THEME_PRESETS: ThemePreset[] = [
     {
       typography: {
         ...DEFAULT_THEME_TOKENS.typography,
-        headingFont: "Georgia, 'Times New Roman', serif",
-        bodyFont: "ui-sans-serif, system-ui, sans-serif",
-        letterSpacing: "0.02em",
+        headingFont: "'Playfair Display', Georgia, serif",
+        bodyFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+        buttonFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+        navigationFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+        letterSpacing: "0.01em",
       },
       borders: {
         ...DEFAULT_THEME_TOKENS.borders,
@@ -126,21 +128,34 @@ export const THEME_PRESETS: ThemePreset[] = [
     "Clean white canvas with precise typography.",
     "classic",
     palette({
-      primary: "#18181b",
-      secondary: "#3f3f46",
-      accent: "#18181b",
+      primary: "#111827",
+      secondary: "#374151",
+      accent: "#2563eb",
       background: "#ffffff",
-      surface: "#fafafa",
-      border: "#e4e4e7",
+      surface: "#f8fafc",
+      border: "#e5e7eb",
+      textPrimary: "#0f172a",
+      textSecondary: "#334155",
+      muted: "#64748b",
+      hover: "#1f2937",
+      active: "#020617",
     }),
     darkPalette(),
     {
       typography: {
         ...DEFAULT_THEME_TOKENS.typography,
-        headingFont: "ui-sans-serif, system-ui, sans-serif",
-        bodyFont: "ui-sans-serif, system-ui, sans-serif",
+        headingFont: "'Space Grotesk', ui-sans-serif, system-ui, sans-serif",
+        bodyFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+        buttonFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+        navigationFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
       },
-      cards: { ...DEFAULT_THEME_TOKENS.cards, style: "outlined", shadow: "none" },
+      cards: {
+        ...DEFAULT_THEME_TOKENS.cards,
+        style: "elevated",
+        shadow: "soft",
+        hoverLift: true,
+      },
+      header: { ...DEFAULT_THEME_TOKENS.header, style: "glass", shadow: true },
     },
   ),
   buildPreset(
@@ -150,11 +165,11 @@ export const THEME_PRESETS: ThemePreset[] = [
     "classic",
     palette({
       primary: "#1d4ed8",
-      secondary: "#1e3a8a",
+      secondary: "#0f172a",
       accent: "#38bdf8",
-      background: "#f8fafc",
-      surface: "#ffffff",
-      border: "#cbd5e1",
+      background: "#ffffff",
+      surface: "#f8fafc",
+      border: "#e2e8f0",
       textPrimary: "#0f172a",
       textSecondary: "#334155",
       muted: "#64748b",
@@ -168,12 +183,25 @@ export const THEME_PRESETS: ThemePreset[] = [
       surface: "#0f172a",
     }),
     {
+      typography: {
+        ...DEFAULT_THEME_TOKENS.typography,
+        headingFont: "'Space Grotesk', ui-sans-serif, system-ui, sans-serif",
+        bodyFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+        buttonFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+        navigationFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+      },
       buttons: {
         ...DEFAULT_THEME_TOKENS.buttons,
         shape: "rounded",
-        hoverAnimation: "scale",
+        hoverAnimation: "lift",
+        shadow: "soft",
       },
-      header: { ...DEFAULT_THEME_TOKENS.header, style: "sticky", shadow: true },
+      header: { ...DEFAULT_THEME_TOKENS.header, style: "glass", shadow: true },
+      cards: {
+        ...DEFAULT_THEME_TOKENS.cards,
+        style: "elevated",
+        hoverLift: true,
+      },
     },
   ),
   buildPreset(
@@ -203,8 +231,10 @@ export const THEME_PRESETS: ThemePreset[] = [
     {
       typography: {
         ...DEFAULT_THEME_TOKENS.typography,
-        headingFont: "Georgia, Cambria, serif",
-        bodyFont: "Georgia, Cambria, serif",
+        headingFont: "'Playfair Display', Georgia, serif",
+        bodyFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+        buttonFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+        navigationFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
       },
       borders: {
         ...DEFAULT_THEME_TOKENS.borders,
@@ -371,7 +401,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     {
       typography: {
         ...DEFAULT_THEME_TOKENS.typography,
-        headingFont: "Georgia, 'Times New Roman', serif",
+        headingFont: "'Playfair Display', Georgia, serif",
+        bodyFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
       },
       header: {
         ...DEFAULT_THEME_TOKENS.header,
@@ -387,7 +418,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     "tech",
     palette({
       primary: "#22d3ee",
-      secondary: "#0891b2",
+      secondary: "#1e293b",
       accent: "#818cf8",
       background: "#020617",
       surface: "#0f172a",
@@ -407,18 +438,28 @@ export const THEME_PRESETS: ThemePreset[] = [
     {
       typography: {
         ...DEFAULT_THEME_TOKENS.typography,
-        headingFont: "ui-sans-serif, system-ui, sans-serif",
-        bodyFont: "ui-sans-serif, system-ui, sans-serif",
+        headingFont: "'Space Grotesk', ui-sans-serif, system-ui, sans-serif",
+        bodyFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+        buttonFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+        navigationFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+        letterSpacing: "-0.025em",
       },
       buttons: {
         ...DEFAULT_THEME_TOKENS.buttons,
         hoverAnimation: "glow",
+        shadow: "soft",
       },
       header: { ...DEFAULT_THEME_TOKENS.header, style: "glass", shadow: true },
       cards: {
         ...DEFAULT_THEME_TOKENS.cards,
         style: "elevated",
+        hoverLift: true,
         hoverScale: true,
+      },
+      shadows: {
+        ...DEFAULT_THEME_TOKENS.shadows,
+        card: "medium",
+        button: "soft",
       },
     },
   ),
@@ -523,8 +564,11 @@ export const THEME_PRESETS: ThemePreset[] = [
     {
       typography: {
         ...DEFAULT_THEME_TOKENS.typography,
-        headingFont: "ui-sans-serif, system-ui, sans-serif",
-        letterSpacing: "-0.02em",
+        headingFont: "'Space Grotesk', ui-sans-serif, system-ui, sans-serif",
+        bodyFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+        buttonFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+        navigationFont: "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+        letterSpacing: "-0.03em",
       },
       buttons: {
         ...DEFAULT_THEME_TOKENS.buttons,
