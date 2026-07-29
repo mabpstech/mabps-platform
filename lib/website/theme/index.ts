@@ -6,7 +6,10 @@ export {
   getThemePreset,
   detectPresetId,
   presetDisplayName,
+  themePresetSwatchKey,
+  assertThemePresetReactKeysUnique,
   type ThemePreset,
+  type ThemePresetSwatch,
 } from "@/lib/website/theme/presets";
 export {
   normalizeThemeTokens,

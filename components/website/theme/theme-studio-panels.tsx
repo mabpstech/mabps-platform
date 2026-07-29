@@ -18,6 +18,7 @@ import {
   THEME_FONT_OPTIONS,
   THEME_PRESETS,
   applyRadiusPreset,
+  themePresetSwatchKey,
   validateThemeContrast,
 } from "@/lib/website/theme";
 import { THEME_COLOR_KEYS, type ThemeTokens } from "@/lib/website/theme/types";
@@ -97,11 +98,11 @@ export function ThemeStudioPanels({
                 }`}
               >
                 <div className="flex h-12 overflow-hidden rounded-xl">
-                  {preset.swatch.map((color) => (
+                  {preset.swatch.map((entry) => (
                     <div
-                      key={`${preset.id}-${color}`}
+                      key={themePresetSwatchKey(preset.id, entry.id)}
                       className="flex-1"
-                      style={{ background: color }}
+                      style={{ background: entry.color }}
                     />
                   ))}
                 </div>

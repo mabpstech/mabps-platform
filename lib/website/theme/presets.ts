@@ -1,6 +1,12 @@
 import type { ThemeColorPalette, ThemeTokens } from "@/lib/website/theme/types";
 import { DEFAULT_DARK_COLORS, DEFAULT_THEME_TOKENS } from "@/lib/website/theme/defaults";
 
+export type ThemePresetSwatch = {
+  /** Stable role id within the preset (never a color value). */
+  id: "primary" | "accent" | "background";
+  color: string;
+};
+
 export type ThemePreset = {
   id: string;
   name: string;
@@ -12,9 +18,17 @@ export type ThemePreset = {
     | "industry"
     | "tech"
     | "nature";
-  swatch: [string, string, string];
+  swatch: [ThemePresetSwatch, ThemePresetSwatch, ThemePresetSwatch];
   tokens: ThemeTokens;
 };
+
+/** Stable React key for a preset card swatch cell — never color- or name-only. */
+export function themePresetSwatchKey(
+  presetId: string,
+  swatchId: ThemePresetSwatch["id"],
+): string {
+  return `${presetId}__swatch__${swatchId}`;
+}
 
 function palette(partial: Partial<ThemeColorPalette>): ThemeColorPalette {
   return { ...DEFAULT_THEME_TOKENS.colors, ...partial };
@@ -70,9 +84,44 @@ function buildPreset(
     name,
     description,
     category,
-    swatch: [colors.primary, colors.accent, colors.background],
+    swatch: [
+      { id: "primary", color: colors.primary },
+      { id: "accent", color: colors.accent },
+      { id: "background", color: colors.background },
+    ],
     tokens,
   };
+}
+
+/**
+ * Verifies Theme Studio list keys are unique (preset cards + swatch cells).
+ * Throws if any React key would collide.
+ */
+export function assertThemePresetReactKeysUnique(presets: ThemePreset[]): void {
+  const allKeys = new Set<string>();
+
+  for (const preset of presets) {
+    if (allKeys.has(preset.id)) {
+      throw new Error(`Duplicate Theme Studio React key: "${preset.id}"`);
+    }
+    allKeys.add(preset.id);
+
+    const swatchIds = new Set<string>();
+    for (const entry of preset.swatch) {
+      if (swatchIds.has(entry.id)) {
+        throw new Error(
+          `Duplicate swatch id "${entry.id}" in preset "${preset.id}"`,
+        );
+      }
+      swatchIds.add(entry.id);
+
+      const key = themePresetSwatchKey(preset.id, entry.id);
+      if (allKeys.has(key)) {
+        throw new Error(`Duplicate Theme Studio React key: "${key}"`);
+      }
+      allKeys.add(key);
+    }
+  }
 }
 
 export const THEME_PRESETS: ThemePreset[] = [
@@ -626,3 +675,5 @@ export function presetDisplayName(primaryColor: string): string {
   };
   return legacy[primaryColor.toLowerCase()] ?? "Custom";
 }
+
+assertThemePresetReactKeysUnique(THEME_PRESETS);
