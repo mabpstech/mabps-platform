@@ -116,19 +116,19 @@ function extractBusinessName(prompt: string): {
 } {
   const patterns: Array<{ re: RegExp; group: number; confidence: number }> = [
     {
-      re: /\b(?:called|named)\s+["']?([A-Z][\w&'’.-]*(?:\s+[A-Z][\w&'’.-]*){0,4})["']?/u,
+      re: /\b(?:called|named)\s+["']?([A-Z][\w&'’.-]*(?:\s+(?:&|and)\s+[A-Z][\w&'’.-]*|\s+[A-Z][\w&'’.-]*){0,4})["']?/u,
       group: 1,
       confidence: 0.9,
     },
     {
-      re: /\b(?:for|about)\s+["']?([A-Z][\w&'’.-]*(?:\s+[A-Z][\w&'’.-]*){0,4})["']?/u,
+      re: /\b([A-Z][\w&'’.-]*(?:\s+(?:&|and)\s+[A-Z][\w&'’.-]*|\s+[A-Z][\w&'’.-]*){0,4})\s+(?:is|are)\s+(?:a|an|the)\b/u,
       group: 1,
-      confidence: 0.75,
+      confidence: 0.85,
     },
     {
-      re: /\b([A-Z][\w&'’.-]*(?:\s+[A-Z][\w&'’.-]*){0,3})\s+(?:is|are)\s+(?:a|an|the)\b/u,
+      re: /\b(?:for|about)\s+["']?([A-Z][\w&'’.-]*(?:\s+(?:&|and)\s+[A-Z][\w&'’.-]*|\s+[A-Z][\w&'’.-]*){0,4})["']?/u,
       group: 1,
-      confidence: 0.7,
+      confidence: 0.75,
     },
     {
       re: /["']([A-Za-z][\w&'’ .-]{1,40})["']/u,
@@ -350,6 +350,23 @@ function detectIndustry(text: string): {
     };
   }
   const confidence = Math.min(0.95, 0.45 + best.hits * 0.2 + best.keywordWeight * 0.05);
+  // Hotels often mention dining — keep hospitality from collapsing into restaurant.
+  if (
+    /hotel|resort|hospitality|\bsuites?\b/i.test(text) &&
+    best.label === "restaurant"
+  ) {
+    const hotel = INDUSTRY_LEXICON.find((entry) => entry.label === "hotel hospitality");
+    if (hotel) {
+      return {
+        industry: hotel.label,
+        category: hotel.category,
+        confidence: Math.max(confidence, 0.7),
+        features: hotel.features ? [...hotel.features] : [],
+        ctaLabel: hotel.ctaLabel || null,
+        audience: hotel.audience || null,
+      };
+    }
+  }
   return {
     industry: best.label,
     category: best.category,

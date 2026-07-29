@@ -77,8 +77,8 @@ function deriveServices(profile: AiBusinessProfile, prompt: string): string[] {
     push("specialist consultations", "diagnostics", "emergency care");
   } else if (/dental|dentist/i.test(lower)) {
     push("checkups", "cosmetic dentistry", "implants");
-  } else if (/pet clinic|veterinary|vet\b/i.test(lower)) {
-    push("vaccinations", "surgery", "wellness checkups");
+  } else if (/pet clinic|pet care|pet parents|pet products|veterinary|vet\b/i.test(lower)) {
+    push("vet consultations", "nutrition guidance", "pet products");
   } else if (/restaurant|fine dining/i.test(lower)) {
     push("tasting menus", "reservations", "private dining");
   } else if (/cafe|café|coffee/i.test(lower)) {
@@ -89,8 +89,10 @@ function deriveServices(profile: AiBusinessProfile, prompt: string): string[] {
     push("corporate counsel", "IP advisory", "litigation support");
   } else if (/interior design/i.test(lower)) {
     push("space planning", "material selection", "custom furniture");
-  } else if (/travel agency|honeymoon|tour/i.test(lower)) {
-    push("curated itineraries", "honeymoon packages", "trip support");
+  } else if (
+    /travel agency|honeymoon|tour|flights?|hotels?|trip booking/i.test(lower)
+  ) {
+    push("flight bookings", "hotel stays", "holiday packages");
   } else if (/gym|fitness|hiit/i.test(lower)) {
     push("strength training", "group classes", "personal coaching");
   } else if (/school|cbse/i.test(lower)) {
@@ -105,10 +107,10 @@ function deriveServices(profile: AiBusinessProfile, prompt: string): string[] {
     push("festive collections", "ready-to-wear", "seasonal drops");
   } else if (/real estate|apartment|property/i.test(lower)) {
     push("verified listings", "site visits", "buyer guidance");
-  } else if (/saas|software|platform/i.test(lower)) {
-    push("onboarding automation", "retention workflows", "integrations");
-  } else if (/ngo|nonprofit|scholarship/i.test(lower)) {
-    push("scholarship programs", "mentorship", "community centres");
+  } else if (/saas|software|platform|fintech|payments?|billing/i.test(lower)) {
+    push("product overview", "integrations", "customer success");
+  } else if (/ngo|nonprofit|charity|donation|child rights/i.test(lower)) {
+    push("community programs", "impact stories", "donation options");
   } else if (/event management|conference|product launch/i.test(lower)) {
     push("event planning", "on-site production", "guest experience");
   } else if (/salon|bridal makeup|spa package/i.test(lower)) {
@@ -117,8 +119,12 @@ function deriveServices(profile: AiBusinessProfile, prompt: string): string[] {
     push("device demos", "same-day delivery", "warranty support");
   } else if (/furniture|modular kitchen/i.test(lower)) {
     push("showroom pieces", "custom woodwork", "delivery & install");
-  } else if (/accounting|chartered|gst|audit/i.test(lower)) {
-    push("tax filing", "GST compliance", "CFO advisory");
+  } else if (
+    /accounting|chartered|gst|audit|tax|financial advisory|wealth management/i.test(
+      lower,
+    )
+  ) {
+    push("tax filing", "audits", "financial advisory");
   } else if (/dealership|test drive|vehicle/i.test(lower)) {
     push("test drives", "financing", "certified service");
   } else if (/yoga|hatha|vinyasa/i.test(lower)) {

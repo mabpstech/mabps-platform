@@ -196,19 +196,24 @@ function featureHeading(
   profile: AiBusinessProfile,
 ): string {
   const industry = profile.industry?.trim();
+  const name = profile.name?.trim() || "our team";
   switch (role) {
     case "value_proposition":
       return industry
         ? `Why ${industry} clients choose us`
-        : `Why people choose ${profile.name}`;
+        : `Why people choose ${name}`;
     case "offer":
       return industry ? `What our ${industry} includes` : "What you can expect";
     case "proof":
-      return "Proof that builds confidence";
+      return industry
+        ? `Results that matter in ${industry}`
+        : `Evidence visitors can verify`;
     case "trust":
-      return "Trust signals that matter";
+      return industry
+        ? `Why ${name} earns trust in ${industry}`
+        : `Why ${name} earns trust`;
     default:
-      return `Why choose ${profile.name}`;
+      return `Why choose ${name}`;
   }
 }
 
@@ -225,9 +230,9 @@ function featureDescription(
         ? `${titleCase(title)} shaped for ${audience}.`
         : `${titleCase(title)} as part of a clear ${industry} offer.`;
     case "proof":
-      return `Evidence around ${title.toLowerCase()} that helps visitors decide faster.`;
+      return `Concrete detail on ${title.toLowerCase()} that helps visitors decide faster.`;
     case "trust":
-      return `Reassurance on ${title.toLowerCase()} before someone reaches out.`;
+      return `${titleCase(title)} — a reason ${profile.name || "clients"} stay confident before reaching out.`;
     case "value_proposition":
     default:
       return audience
@@ -431,6 +436,7 @@ function wantsVisualPlaceholder(
   plan: AiWebsitePlan,
   dna: AiBusinessDNA,
   role: AiPlanSectionRole,
+  profile?: AiBusinessProfile,
 ): boolean {
   if (!VISUAL_PLACEHOLDER_ROLES.includes(role)) return false;
   if (plan.contentPriorities.value.includes("visual_showcase")) return true;
@@ -443,9 +449,22 @@ function wantsVisualPlaceholder(
   ) {
     return true;
   }
-  return (
+  if (
     dna.visualIdentity.value === "editorial_magazine" ||
     dna.visualIdentity.value === "warm_organic"
+  ) {
+    return true;
+  }
+  const hay = [
+    profile?.industry,
+    profile?.category,
+    ...(profile?.suggestedFeatures || []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return /hotel|photography|interior|event|construction|fashion|jewell?ery|jewelry|restaurant|cafe|gallery|portfolio|decor/.test(
+    hay,
   );
 }
 
@@ -567,8 +586,8 @@ function composeRoleSection(
 ): AiGeneratedSection[] {
   const density = ctx.density;
   const slots = featureSlotCount(density);
-  const visual = wantsVisualPlaceholder(ctx.plan, ctx.dna, role);
   const profile = ctx.profile;
+  const visual = wantsVisualPlaceholder(ctx.plan, ctx.dna, role, profile);
 
   switch (role) {
     case "hero":
@@ -723,8 +742,8 @@ function composeHomePage(
     title: meta.title,
     slug: meta.slug,
     pageType: "home",
-    seoTitle: null,
-    seoDescription: null,
+    seoTitle: buildPageSeoTitle(profile, "home"),
+    seoDescription: buildPageSeoDescription(profile, "home"),
     sections,
   };
 }
@@ -782,8 +801,8 @@ function composeInnerPage(
     title: meta.title,
     slug: meta.slug,
     pageType,
-    seoTitle: null,
-    seoDescription: null,
+    seoTitle: buildPageSeoTitle(profile, pageType),
+    seoDescription: buildPageSeoDescription(profile, pageType),
     sections,
   };
 }
@@ -954,11 +973,80 @@ function buildFooter(
 
 function buildSeo(profile: AiBusinessProfile): AiGeneratedSeo {
   return {
-    defaultTitle: profile.name,
-    defaultDescription: profile.description?.trim() || profile.slogan || null,
+    defaultTitle: buildPageSeoTitle(profile, "home"),
+    defaultDescription:
+      profile.description?.trim() ||
+      buildPageSeoDescription(profile, "home") ||
+      profile.slogan ||
+      null,
     robots: "index,follow",
     twitterHandle: null,
   };
+}
+
+function buildPageSeoTitle(
+  profile: AiBusinessProfile,
+  pageType: PageType,
+): string {
+  const name = profile.name?.trim() || "Website";
+  const industry = profile.industry?.trim();
+  const feature = profile.suggestedFeatures.find(
+    (item) =>
+      item.trim() &&
+      !/^(about|contact form|clear navigation|faq|product catalog|collections)$/i.test(
+        item,
+      ),
+  );
+  const pageLabel =
+    pageType === "home" ? null : PAGE_TYPE_META[pageType]?.title || null;
+
+  if (pageLabel) {
+    return `${pageLabel} | ${name}`.slice(0, 65);
+  }
+
+  const nameLower = name.toLowerCase();
+  const industryUnique =
+    industry && !nameLower.includes(industry.toLowerCase()) ? industry : null;
+  if (industryUnique) {
+    return `${name} | ${industryUnique}`.slice(0, 65);
+  }
+
+  if (feature && !nameLower.includes(feature.toLowerCase())) {
+    return `${name} | ${titleCase(feature)}`.slice(0, 65);
+  }
+
+  const audience = profile.audience?.trim();
+  if (audience) {
+    const shortAud = audience.split(/\s+/).slice(0, 4).join(" ");
+    return `${name} | ${shortAud}`.slice(0, 65);
+  }
+
+  if (industry) return `${name} | ${industry}`.slice(0, 65);
+  return name;
+}
+
+function buildPageSeoDescription(
+  profile: AiBusinessProfile,
+  pageType: PageType,
+): string | null {
+  const description = profile.description?.trim();
+  if (description) return description.slice(0, 160);
+  const name = profile.name?.trim();
+  const industry = profile.industry?.trim();
+  const audience = profile.audience?.trim();
+  if (!name) return null;
+  const pageHint =
+    pageType === "about"
+      ? "Learn about"
+      : pageType === "contact"
+        ? "Contact"
+        : pageType === "products" || pageType === "collections"
+          ? "Explore"
+          : "Discover";
+  const base = industry
+    ? `${pageHint} ${name} — ${industry}${audience ? ` for ${audience}` : ""}.`
+    : `${pageHint} ${name}${audience ? ` for ${audience}` : ""}.`;
+  return base.slice(0, 160);
 }
 
 function buildNavigation(

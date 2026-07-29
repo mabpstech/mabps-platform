@@ -306,13 +306,16 @@ function pickIndustryTemplate(plan: BusinessPlan, prompt = ""): IndustryTemplate
   ) {
     return JEWELLERY_TEMPLATE;
   }
+  if (/hotel|resort|hospitality|\bsuites?\b/i.test(text)) {
+    return SERVICES_TEMPLATE;
+  }
   if (
     /restaurant|cafe|café|bistro|dining|menu|bakery|bar\b|food/i.test(text)
   ) {
     return RESTAURANT_TEMPLATE;
   }
   if (
-    /hospital|clinic|doctor|medical|healthcare|dental|dentist|patient|veterinary|pet clinic|vet\b/i.test(
+    /hospital|clinic|doctor|medical|healthcare|dental|dentist|patient|veterinary|pet clinic|pet care|pet parents|vet\b/i.test(
       text,
     )
   ) {
@@ -325,7 +328,7 @@ function pickIndustryTemplate(plan: BusinessPlan, prompt = ""): IndustryTemplate
   ) {
     return MEDITATION_TEMPLATE;
   }
-  if (/hotel|resort|hospitality|travel agency|tour operator/i.test(text)) {
+  if (/travel agency|tour operator/i.test(text)) {
     return SERVICES_TEMPLATE;
   }
   if (

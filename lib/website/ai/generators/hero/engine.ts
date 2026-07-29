@@ -49,11 +49,15 @@ function pickStyle(plan: BusinessPlan): HeroStyle {
   const text = haystack(plan);
 
   if (
-    /\bhospital\b|clinic|doctor|medical|healthcare|dentist|patient|veterinary|pet clinic|vet\b|dental clinic|cosmetic dentistry/i.test(
+    /\bhospital\b|clinic|doctor|medical|healthcare|dentist|patient|veterinary|pet clinic|pet care|pet products|pet parents|\bpets?\b|vet\b|dental clinic|cosmetic dentistry/i.test(
       text,
     )
   ) {
     return "healthcare";
+  }
+  // Hotels often mention dining — prefer hospitality before restaurant.
+  if (/hotel|resort|hospitality|suites/i.test(text)) {
+    return "luxury";
   }
   if (
     /restaurant|cafe|café|bistro|dining|bakery|bar\b|food/i.test(text) ||
@@ -61,8 +65,11 @@ function pickStyle(plan: BusinessPlan): HeroStyle {
   ) {
     return "restaurant";
   }
+  // Avoid bare "wellness" — it appears in pet, salon, and gym copy.
   if (
-    /meditation|mindful|yoga|retreat|spiritual|ashram|wellness/i.test(text)
+    /meditation|mindful|yoga|retreat|spiritual|ashram|wellness (centre|center|retreat|program)/i.test(
+      text,
+    )
   ) {
     return "spiritual";
   }
@@ -166,10 +173,11 @@ const INDUSTRY_VOICES: IndustryVoice[] = [
       `Luxury ${industry} showroom featuring ${service}, elegant displays, soft cinematic lighting`,
   },
   {
-    match: /veterinary|pet clinic/,
+    match:
+      /veterinary|pet clinic|pet care|pet products|pet parents|\bpets?\b|\bdogs?\b|\bcats?\b/,
     headline: () => "Compassionate care for the pets you love",
     subheadline: (audience) =>
-      `Vaccinations, surgery, and wellness visits designed for ${audience} who want clear, kind guidance.`,
+      `Vet visits, nutrition, and everyday pet care designed for ${audience} who want clear, kind guidance.`,
     primaryCta: "Book a pet visit",
     secondaryCta: "See our services",
     imagePrompt: () =>
@@ -216,6 +224,16 @@ const INDUSTRY_VOICES: IndustryVoice[] = [
       `Specialty cafe interior with espresso bar, pastry case, warm daylight, lived-in textures`,
   },
   {
+    match: /hotel|resort|hospitality/,
+    headline: () => "Stays shaped by place and quiet luxury",
+    subheadline: (audience) =>
+      `Suites, spa moments, and gatherings for ${audience} seeking a stay that feels personal, not generic.`,
+    primaryCta: "Book a stay",
+    secondaryCta: "Explore the hotel",
+    imagePrompt: () =>
+      `Boutique heritage hotel suite with lake views, soft textiles, warm evening light`,
+  },
+  {
     match: /\brestaurant\b|fine dining/,
     headline: () => "Menus crafted for evenings worth remembering",
     subheadline: (audience) =>
@@ -246,11 +264,12 @@ const INDUSTRY_VOICES: IndustryVoice[] = [
       `Styled residential interior with custom furniture, natural materials, soft architectural light`,
   },
   {
-    match: /travel agency|tour operator|honeymoon|holiday package|backwater/,
+    match:
+      /travel agency|tour operator|honeymoon|holiday package|backwater|flight booking|hotel booking|trip booking|travel company/,
     headline: () => "Journeys planned with local intelligence",
     subheadline: (audience) =>
       `Curated itineraries for ${audience} who want thoughtful pacing, trusted partners, and real local texture.`,
-    primaryCta: "Plan your trip",
+    primaryCta: "Book your trip",
     secondaryCta: "Browse packages",
     imagePrompt: () =>
       `Travel planning desk with maps and destination photography, warm daylight, aspirational mood`,
@@ -306,16 +325,6 @@ const INDUSTRY_VOICES: IndustryVoice[] = [
       `Editorial wedding photography scene with natural light, candid emotion, refined composition`,
   },
   {
-    match: /hotel|hospitality/,
-    headline: () => "Stays shaped by place and quiet luxury",
-    subheadline: (audience) =>
-      `Suites, spa moments, and gatherings for ${audience} seeking a stay that feels personal, not generic.`,
-    primaryCta: "Check availability",
-    secondaryCta: "Explore the hotel",
-    imagePrompt: () =>
-      `Boutique heritage hotel suite with lake views, soft textiles, warm evening light`,
-  },
-  {
     match: /fashion/,
     headline: () => "Ready-to-wear made for festive days",
     subheadline: (audience) =>
@@ -336,24 +345,27 @@ const INDUSTRY_VOICES: IndustryVoice[] = [
       `Premium apartment interior ready for viewing, bright daylight, refined residential detailing`,
   },
   {
-    match: /saas|software/,
-    headline: () => "Onboarding workflows teams can trust",
+    match: /saas|software|fintech|payments?|billing|subscription/,
+    headline: () => "Software teams can trust in production",
     subheadline: (audience) =>
-      `A platform for ${audience} automating customer journeys without adding operational noise.`,
+      `A platform for ${audience} automating critical workflows without adding operational noise.`,
     primaryCta: "Request a demo",
     secondaryCta: "See how it works",
     imagePrompt: () =>
       `Modern SaaS product UI on laptop in a clean office, crisp lighting, confident tech aesthetic`,
   },
   {
-    match: /nonprofit|ngo/,
-    headline: () => "Education that widens what girls can claim",
-    subheadline: (audience) =>
-      `Programs, mentorship, and community learning for ${audience} invested in lasting rural education impact.`,
-    primaryCta: "Support the mission",
+    match: /nonprofit|ngo|charity|foundation/,
+    headline: (_service, industry) =>
+      /education|school|learning|child/i.test(industry)
+        ? "Programs that expand what children can claim"
+        : "Work that widens community impact",
+    subheadline: (audience, industry, service) =>
+      `${shortPhrase(service || "Programs", 3)}, stories, and pathways for ${audience} invested in lasting ${industry} outcomes.`,
+    primaryCta: "Donate now",
     secondaryCta: "See our impact",
     imagePrompt: () =>
-      `Community learning centre with students studying, warm natural light, hopeful documentary mood`,
+      `Community program with people collaborating, warm natural light, hopeful documentary mood`,
   },
   {
     match: /event management|conferences|product launches/,
