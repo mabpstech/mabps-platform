@@ -12,7 +12,7 @@ import {
 import { EmptyState, StatusBadge } from "@/components/website/ui/empty-state";
 import { InlineBanner } from "@/components/website/ui/inline-banner";
 import { formatRelativeTime } from "@/components/website/ui/labels";
-import type { WebsitePage } from "@/lib/website/types";
+import type { SiteStatus, WebsitePage } from "@/lib/website/types";
 
 const PAGE_TYPE_LABELS: Record<string, string> = {
   home: "Home",
@@ -156,16 +156,20 @@ export function PagesManager({
   siteId,
   pages,
   canManage,
+  siteStatus,
 }: {
   siteId: string;
   pages: WebsitePage[];
   canManage: boolean;
+  siteStatus: SiteStatus;
 }) {
   const router = useRouter();
   const titleInputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const draftCount = pages.filter((page) => page.status !== "published").length;
+  const siteIsLive = siteStatus === "published";
 
   async function createPage(event: React.FormEvent) {
     event.preventDefault();
@@ -225,10 +229,20 @@ export function PagesManager({
         <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
           Edit each page of your website. Start with Home for the best first
           impression.
+          {siteIsLive
+            ? " New pages are published by default while the site is live."
+            : ""}
         </p>
       </div>
 
       <InlineBanner message={error} tone="error" />
+
+      {siteIsLive && draftCount > 0 ? (
+        <InlineBanner
+          message={`${draftCount} draft page${draftCount === 1 ? "" : "s"} stay private until you set status to Published.`}
+          tone="info"
+        />
+      ) : null}
 
       {canManage ? (
         <form

@@ -19,6 +19,8 @@ export type PublishChecklistItem = {
   ok: boolean;
   /** When true, publish is blocked until this item is complete. */
   required?: boolean;
+  /** Deep-link to the screen that fixes this item. */
+  href?: string;
 };
 
 type DomainInstructions = {
@@ -342,18 +344,23 @@ export function PublishPanel({
           <div className="rounded-xl border border-zinc-200 bg-white p-6">
             <h2 className="text-lg font-medium text-zinc-900">Manage</h2>
             <p className="mt-1 text-sm text-zinc-500">
-              Republish after changes, or take the site offline.
+              Edits to published pages go live when you save. Unpublish only if
+              you need to take the whole site offline.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                href={`/website/${site.id}/pages`}
+                className={`${authButtonClassName} !w-auto px-4 no-underline`}
+              >
+                Edit pages
+              </Link>
               <button
                 type="button"
-                className={`${authButtonClassName} !w-auto px-4`}
-                onClick={() => {
-                  setShowSuccess(false);
-                }}
+                className={`${authSecondaryButtonClassName} !w-auto px-4`}
+                onClick={() => setShowSuccess(false)}
                 disabled={Boolean(pending)}
               >
-                Review & republish
+                Domain &amp; checklist
               </button>
               <button
                 type="button"
@@ -381,7 +388,9 @@ export function PublishPanel({
             Publish
           </h1>
           <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
-            Review readiness, publish the site, and connect a custom domain.
+            {current.status === "published"
+              ? "Your site is live. Content on published pages updates when you save — no republish needed."
+              : "Review readiness, publish the site, and connect a custom domain."}
           </p>
         </div>
         <StatusBadge status={displayStatus} />
@@ -389,6 +398,38 @@ export function PublishPanel({
 
       <InlineBanner message={error} tone="error" />
       <InlineBanner message={message} tone="success" />
+
+      {current.status === "published" ? (
+        <div className="rounded-xl border border-emerald-200/90 bg-gradient-to-br from-emerald-50 via-white to-zinc-50 px-5 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
+                Live URL
+              </p>
+              <p className="mt-0.5 truncate font-mono text-sm text-zinc-800">
+                {liveUrl}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5 text-xs`}
+                onClick={() => void copyLiveUrl()}
+              >
+                {copied ? "Copied!" : "Copy"}
+              </button>
+              <a
+                href={liveUrl}
+                target="_blank"
+                rel="noreferrer"
+                className={`${authButtonClassName} !w-auto px-3 py-1.5 text-xs no-underline`}
+              >
+                Open
+              </a>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="rounded-xl border border-zinc-200 bg-white p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -419,12 +460,15 @@ export function PublishPanel({
               : item.required
                 ? "required"
                 : "warning";
-            return (
-              <li
-                key={item.id}
-                className="flex items-center justify-between gap-3 px-4 py-3 text-sm"
-              >
-                <span className="flex items-center gap-2.5 text-zinc-800">
+            const statusLabel =
+              tone === "ok"
+                ? "Complete"
+                : tone === "required"
+                  ? "Required"
+                  : "Warning";
+            const row = (
+              <>
+                <span className="flex min-w-0 items-center gap-2.5 text-zinc-800">
                   <span
                     className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
                       tone === "ok"
@@ -465,23 +509,42 @@ export function PublishPanel({
                       </svg>
                     )}
                   </span>
-                  {item.label}
+                  <span className="min-w-0">
+                    {item.label}
+                    {!item.ok && item.href ? (
+                      <span className="mt-0.5 block text-xs font-medium text-zinc-500">
+                        Fix this →
+                      </span>
+                    ) : null}
+                  </span>
                 </span>
                 <span
                   className={
                     tone === "ok"
-                      ? "text-xs font-medium text-emerald-700"
+                      ? "shrink-0 text-xs font-medium text-emerald-700"
                       : tone === "required"
-                        ? "text-xs font-medium text-red-700"
-                        : "text-xs font-medium text-amber-700"
+                        ? "shrink-0 text-xs font-medium text-red-700"
+                        : "shrink-0 text-xs font-medium text-amber-700"
                   }
                 >
-                  {tone === "ok"
-                    ? "Complete"
-                    : tone === "required"
-                      ? "Required"
-                      : "Warning"}
+                  {statusLabel}
                 </span>
+              </>
+            );
+            return (
+              <li key={item.id} className="text-sm">
+                {!item.ok && item.href ? (
+                  <Link
+                    href={item.href}
+                    className="flex items-center justify-between gap-3 px-4 py-3 no-underline transition hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900/20"
+                  >
+                    {row}
+                  </Link>
+                ) : (
+                  <div className="flex items-center justify-between gap-3 px-4 py-3">
+                    {row}
+                  </div>
+                )}
               </li>
             );
           })}
@@ -512,29 +575,34 @@ export function PublishPanel({
         </div>
 
         {canManage ? (
-          <div className="mt-5 flex flex-wrap gap-2">
-            <button
-              type="button"
-              className={`${authButtonClassName} !w-auto px-4`}
-              onClick={() => void publish("publish")}
-              disabled={Boolean(pending) || blockingItems.length > 0}
-            >
-              {pending === "publish"
-                ? "Publishing…"
-                : current.status === "published"
-                  ? "Publish again"
-                  : "Publish website"}
-            </button>
+          <div className="mt-5 space-y-3">
             {current.status === "published" ? (
-              <button
-                type="button"
-                className={`${authSecondaryButtonClassName} !w-auto px-4`}
-                onClick={() => void publish("unpublish")}
-                disabled={Boolean(pending)}
-              >
-                {pending === "unpublish" ? "Working…" : "Unpublish"}
-              </button>
+              <p className="text-sm text-zinc-500">
+                Saving a published page updates the live site immediately. Use
+                unpublish only to hide the whole site from visitors.
+              </p>
             ) : null}
+            <div className="flex flex-wrap gap-2">
+              {current.status !== "published" ? (
+                <button
+                  type="button"
+                  className={`${authButtonClassName} !w-auto px-4`}
+                  onClick={() => void publish("publish")}
+                  disabled={Boolean(pending) || blockingItems.length > 0}
+                >
+                  {pending === "publish" ? "Publishing…" : "Publish website"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={`${authSecondaryButtonClassName} !w-auto px-4`}
+                  onClick={() => void publish("unpublish")}
+                  disabled={Boolean(pending)}
+                >
+                  {pending === "unpublish" ? "Working…" : "Unpublish"}
+                </button>
+              )}
+            </div>
           </div>
         ) : null}
       </div>

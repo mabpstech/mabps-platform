@@ -1362,6 +1362,7 @@ export function createPage(input: {
   title: string;
   slug?: string;
   pageType?: PageType;
+  status?: PageStatus;
 }): WebsitePage {
   ensureWebsiteReady();
   const title = input.title.trim();
@@ -1374,6 +1375,13 @@ export function createPage(input: {
   const existing = listPages(input.siteId);
   const timestamp = nowIso();
   const id = randomUUID();
+  // When the site is already live, new pages should be public by default so
+  // customers are not surprised by 404s after adding Services/About/etc.
+  const site = getSiteById(input.siteId);
+  const status: PageStatus =
+    input.status ??
+    (site?.status === "published" ? "published" : "draft");
+  const publishedAt = status === "published" ? timestamp : null;
 
   sqlite
     .prepare(
@@ -1381,7 +1389,7 @@ export function createPage(input: {
         "id", "siteId", "title", "slug", "pageType", "status", "sortOrder",
         "seoTitle", "seoDescription", "seoOgImageMediaId", "seoRobots",
         "publishedAt", "createdAt", "updatedAt"
-      ) VALUES (?, ?, ?, ?, ?, 'draft', ?, NULL, NULL, NULL, NULL, NULL, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, ?, ?, ?)`,
     )
     .run(
       id,
@@ -1389,7 +1397,9 @@ export function createPage(input: {
       title,
       slug,
       input.pageType ?? "custom",
+      status,
       existing.length,
+      publishedAt,
       timestamp,
       timestamp,
     );

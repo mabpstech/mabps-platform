@@ -128,28 +128,6 @@ export function SitesDashboard({
     }
   }
 
-  async function publishSite(siteId: string) {
-    if (!canManage) return;
-    try {
-      const response = await fetch(`/api/website/sites/${siteId}/publish`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "publish" }),
-      });
-      const data = (await response.json()) as { error?: string };
-      if (!response.ok) throw new Error(data.error || "Unable to publish.");
-      setToast({ message: "Website is now live", tone: "success" });
-      router.refresh();
-    } catch (err) {
-      setToast({
-        message: err instanceof Error ? err.message : "Unable to publish.",
-        tone: "error",
-      });
-    } finally {
-      setMenuOpenId(null);
-    }
-  }
-
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -303,22 +281,14 @@ export function SitesDashboard({
                   >
                     Preview
                   </Link>
-                  {canManage && site.status !== "published" ? (
-                    <button
-                      type="button"
-                      className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5 text-xs`}
-                      onClick={() => void publishSite(site.id)}
-                    >
-                      Publish now
-                    </button>
-                  ) : (
+                  {canManage ? (
                     <Link
                       href={`/website/${site.id}/publish`}
                       className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5 text-xs`}
                     >
-                      Publish settings
+                      {site.status === "published" ? "Live settings" : "Publish"}
                     </Link>
-                  )}
+                  ) : null}
                   <div className="relative ml-auto" data-site-menu>
                     <button
                       type="button"

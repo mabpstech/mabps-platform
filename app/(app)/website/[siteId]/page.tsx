@@ -103,7 +103,46 @@ export default async function SiteOverviewPage({ params }: PageProps) {
           This website is still a draft. Edit your pages, then publish when you
           are ready to go live.
         </div>
-      ) : null}
+      ) : (
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950"
+          role="status"
+        >
+          <div className="min-w-0">
+            <p className="font-medium">Your website is live</p>
+            <p className="mt-0.5 truncate font-mono text-xs text-emerald-800">
+              {site.customDomain && site.domainVerified
+                ? `https://${site.customDomain}`
+                : `/p/${site.slug}`}
+            </p>
+            <p className="mt-1 text-xs text-emerald-800/80">
+              Edits to published pages go live when you save.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={
+                site.customDomain && site.domainVerified
+                  ? `https://${site.customDomain}`
+                  : `/p/${site.slug}`
+              }
+              target="_blank"
+              rel="noreferrer"
+              className={`${authButtonClassName} !w-auto px-3 py-1.5 text-xs no-underline`}
+            >
+              Open live site
+            </a>
+            {canManage ? (
+              <Link
+                href={`/website/${site.id}/publish`}
+                className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5 text-xs`}
+              >
+                Live settings
+              </Link>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <OverviewStat
@@ -177,10 +216,10 @@ export default async function SiteOverviewPage({ params }: PageProps) {
             href={`/website/${site.id}/header`}
           />
           <NextStep
-            title={isLive ? "Manage publishing" : "Publish when ready"}
+            title={isLive ? "Manage live site" : "Publish when ready"}
             description={
               isLive
-                ? "Review domain settings and republish updates."
+                ? "Share your live URL, connect a domain, or unpublish."
                 : "Make your site visible at its public address."
             }
             href={`/website/${site.id}/publish`}

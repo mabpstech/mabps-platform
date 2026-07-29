@@ -23,7 +23,7 @@ import {
   CONTENT_FIELD_LABELS,
   SECTION_LABELS,
 } from "@/components/website/ui/labels";
-import { EmptyState } from "@/components/website/ui/empty-state";
+import { EmptyState, StatusBadge } from "@/components/website/ui/empty-state";
 import {
   EditorHeaderActions,
   SaveBar,
@@ -35,6 +35,7 @@ import {
   PAGE_STATUSES,
   SECTION_TYPES,
   type PageStatus,
+  type SiteStatus,
   type SectionSettings,
   type SectionType,
   type WebsitePage,
@@ -113,12 +114,14 @@ export function PageBuilder({
   initialSections,
   canManage,
   siteSlug,
+  siteStatus,
 }: {
   siteId: string;
   page: WebsitePage;
   initialSections: WebsiteSection[];
   canManage: boolean;
   siteSlug: string;
+  siteStatus: SiteStatus;
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(page.title);
@@ -494,14 +497,42 @@ export function PageBuilder({
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
             Page editor
           </p>
-          <h1 className="mt-1 truncate text-2xl font-semibold tracking-tight text-zinc-900">
-            {page.title}
-          </h1>
+          <div className="mt-1 flex flex-wrap items-center gap-2.5">
+            <h1 className="truncate text-2xl font-semibold tracking-tight text-zinc-900">
+              {page.title}
+            </h1>
+            <StatusBadge status={status} />
+          </div>
           <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
-            Select a section on the left, edit on the right, preview instantly.
+            {status === "draft"
+              ? siteStatus === "published"
+                ? "This page is draft — visitors will not see it until you set status to Published."
+                : "Draft page. Publish the page (and the site) when you are ready for visitors."
+              : siteStatus === "published"
+                ? "Published — saves go live immediately."
+                : "Page is ready. Publish the website to make it visible to visitors."}
           </p>
         </div>
         <EditorHeaderActions>
+          {canManage ? (
+            <label className="flex items-center gap-2 text-xs font-medium text-zinc-600">
+              <span className="sr-only">Page status</span>
+              <select
+                className={`${authInputClassName} !mt-0 !w-auto min-w-[7.5rem] py-1.5 text-xs`}
+                value={status}
+                onChange={(event) =>
+                  setStatus(event.target.value as PageStatus)
+                }
+                aria-label="Page status"
+              >
+                {PAGE_STATUSES.map((value) => (
+                  <option key={value} value={value}>
+                    {value === "published" ? "Published" : "Draft"}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <button
             type="button"
             className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5 ${
@@ -563,7 +594,11 @@ export function PageBuilder({
                 ))}
               </select>
               <p className="mt-1.5 text-[11px] text-zinc-500">
-                Draft pages stay private until you publish them.
+                {status === "draft"
+                  ? "Draft pages stay private even if the website is live."
+                  : siteStatus === "published"
+                    ? "This page is public. Saves update the live site."
+                    : "This page will be public once you publish the website."}
               </p>
             </div>
             <div>

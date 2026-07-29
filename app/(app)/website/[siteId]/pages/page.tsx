@@ -19,6 +19,7 @@ export default async function SitePagesPage({ params }: PageProps) {
       siteId={siteId}
       pages={listPages(siteId)}
       canManage={isWorkspaceManager(role)}
+      siteStatus={site.status}
     />
   );
 }

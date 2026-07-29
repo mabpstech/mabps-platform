@@ -27,6 +27,7 @@ export default async function SitePageBuilderPage({ params }: PageProps) {
       initialSections={listSections(pageId)}
       canManage={isWorkspaceManager(role)}
       siteSlug={site.slug}
+      siteStatus={site.status}
     />
   );
 }
