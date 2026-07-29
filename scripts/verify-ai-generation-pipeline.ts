@@ -167,7 +167,54 @@ async function main() {
       assert.ok(pages.some((page) => page.pageType === "home"));
       const home = pages.find((page) => page.pageType === "home");
       assert.ok(home);
-      assert.ok(listSections(home!.id).length >= 1);
+      const homeSections = listSections(home!.id);
+      assert.ok(homeSections.length >= 1);
+
+      // Phase 4 — live Hero replacement: exactly one home Hero from generationRun
+      const homeHeroes = homeSections.filter((section) => section.type === "hero");
+      assert.equal(homeHeroes.length, 1);
+      assert.ok(result.generationRun.hero);
+      assert.equal(
+        String(homeHeroes[0]?.content.heading ?? ""),
+        result.generationRun.hero.headline,
+      );
+      assert.equal(
+        String(homeHeroes[0]?.content.subheading ?? ""),
+        result.generationRun.hero.subheadline,
+      );
+      assert.equal(
+        String(homeHeroes[0]?.content.primaryLabel ?? ""),
+        result.generationRun.hero.primaryCTA,
+      );
+
+      const blueprintHome = result.blueprint.pages.find(
+        (page) => page.pageType === "home",
+      );
+      assert.ok(blueprintHome);
+      assert.equal(
+        blueprintHome!.sections.filter((section) => section.type === "hero")
+          .length,
+        1,
+      );
+      assert.equal(
+        blueprintHome!.sections.find((section) => section.type === "hero")
+          ?.content.heading,
+        result.generationRun.hero.headline,
+      );
+
+      // About / non-home heroes stay legacy (empty shell), not generationRun
+      const about = pages.find((page) => page.pageType === "about");
+      if (about) {
+        const aboutHero = listSections(about.id).find(
+          (section) => section.type === "hero",
+        );
+        if (aboutHero) {
+          assert.notEqual(
+            String(aboutHero.content.heading ?? ""),
+            result.generationRun.hero.headline,
+          );
+        }
+      }
     } finally {
       cleanupWorkspace(workspaceId);
     }

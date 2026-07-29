@@ -1,5 +1,5 @@
 /**
- * AI Pipeline Phase 3.5 — Builder Adapter smoke checks.
+ * AI Pipeline Phase 3.5–4 — Builder Adapter + Live Hero replacement smoke checks.
  * Run: npx tsx scripts/verify-ai-builder-adapter.ts
  */
 
@@ -16,13 +16,22 @@ import {
   adaptGenerationRunToBuilder,
   adaptHeroContent,
   adaptHeroToBuilderSection,
+  adapterOptionsFromLegacyHero,
+  applyHeroToBlueprint,
+  applyHeroToPage,
+  replaceHeroInSections,
   type BuilderHeroContent,
+  type BuilderSectionJson,
 } from "../lib/website/ai/builder-adapter";
 import {
   EXAMPLE_HERO_SECTION,
   type HeroSectionContent,
 } from "../lib/website/ai/generators/hero";
 import type { GenerationRunResult } from "../lib/website/ai/orchestrator";
+import type {
+  AiGeneratedPage,
+  AiWebsiteBlueprint,
+} from "../lib/website/ai/types";
 import { defaultSectionContent } from "../components/website/section-defaults";
 
 const BUILDER_HERO_KEYS = Object.keys(
@@ -219,6 +228,182 @@ function assertBuilderHeroContent(content: Record<string, unknown>) {
     heroSettings: { paddingY: "lg" },
   });
   assert.deepEqual(section.settings, { paddingY: "lg" });
+}
+
+// --- Phase 4: replaceHeroInSections keeps exactly one hero ---
+{
+  const legacyHero: BuilderSectionJson = {
+    type: "hero",
+    content: {
+      ...defaultSectionContent("hero"),
+      heading: "Legacy",
+      primaryHref: "/shop",
+    },
+  };
+  const features: BuilderSectionJson = {
+    type: "features",
+    content: { heading: "Features stay", items: [] },
+  };
+  const cta: BuilderSectionJson = {
+    type: "cta",
+    content: { heading: "CTA stays", body: "", buttonLabel: "", buttonHref: "/" },
+  };
+  const duplicateHero: BuilderSectionJson = {
+    type: "hero",
+    content: { ...defaultSectionContent("hero"), heading: "Extra" },
+  };
+  const adapted = adaptHeroToBuilderSection(EXAMPLE_HERO_SECTION, {
+    primaryHref: "/shop",
+  });
+
+  const replaced = replaceHeroInSections(
+    [legacyHero, features, duplicateHero, cta],
+    adapted,
+  );
+  assert.equal(replaced.filter((s) => s.type === "hero").length, 1);
+  assert.equal(replaced[0]?.type, "hero");
+  assert.equal(replaced[0]?.content.heading, EXAMPLE_HERO_SECTION.headline);
+  assert.equal(replaced[1]?.type, "features");
+  assert.equal(replaced[1]?.content.heading, "Features stay");
+  assert.equal(replaced[2]?.type, "cta");
+  assert.equal(replaced[2]?.content.heading, "CTA stays");
+}
+
+// --- Phase 4: insert hero when missing ---
+{
+  const features: BuilderSectionJson = {
+    type: "features",
+    content: { heading: "Only features", items: [] },
+  };
+  const adapted = adaptHeroToBuilderSection(EXAMPLE_HERO_SECTION);
+  const replaced = replaceHeroInSections([features], adapted);
+  assert.equal(replaced.length, 2);
+  assert.equal(replaced[0]?.type, "hero");
+  assert.equal(replaced[1]?.type, "features");
+}
+
+// --- Phase 4: legacy options preserve CTA hrefs / settings ---
+{
+  const legacy: BuilderSectionJson = {
+    type: "hero",
+    content: {
+      ...defaultSectionContent("hero"),
+      primaryHref: "/book",
+      secondaryHref: "/menu",
+    },
+    settings: { paddingY: "xl" },
+  };
+  const opts = adapterOptionsFromLegacyHero(legacy);
+  assert.equal(opts.primaryHref, "/book");
+  assert.equal(opts.secondaryHref, "/menu");
+  assert.deepEqual(opts.heroSettings, { paddingY: "xl" });
+}
+
+// --- Phase 4: applyHeroToBlueprint replaces home only; fallback when no hero ---
+{
+  const home: AiGeneratedPage = {
+    title: "Home",
+    slug: "home",
+    pageType: "home",
+    seoTitle: null,
+    seoDescription: null,
+    sections: [
+      {
+        type: "hero",
+        content: {
+          ...defaultSectionContent("hero"),
+          heading: "Legacy Home",
+          primaryHref: "/contact",
+          secondaryHref: "/about",
+        },
+        settings: { paddingY: "lg" },
+      },
+      {
+        type: "features",
+        content: { heading: "Why us", items: [{ title: "A", description: "B" }] },
+      },
+      {
+        type: "cta",
+        content: {
+          heading: "Ready?",
+          body: "",
+          buttonLabel: "Go",
+          buttonHref: "/contact",
+        },
+      },
+    ],
+  };
+  const about: AiGeneratedPage = {
+    title: "About",
+    slug: "about",
+    pageType: "about",
+    seoTitle: null,
+    seoDescription: null,
+    sections: [
+      {
+        type: "hero",
+        content: { ...defaultSectionContent("hero"), heading: "About Legacy" },
+      },
+      { type: "richText", content: { html: "<p>Story</p>" } },
+    ],
+  };
+  const blueprint = {
+    version: 1,
+    intent: {},
+    site: { name: "Test", slug: "test" },
+    brand: {},
+    theme: { presetId: null, tokens: {} },
+    header: {},
+    footer: {},
+    seo: {},
+    pages: [home, about],
+    navigation: [],
+  } as unknown as AiWebsiteBlueprint;
+
+  const withHero = applyHeroToBlueprint(
+    blueprint,
+    EXAMPLE_GENERATION_RUN_WITH_HERO,
+  );
+  const homePage = withHero.pages.find((page) => page.pageType === "home")!;
+  const aboutPage = withHero.pages.find((page) => page.pageType === "about")!;
+  const homeHeroes = homePage.sections.filter((s) => s.type === "hero");
+  assert.equal(homeHeroes.length, 1);
+  assert.equal(homeHeroes[0]?.content.heading, EXAMPLE_HERO_SECTION.headline);
+  assert.equal(homeHeroes[0]?.content.primaryHref, "/contact");
+  assert.deepEqual(homeHeroes[0]?.settings, { paddingY: "lg" });
+  assert.equal(
+    homePage.sections.find((s) => s.type === "features")?.content.heading,
+    "Why us",
+  );
+  assert.equal(
+    homePage.sections.find((s) => s.type === "cta")?.content.heading,
+    "Ready?",
+  );
+  assert.equal(
+    aboutPage.sections.find((s) => s.type === "hero")?.content.heading,
+    "About Legacy",
+  );
+  assert.deepEqual(aboutPage.sections, about.sections);
+
+  const emptyRun: GenerationRunResult = {
+    plan: { tasks: [] },
+    results: [],
+    hero: null,
+    heroMeta: null,
+  };
+  const fallback = applyHeroToBlueprint(blueprint, emptyRun);
+  assert.equal(
+    fallback.pages.find((page) => page.pageType === "home")?.sections.find(
+      (s) => s.type === "hero",
+    )?.content.heading,
+    "Legacy Home",
+  );
+
+  const viaPage = applyHeroToPage(home, EXAMPLE_GENERATION_RUN_WITH_HERO);
+  assert.equal(
+    viaPage.sections.filter((s) => s.type === "hero").length,
+    1,
+  );
 }
 
 console.log("verify-ai-builder-adapter: ok");

@@ -1,19 +1,21 @@
 /**
- * AI Website Generation service (Sprint B3 + Phase 1–3 planners/generators).
+ * AI Website Generation service (Sprint B3 + Phase 1–4 planners/generators).
  *
  * User Prompt → Business Planner → Website Planner → Generation Orchestrator →
  * (Phase 3: hero-generator via orchestrator) → OpenAI prompt signals → validate →
  * Business Intelligence → DNA → Brand Strategy → Website Plan → Creative Direction →
- * Website Composer → Blueprint Executor.
+ * Website Composer → (Phase 4: replace home Hero from generationRun) →
+ * Blueprint Executor.
  *
  * Phase 1–2.5 planners are logged and passed through. Phase 3 hero content is
- * produced only through the orchestrator (not Builder/Editor). Downstream
- * blueprint execution is unchanged.
+ * produced only through the orchestrator (not Builder/Editor). Phase 4 swaps
+ * the legacy home Hero for the adapted generator Hero when present.
  *
  * LLM never writes Website Builder data. Validation failure falls back to
  * deterministic inference — generation must not fail because of the LLM.
  */
 
+import { applyHeroToBlueprint } from "@/lib/website/ai/builder-adapter";
 import { executeWebsiteBlueprint } from "@/lib/website/ai/blueprint-executor";
 import { deriveBrandStrategy } from "@/lib/website/ai/brand-strategy";
 import {
@@ -345,10 +347,15 @@ export async function generateWebsiteFromPrompt(
     prompt: normalized.prompt,
     options: normalized.options,
   });
-  const blueprint: AiWebsiteBlueprint = composed.blueprint;
+
+  // 7. Phase 4 — replace legacy home Hero with generationRun Hero (fallback: keep legacy)
+  const blueprint: AiWebsiteBlueprint = applyHeroToBlueprint(
+    composed.blueprint,
+    generationRun,
+  );
   assertAiWebsiteBlueprint(blueprint);
 
-  // 7. Blueprint Executor → Website Builder
+  // 8. Blueprint Executor → Website Builder
   const executed = executeWebsiteBlueprint({
     workspaceId: normalized.workspaceId,
     blueprint,

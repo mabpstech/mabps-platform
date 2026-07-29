@@ -1,7 +1,7 @@
 /**
- * Builder Adapter contracts (AI Pipeline Phase 3.5).
+ * Builder Adapter contracts (AI Pipeline Phase 3.5–4).
  * Converts generator outputs into existing Website Builder section JSON.
- * Does not modify Builder or Editor; does not persist.
+ * Does not modify Builder or Editor UI.
  */
 
 import type { HeroSectionContent } from "@/lib/website/ai/generators/hero/types";

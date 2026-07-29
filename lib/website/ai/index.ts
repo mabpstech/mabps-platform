@@ -2,9 +2,10 @@
  * AI Website Generator — shared foundation, Business Planner (Phase 1),
  * Website Planner (Phase 2), Generation Orchestrator (Phase 2.5),
  * Hero Generator (Phase 3), Builder Adapter (Phase 3.5),
- * Business Intelligence (C2), Business DNA (C3), Brand Strategy (C4),
- * Website Planning (C5), Website Composer (C6), Creative Director (C7),
- * Blueprint Executor (B1), and Generation pipeline (B3: OpenAI → engines → builder).
+ * Live Hero Replacement (Phase 4), Business Intelligence (C2),
+ * Business DNA (C3), Brand Strategy (C4), Website Planning (C5),
+ * Website Composer (C6), Creative Director (C7), Blueprint Executor (B1),
+ * and Generation pipeline (B3: OpenAI → engines → builder).
  */
 
 export {
@@ -318,6 +319,10 @@ export {
   adaptGenerationRunToBuilder,
   adaptHeroContent,
   adaptHeroToBuilderSection,
+  adapterOptionsFromLegacyHero,
+  applyHeroToBlueprint,
+  applyHeroToPage,
+  replaceHeroInSections,
   resolveHeroLayoutFields,
   type AdaptGenerationRunInput,
   type AdaptHeroInput,
