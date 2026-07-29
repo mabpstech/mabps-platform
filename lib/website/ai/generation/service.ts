@@ -1,12 +1,12 @@
 /**
- * AI Website Generation service (Sprint B3 + Phase 1–2 planners).
+ * AI Website Generation service (Sprint B3 + Phase 1–2.5 planners).
  *
- * User Prompt → Business Planner → Website Planner → OpenAI prompt signals →
- * validate → Business Intelligence → DNA → Brand Strategy → Website Plan →
- * Creative Direction → Website Composer → Blueprint Executor.
+ * User Prompt → Business Planner → Website Planner → Generation Orchestrator →
+ * OpenAI prompt signals → validate → Business Intelligence → DNA → Brand Strategy →
+ * Website Plan → Creative Direction → Website Composer → Blueprint Executor.
  *
- * Phase 1–2: planner outputs are logged and passed through only — downstream
- * generation logic is unchanged.
+ * Phase 1–2.5: planner/orchestrator outputs are logged and passed through only —
+ * downstream generation logic is unchanged (orchestrator does not call generators).
  *
  * LLM never writes Website Builder data. Validation failure falls back to
  * deterministic inference — generation must not fail because of the LLM.
@@ -35,6 +35,10 @@ import {
   type AiWebsiteLlmProviderId,
   type AiWebsitePromptSignals,
 } from "@/lib/website/ai/llm";
+import {
+  createGenerationPlan,
+  type GenerationPlan,
+} from "@/lib/website/ai/orchestrator";
 import type {
   AiBrandStrategy,
   AiBusinessDNA,
@@ -74,6 +78,8 @@ export type AiWebsiteGeneratePipelineResult = AiWebsiteGenerateResult & {
   /** Phase 2 website planner output (pass-through; not yet consumed downstream). */
   websitePlan: WebsitePlan;
   websitePlannerMeta: WebsitePlannerMeta;
+  /** Phase 2.5 orchestrator queue (pass-through; generators not invoked yet). */
+  generationPlan: GenerationPlan;
   profile: AiBusinessProfile;
   dna: AiBusinessDNA;
   strategy: AiBrandStrategy;
@@ -261,6 +267,17 @@ export async function generateWebsiteFromPrompt(
     meta: websitePlannerResult.meta,
   });
 
+  // 0c. Generation Orchestrator (Phase 2.5) — ordered queue only; no generators
+  const generationPlan = createGenerationPlan({
+    businessPlan: plannerResult.plan,
+    websitePlan: websitePlannerResult.plan,
+  });
+  console.info("[ai/orchestrator]", {
+    businessPlan: plannerResult.plan,
+    websitePlan: websitePlannerResult.plan,
+    generationPlan,
+  });
+
   const { signals, meta } = await extractValidatedSignals(
     normalized.prompt,
     normalized.workspaceId,
@@ -320,6 +337,7 @@ export async function generateWebsiteFromPrompt(
     plannerMeta: plannerResult.meta,
     websitePlan: websitePlannerResult.plan,
     websitePlannerMeta: websitePlannerResult.meta,
+    generationPlan,
     profile,
     dna,
     strategy,

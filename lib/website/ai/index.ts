@@ -1,9 +1,9 @@
 /**
  * AI Website Generator — shared foundation, Business Planner (Phase 1),
- * Website Planner (Phase 2), Business Intelligence (C2), Business DNA (C3),
- * Brand Strategy (C4), Website Planning (C5), Website Composer (C6),
- * Creative Director (C7), Blueprint Executor (B1), and Generation pipeline
- * (B3: OpenAI → engines → builder).
+ * Website Planner (Phase 2), Generation Orchestrator (Phase 2.5),
+ * Business Intelligence (C2), Business DNA (C3), Brand Strategy (C4),
+ * Website Planning (C5), Website Composer (C6), Creative Director (C7),
+ * Blueprint Executor (B1), and Generation pipeline (B3: OpenAI → engines → builder).
  */
 
 export {
@@ -255,6 +255,18 @@ export {
   type WebsitePlannerOptions,
   type WebsitePlannerResult,
 } from "@/lib/website/ai/website-planner";
+
+export {
+  EXAMPLE_GENERATION_PLAN_HOME_SLICE,
+  EXAMPLE_ORCHESTRATOR_BUSINESS_PLAN,
+  EXAMPLE_ORCHESTRATOR_WEBSITE_PLAN,
+  SECTION_TO_GENERATOR,
+  createGenerationPlan,
+  resolveGeneratorId,
+  type CreateGenerationPlanInput,
+  type GenerationPlan,
+  type GenerationTask,
+} from "@/lib/website/ai/orchestrator";
 
 export {
   AI_BUSINESS_INTELLIGENCE_PROVIDER_IDS,

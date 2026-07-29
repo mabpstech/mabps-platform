@@ -127,6 +127,17 @@ async function main() {
       assert.equal(result.websitePlannerMeta.usedLlm, false);
       assert.ok(result.websitePlan.pages.some((page) => page.id === "home"));
       assert.ok(result.websitePlan.navigation.includes("Home"));
+      assert.ok(result.generationPlan.tasks.length >= 1);
+      assert.equal(result.generationPlan.tasks[0]?.section, "Hero");
+      assert.equal(
+        result.generationPlan.tasks[0]?.generator,
+        "hero-generator",
+      );
+      assert.ok(
+        result.generationPlan.tasks.some(
+          (task) => task.section === "Footer" && task.generator === "footer-generator",
+        ),
+      );
       assert.equal(isAiWebsiteBlueprint(result.blueprint), true);
       assert.ok(result.direction.artDirection.value);
       assert.ok(result.plan.requiredPages.value.length >= 1);
