@@ -1,9 +1,12 @@
 /**
- * AI Website Generation service (Sprint B3).
+ * AI Website Generation service (Sprint B3 + Phase 1 planner).
  *
- * User Prompt → OpenAI (structured JSON) → validate →
+ * User Prompt → Business Planner → OpenAI prompt signals → validate →
  * Business Intelligence → DNA → Brand Strategy → Website Plan →
  * Creative Direction → Website Composer → Blueprint Executor.
+ *
+ * Phase 1: planner output is logged and passed through only — downstream
+ * generation logic is unchanged.
  *
  * LLM never writes Website Builder data. Validation failure falls back to
  * deterministic inference — generation must not fail because of the LLM.
@@ -11,6 +14,13 @@
 
 import { executeWebsiteBlueprint } from "@/lib/website/ai/blueprint-executor";
 import { deriveBrandStrategy } from "@/lib/website/ai/brand-strategy";
+import {
+  planBusinessFromPrompt,
+  type BusinessPlan,
+  type BusinessPlannerLlmCompleter,
+  type BusinessPlannerMeta,
+  type WebsitePlan as PlannerWebsitePlan,
+} from "@/lib/website/ai/business-planner";
 import { deriveCreativeDirection } from "@/lib/website/ai/creative-director";
 import { deriveBusinessDna } from "@/lib/website/ai/dna";
 import { mergePromptSignalsIntoProfile } from "@/lib/website/ai/generation/merge";
@@ -50,6 +60,11 @@ export type AiWebsiteGeneratePipelineMeta = {
 };
 
 export type AiWebsiteGeneratePipelineResult = AiWebsiteGenerateResult & {
+  /** Phase 1 business planner output (pass-through; not yet consumed downstream). */
+  businessPlan: BusinessPlan;
+  /** Website structure slice of the business plan. */
+  plannerWebsite: PlannerWebsitePlan;
+  plannerMeta: BusinessPlannerMeta;
   profile: AiBusinessProfile;
   dna: AiBusinessDNA;
   strategy: AiBrandStrategy;
@@ -63,6 +78,8 @@ export type AiWebsiteGenerateServiceOptions = {
   llmProviderId?: AiWebsiteLlmProviderId;
   /** Inject a provider (tests). */
   llmProvider?: AiWebsiteLlmProvider;
+  /** Inject a business-planner LLM completer (tests). */
+  businessPlannerCompleteJson?: BusinessPlannerLlmCompleter;
   /** Skip LLM entirely and use deterministic inference only. */
   skipLlm?: boolean;
   /** Force an API key for the OpenAI adapter. */
@@ -192,6 +209,26 @@ export async function generateWebsiteFromPrompt(
     throw new Error("prompt is required.");
   }
 
+  // 0. Business Planner (Phase 1) — understand prompt; log + pass through only
+  const plannerResult = await planBusinessFromPrompt(
+    {
+      prompt: normalized.prompt,
+      workspaceId: normalized.workspaceId,
+      apiKey: options.apiKey,
+      baseUrl: options.baseUrl,
+      model: options.model,
+    },
+    {
+      skipLlm: options.skipLlm,
+      completeJson: options.businessPlannerCompleteJson,
+    },
+  );
+  console.info("[ai/business-planner]", {
+    prompt: normalized.prompt,
+    plan: plannerResult.plan,
+    meta: plannerResult.meta,
+  });
+
   const { signals, meta } = await extractValidatedSignals(
     normalized.prompt,
     normalized.workspaceId,
@@ -246,6 +283,9 @@ export async function generateWebsiteFromPrompt(
   return {
     siteId: executed.siteId,
     blueprint,
+    businessPlan: plannerResult.plan,
+    plannerWebsite: plannerResult.website,
+    plannerMeta: plannerResult.meta,
     profile,
     dna,
     strategy,

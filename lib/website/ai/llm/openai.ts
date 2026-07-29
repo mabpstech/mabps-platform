@@ -14,6 +14,26 @@ import type {
 } from "@/lib/website/ai/llm/types";
 import { clampAiTextByKey } from "@/lib/website/ai/helpers";
 
+/** Shared OpenAI credential resolution for website AI adapters. */
+export function resolveOpenAiWebsiteConfig(input: {
+  workspaceId?: string;
+  apiKey?: string;
+  baseUrl?: string | null;
+  model?: string | null;
+}): {
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+} | null {
+  return resolveOpenAiConfig({
+    prompt: "",
+    workspaceId: input.workspaceId,
+    apiKey: input.apiKey,
+    baseUrl: input.baseUrl,
+    model: input.model,
+  });
+}
+
 function resolveOpenAiConfig(input: AiWebsiteLlmExtractInput): {
   apiKey: string;
   baseUrl: string;

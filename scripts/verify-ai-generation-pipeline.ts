@@ -121,6 +121,9 @@ async function main() {
 
       assert.equal(result.meta.usedLlm, false);
       assert.equal(result.meta.llmFallback, false);
+      assert.equal(result.plannerMeta.usedLlm, false);
+      assert.ok(result.businessPlan.pages.length >= 1);
+      assert.ok(result.plannerWebsite.pages.length >= 1);
       assert.equal(isAiWebsiteBlueprint(result.blueprint), true);
       assert.ok(result.direction.artDirection.value);
       assert.ok(result.plan.requiredPages.value.length >= 1);

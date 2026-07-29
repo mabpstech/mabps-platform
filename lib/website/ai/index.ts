@@ -1,8 +1,8 @@
 /**
- * AI Website Generator — shared foundation, Business Intelligence (C2),
- * Business DNA (C3), Brand Strategy (C4), Website Planning (C5),
- * Website Composer (C6), Creative Director (C7), Blueprint Executor (B1),
- * and Generation pipeline (B3: OpenAI → engines → builder).
+ * AI Website Generator — shared foundation, Business Planner (Phase 1),
+ * Business Intelligence (C2), Business DNA (C3), Brand Strategy (C4),
+ * Website Planning (C5), Website Composer (C6), Creative Director (C7),
+ * Blueprint Executor (B1), and Generation pipeline (B3: OpenAI → engines → builder).
  */
 
 export {
@@ -200,6 +200,35 @@ export {
 } from "@/lib/website/ai/helpers";
 
 export {
+  BUSINESS_PLANNER_SYSTEM_PROMPT,
+  BUSINESS_PLAN_FORBIDDEN_KEYS,
+  BUSINESS_PLAN_KEYS,
+  EXAMPLE_BUSINESS_PLAN,
+  EXAMPLE_BUSINESS_PLANNER_PROMPT,
+  buildBusinessPlanJsonSchemaPrompt,
+  businessPlanFromProfile,
+  completeBusinessPlanWithOpenAi,
+  hasBusinessPlannerOpenAiCredentials,
+  inferBusinessPlan,
+  parseBusinessPlan,
+  parseBusinessPlanFromContent,
+  planBusinessFromPrompt,
+  planBusinessFromPromptSync,
+  resolveBusinessPlan,
+  toWebsitePlan,
+  type BusinessPlan,
+  type BusinessPlanKey,
+  type BusinessPlanParseResult,
+  type BusinessPlannerInput,
+  type BusinessPlannerLlmCompleter,
+  type BusinessPlannerMeta,
+  type BusinessPlannerOptions,
+  type BusinessPlannerResult,
+  type SectionPlan,
+  type WebsitePlan as BusinessPlannerWebsitePlan,
+} from "@/lib/website/ai/business-planner";
+
+export {
   AI_BUSINESS_INTELLIGENCE_PROVIDER_IDS,
   AI_CONFIDENCE_THRESHOLD,
   CATEGORY_DEFAULTS,
@@ -332,6 +361,7 @@ export {
   parseAiWebsitePromptSignals,
   parseAiWebsitePromptSignalsFromContent,
   registerWebsiteLlmProvider,
+  resolveOpenAiWebsiteConfig,
   type AiWebsiteLlmExtractInput,
   type AiWebsiteLlmExtractResult,
   type AiWebsiteLlmParseResult,

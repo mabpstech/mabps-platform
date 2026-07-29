@@ -30,6 +30,7 @@ export {
 export {
   OpenAiWebsiteLlmProvider,
   hasOpenAiWebsiteCredentials,
+  resolveOpenAiWebsiteConfig,
 } from "@/lib/website/ai/llm/openai";
 
 export {
