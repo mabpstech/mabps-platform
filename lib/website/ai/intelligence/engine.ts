@@ -302,25 +302,61 @@ function detectIndustry(text: string): {
   industry: string | null;
   category: SiteCategoryId | null;
   confidence: number;
+  features: string[];
+  ctaLabel: string | null;
+  audience: string | null;
 } {
-  let best: { label: string; category: SiteCategoryId; hits: number } | null =
-    null;
+  let best: {
+    label: string;
+    category: SiteCategoryId;
+    hits: number;
+    keywordWeight: number;
+    features: string[];
+    ctaLabel: string | null;
+    audience: string | null;
+  } | null = null;
   for (const entry of INDUSTRY_LEXICON) {
     let hits = 0;
+    let keywordWeight = 0;
     for (const keyword of entry.keywords) {
-      if (containsKeyword(text, keyword)) hits += 1;
+      if (!containsKeyword(text, keyword)) continue;
+      hits += 1;
+      // Prefer longer, more specific keyword matches (e.g. "interior design" > "design").
+      keywordWeight += Math.min(3, keyword.split(/\s+/).length);
     }
     if (hits === 0) continue;
-    if (!best || hits > best.hits) {
-      best = { label: entry.label, category: entry.category, hits };
+    const rank = hits * 10 + keywordWeight;
+    const bestRank = best ? best.hits * 10 + best.keywordWeight : -1;
+    if (!best || rank > bestRank) {
+      best = {
+        label: entry.label,
+        category: entry.category,
+        hits,
+        keywordWeight,
+        features: entry.features ? [...entry.features] : [],
+        ctaLabel: entry.ctaLabel || null,
+        audience: entry.audience || null,
+      };
     }
   }
-  if (!best) return { industry: null, category: null, confidence: 0.15 };
-  const confidence = Math.min(0.95, 0.45 + best.hits * 0.25);
+  if (!best) {
+    return {
+      industry: null,
+      category: null,
+      confidence: 0.15,
+      features: [],
+      ctaLabel: null,
+      audience: null,
+    };
+  }
+  const confidence = Math.min(0.95, 0.45 + best.hits * 0.2 + best.keywordWeight * 0.05);
   return {
     industry: best.label,
     category: best.category,
     confidence,
+    features: best.features,
+    ctaLabel: best.ctaLabel,
+    audience: best.audience,
   };
 }
 
@@ -630,7 +666,15 @@ export function inferBusinessProfile(
 
   let category: SiteCategoryId | null = null;
   let categoryConfidence = 0;
-  if (categoryBest && acceptScore(categoryBest.score)) {
+  // Strong industry matches win over vague category keywords (e.g. "boutique").
+  if (
+    industryHit.category &&
+    acceptScore(industryHit.confidence) &&
+    (!categoryBest || industryHit.confidence >= (categoryBest.score ?? 0) - 0.05)
+  ) {
+    category = industryHit.category;
+    categoryConfidence = Math.max(industryHit.confidence * 0.95, categoryBest?.score ?? 0);
+  } else if (categoryBest && acceptScore(categoryBest.score)) {
     category = categoryBest.id;
     categoryConfidence = categoryBest.score;
   } else if (
@@ -641,7 +685,6 @@ export function inferBusinessProfile(
     categoryConfidence = industryHit.confidence * 0.9;
   } else if (categoryBest) {
     categoryConfidence = categoryBest.score;
-    // low confidence — do not guess category
     category = null;
   } else {
     categoryConfidence = 0.2;
@@ -704,6 +747,10 @@ export function inferBusinessProfile(
     ? audienceHit.audience
     : null;
   let audienceConfidence = audienceHit.confidence;
+  if (!audience && industryHit.audience && acceptScore(industryHit.confidence)) {
+    audience = industryHit.audience;
+    audienceConfidence = Math.max(audienceConfidence, 0.7);
+  }
   if (!audience && category) {
     audience = CATEGORY_DEFAULTS[category].audience;
     audienceConfidence = 0.5;
@@ -751,6 +798,13 @@ export function inferBusinessProfile(
   // --- CTA ---
   let primaryCta = defaults.primaryCta;
   let ctaConfidence = category ? 0.6 : 0.4;
+  if (industryHit.ctaLabel && acceptScore(industryHit.confidence)) {
+    primaryCta = {
+      label: industryHit.ctaLabel,
+      href: defaults.primaryCta.href,
+    };
+    ctaConfidence = Math.max(ctaConfidence, 0.75);
+  }
   if (containsKeyword(text, "shop now") || containsKeyword(text, "buy now")) {
     primaryCta = { label: "Shop now", href: "/products" };
     ctaConfidence = 0.85;
@@ -788,7 +842,11 @@ export function inferBusinessProfile(
     explicitPages.length > 0 ? 0.85 : category ? 0.6 : 0.4,
   );
 
-  const featuresHit = detectFeatures(text, defaults.features);
+  const featureDefaults =
+    industryHit.features.length > 0 && acceptScore(industryHit.confidence)
+      ? industryHit.features
+      : defaults.features;
+  const featuresHit = detectFeatures(text, featureDefaults);
   setConfidence(confidence, "suggestedFeatures", featuresHit.confidence);
 
   const trustHit = detectTrustSignals(text, defaults.trustSignals);

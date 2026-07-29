@@ -55,14 +55,15 @@ export function buildHeroJsonSchemaPrompt(): string {
     "Do NOT generate HTML, CSS, JSX, TSX, components, or layouts as code.",
     "Only structured marketing content for ONE hero section.",
     "Allowed keys:",
-    `- headline: string, benefit-focused, max ${HERO_HEADLINE_MAX_WORDS} words. No clichés. Never start with "Welcome to".`,
-    `- subheadline: string, explain the value, max ${HERO_SUBHEADLINE_MAX_WORDS} words.`,
-    "- primaryCTA: string, action-oriented call to action (required).",
+    `- headline: string, benefit-focused, max ${HERO_HEADLINE_MAX_WORDS} words. No clichés. Never start with "Welcome to". Never use meta labels like "product catalog", "services list", "about", or "faq" as the offer noun.`,
+    `- subheadline: string, explain the value for this exact industry and audience, max ${HERO_SUBHEADLINE_MAX_WORDS} words. Avoid filler like "without the noise" or "built around your goals".`,
+    "- primaryCTA: string, action-oriented call to action that fits the industry (required). Avoid generic Get in touch when a stronger action exists.",
     "- secondaryCTA: string, optional secondary action.",
-    "- imagePrompt: string, high-quality scene description for image generation.",
+    "- imagePrompt: string, high-quality scene description for image generation rooted in the industry setting.",
     `- layout: one of ${HERO_LAYOUTS.map((v) => `"${v}"`).join(", ")}`,
     `- style: one of ${HERO_STYLES.map((v) => `"${v}"`).join(", ")}`,
     "Choose layout and style that fit the business industry and tone.",
+    "Write as if this business is distinct — do not reuse the same headline across unrelated industries.",
   ].join("\n");
 }
 

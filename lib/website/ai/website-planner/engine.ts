@@ -312,7 +312,7 @@ function pickIndustryTemplate(plan: BusinessPlan, prompt = ""): IndustryTemplate
     return RESTAURANT_TEMPLATE;
   }
   if (
-    /hospital|clinic|doctor|medical|healthcare|dental|dentist|patient/i.test(
+    /hospital|clinic|doctor|medical|healthcare|dental|dentist|patient|veterinary|pet clinic|vet\b/i.test(
       text,
     )
   ) {
@@ -325,10 +325,22 @@ function pickIndustryTemplate(plan: BusinessPlan, prompt = ""): IndustryTemplate
   ) {
     return MEDITATION_TEMPLATE;
   }
+  if (/hotel|resort|hospitality|travel agency|tour operator/i.test(text)) {
+    return SERVICES_TEMPLATE;
+  }
+  if (
+    /school|coaching|education|construction|event management|digital agency|interior design|photography|gym|fitness|salon/i.test(
+      text,
+    )
+  ) {
+    return SERVICES_TEMPLATE;
+  }
   if (
     plan.businessType === "restaurant" ||
     plan.businessType === "online_store" ||
-    /retail|shop|store|ecommerce|e-commerce|product/i.test(text)
+    /retail|shop|store|ecommerce|e-commerce|product|fashion|furniture|electronics|home decor|dealership/i.test(
+      text,
+    )
   ) {
     if (
       plan.businessType === "restaurant" ||
@@ -340,7 +352,9 @@ function pickIndustryTemplate(plan: BusinessPlan, prompt = ""): IndustryTemplate
   }
   if (
     plan.businessType === "professional_practice" ||
-    /lawyer|attorney|accountant|consultant|clinic|practice/i.test(text)
+    /lawyer|attorney|accountant|accounting|consultant|clinic|practice|real estate/i.test(
+      text,
+    )
   ) {
     return PROFESSIONAL_TEMPLATE;
   }

@@ -187,26 +187,81 @@ function featureLabels(profile: AiBusinessProfile): string[] {
   return profile.trustSignals.filter((item) => item.trim());
 }
 
+function titleCase(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function featureHeading(
+  role: "value_proposition" | "offer" | "proof" | "trust",
+  profile: AiBusinessProfile,
+): string {
+  const industry = profile.industry?.trim();
+  switch (role) {
+    case "value_proposition":
+      return industry
+        ? `Why ${industry} clients choose us`
+        : `Why people choose ${profile.name}`;
+    case "offer":
+      return industry ? `What our ${industry} includes` : "What you can expect";
+    case "proof":
+      return "Proof that builds confidence";
+    case "trust":
+      return "Trust signals that matter";
+    default:
+      return `Why choose ${profile.name}`;
+  }
+}
+
+function featureDescription(
+  title: string,
+  profile: AiBusinessProfile,
+  role: "value_proposition" | "offer" | "proof" | "trust",
+): string {
+  const audience = profile.audience?.trim();
+  const industry = profile.industry?.trim() || "service";
+  switch (role) {
+    case "offer":
+      return audience
+        ? `${titleCase(title)} shaped for ${audience}.`
+        : `${titleCase(title)} as part of a clear ${industry} offer.`;
+    case "proof":
+      return `Evidence around ${title.toLowerCase()} that helps visitors decide faster.`;
+    case "trust":
+      return `Reassurance on ${title.toLowerCase()} before someone reaches out.`;
+    case "value_proposition":
+    default:
+      return audience
+        ? `${titleCase(title)} that matters to ${audience}.`
+        : `${titleCase(title)} at the centre of the ${industry} experience.`;
+  }
+}
+
 function buildFeaturesShell(
   profile: AiBusinessProfile,
   density: AiContentDensity,
   slotCount: number,
+  role: "value_proposition" | "offer" | "proof" | "trust" = "offer",
+  labelOffset = 0,
 ): AiGeneratedSection {
   const labels = featureLabels(profile);
-  const audience = profile.audience?.trim();
   const items = Array.from({ length: slotCount }, (_, index) => {
-    const title = labels[index] || labels[index % Math.max(labels.length, 1)] || "Highlight";
+    const labelIndex =
+      labels.length > 0 ? (index + labelOffset) % labels.length : -1;
+    const title =
+      labelIndex >= 0
+        ? labels[labelIndex]!
+        : role === "trust"
+          ? "Clear communication"
+          : "Highlight";
     return {
-      title: title.charAt(0).toUpperCase() + title.slice(1),
-      description: audience
-        ? `Built for ${audience}.`
-        : `A core part of what ${profile.name} offers.`,
+      title: titleCase(title),
+      description: featureDescription(title, profile, role),
     };
   });
   return section(
     "features",
     {
-      heading: labels.length > 0 ? "What we offer" : `Why choose ${profile.name}`,
+      heading: featureHeading(role, profile),
       items,
     },
     paddingFor(density),
@@ -219,13 +274,20 @@ function buildCtaShell(
   buttonHref: string,
 ): AiGeneratedSection {
   const cta = profile.primaryCta;
+  const industry = profile.industry?.trim();
   return section(
     "cta",
     {
-      heading: profile.slogan?.trim() || `Ready to work with ${profile.name}?`,
+      heading:
+        profile.slogan?.trim() ||
+        (industry
+          ? `Ready to explore this ${industry}?`
+          : `Ready to take the next step with ${profile.name}?`),
       body:
         profile.description?.trim() ||
-        `Reach out to learn how ${profile.name} can help.`,
+        (industry
+          ? `Tell us what you need and we will guide the next ${industry} step.`
+          : `Reach out and we will help you decide the right next step.`),
       buttonLabel: cta?.label || "Get in touch",
       buttonHref: cta?.href || buttonHref,
     },
@@ -524,8 +586,16 @@ function composeRoleSection(
     case "offer":
     case "proof":
     case "trust": {
+      const roleOffset =
+        role === "value_proposition"
+          ? 0
+          : role === "offer"
+            ? 1
+            : role === "proof"
+              ? 2
+              : 3;
       const out: AiGeneratedSection[] = [
-        buildFeaturesShell(profile, density, slots),
+        buildFeaturesShell(profile, density, slots, role, roleOffset),
       ];
       if (visual && role !== "value_proposition") {
         out.push(buildGalleryPlaceholder(profile, density));
@@ -615,19 +685,35 @@ function composeHomePage(
   roles = capRoles(roles, density);
 
   const composed: AiGeneratedSection[] = [];
+  let featureSections = 0;
+  let gallerySections = 0;
   for (const role of roles) {
-    composed.push(
-      ...composeRoleSection(role, {
-        profile,
-        density,
-        plan,
-        dna,
-        pages,
-        primaryHref,
-        secondaryHref,
-        includeSecondary,
-      }),
-    );
+    const isFeatureRole =
+      role === "value_proposition" ||
+      role === "offer" ||
+      role === "proof" ||
+      role === "trust";
+    // Keep home readable: one feature block and one empty gallery shell.
+    if (isFeatureRole && featureSections >= 1) continue;
+    const pieces = composeRoleSection(role, {
+      profile,
+      density,
+      plan,
+      dna,
+      pages,
+      primaryHref,
+      secondaryHref,
+      includeSecondary,
+    }).filter((section) => {
+      if (section.type !== "gallery") return true;
+      if (gallerySections >= 1) return false;
+      gallerySections += 1;
+      return true;
+    });
+    if (isFeatureRole && pieces.some((section) => section.type === "features")) {
+      featureSections += 1;
+    }
+    composed.push(...pieces);
   }
 
   const sections = applyVisualRhythm(composed, density);

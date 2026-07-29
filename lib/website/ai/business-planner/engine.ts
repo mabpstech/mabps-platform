@@ -59,19 +59,82 @@ function deriveServices(profile: AiBusinessProfile, prompt: string): string[] {
     .map((feature) => feature.trim())
     .filter(Boolean)
     .slice(0, 6);
-  if (fromFeatures.length) return fromFeatures;
+  // Prefer industry-aware feature labels when they look like real offers.
+  const metaFeature =
+    /^(product catalog|collections|shipping info|returns policy|services list|credentials|appointment booking|faq|about|contact form|clear navigation|service packages|quote request|before\/after gallery|menu|reservations|location hours|gallery)$/i;
+  const usableFeatures = fromFeatures.filter((feature) => !metaFeature.test(feature));
+  if (usableFeatures.length) return usableFeatures;
 
   const lower = prompt.toLowerCase();
   const guessed: string[] = [];
-  if (/jewellery|jewelry|gold|diamond/i.test(lower)) {
-    guessed.push("bridal jewellery", "custom designs", "in-store consultation");
+  const push = (...values: string[]) => {
+    for (const value of values) guessed.push(value);
+  };
+
+  if (/jewell?ery|jewelry|gold|diamond/i.test(lower)) {
+    push("bridal jewellery", "custom designs", "in-store consultation");
+  } else if (/hospital|multi-specialty|cardiology/i.test(lower)) {
+    push("specialist consultations", "diagnostics", "emergency care");
+  } else if (/dental|dentist/i.test(lower)) {
+    push("checkups", "cosmetic dentistry", "implants");
+  } else if (/pet clinic|veterinary|vet\b/i.test(lower)) {
+    push("vaccinations", "surgery", "wellness checkups");
+  } else if (/restaurant|fine dining/i.test(lower)) {
+    push("tasting menus", "reservations", "private dining");
+  } else if (/cafe|café|coffee/i.test(lower)) {
+    push("specialty coffee", "brunch", "takeaway");
+  } else if (/bakery|pastry|sourdough/i.test(lower)) {
+    push("sourdough", "seasonal pastries", "custom cakes");
+  } else if (/law firm|lawyer|attorney/i.test(lower)) {
+    push("corporate counsel", "IP advisory", "litigation support");
+  } else if (/interior design/i.test(lower)) {
+    push("space planning", "material selection", "custom furniture");
+  } else if (/travel agency|honeymoon|tour/i.test(lower)) {
+    push("curated itineraries", "honeymoon packages", "trip support");
+  } else if (/gym|fitness|hiit/i.test(lower)) {
+    push("strength training", "group classes", "personal coaching");
+  } else if (/school|cbse/i.test(lower)) {
+    push("admissions guidance", "student life", "parent partnership");
+  } else if (/meditation|mindfulness|breathwork/i.test(lower)) {
+    push("guided programs", "silent retreats", "breathwork");
+  } else if (/photography|photographer/i.test(lower)) {
+    push("wedding stories", "lifestyle shoots", "brand campaigns");
+  } else if (/hotel|resort|hospitality/i.test(lower)) {
+    push("suites", "spa experiences", "event venues");
+  } else if (/fashion|ethnic wear/i.test(lower)) {
+    push("festive collections", "ready-to-wear", "seasonal drops");
+  } else if (/real estate|apartment|property/i.test(lower)) {
+    push("verified listings", "site visits", "buyer guidance");
+  } else if (/saas|software|platform/i.test(lower)) {
+    push("onboarding automation", "retention workflows", "integrations");
+  } else if (/ngo|nonprofit|scholarship/i.test(lower)) {
+    push("scholarship programs", "mentorship", "community centres");
+  } else if (/event management|conference|product launch/i.test(lower)) {
+    push("event planning", "on-site production", "guest experience");
+  } else if (/salon|bridal makeup|spa package/i.test(lower)) {
+    push("bridal makeup", "hair styling", "skincare treatments");
+  } else if (/electronics|smartphone|laptop/i.test(lower)) {
+    push("device demos", "same-day delivery", "warranty support");
+  } else if (/furniture|modular kitchen/i.test(lower)) {
+    push("showroom pieces", "custom woodwork", "delivery & install");
+  } else if (/accounting|chartered|gst|audit/i.test(lower)) {
+    push("tax filing", "GST compliance", "CFO advisory");
+  } else if (/dealership|test drive|vehicle/i.test(lower)) {
+    push("test drives", "financing", "certified service");
+  } else if (/yoga|hatha|vinyasa/i.test(lower)) {
+    push("group classes", "workshops", "teacher training");
+  } else if (/coaching|jee|neet/i.test(lower)) {
+    push("structured batches", "mentor support", "mock tests");
+  } else if (/construction|builder|apartment project/i.test(lower)) {
+    push("project planning", "quality construction", "on-time delivery");
+  } else if (/digital agency|marketing agency|seo/i.test(lower)) {
+    push("brand strategy", "performance ads", "conversion websites");
+  } else if (/home decor|wall art|styling consultation/i.test(lower)) {
+    push("curated lighting", "textiles", "styling consultations");
+  } else if (/clinic|doctor|lawyer|consultant/i.test(lower)) {
+    push("consultations", "appointments");
   }
-  if (/restaurant|cafe|dining/i.test(lower)) {
-    guessed.push("dine-in", "reservations", "takeaway");
-  }
-  if (/clinic|dentist|doctor|lawyer|consultant/i.test(lower)) {
-    guessed.push("consultations", "appointments");
-  }
+
   if (!guessed.length && profile.industry) {
     guessed.push(profile.industry);
   }
