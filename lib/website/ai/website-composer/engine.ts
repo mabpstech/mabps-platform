@@ -1,7 +1,8 @@
 /**
  * Deterministic Website Composer engine (Sprint C6).
  * AiWebsitePlan (+ BI/DNA/Strategy) → AiWebsiteBlueprint.
- * No LLM, network, DB, API, or marketing copy generation.
+ * No LLM, network, or DB. Section copy comes from the already-inferred
+ * business profile (except home Hero, which Phase 4 injects).
  */
 
 import {
@@ -113,7 +114,7 @@ function heroLayout(
 }
 
 /**
- * Structural hero shell — layout / CTA hrefs only. Text fields stay empty.
+ * Structural home Hero shell — layout / CTA hrefs only. Text fields stay empty.
  * Home Hero *copy* is authored solely by the Hero Generator (Phase 3) and
  * injected in Phase 4. This shell is the legacy fallback structure only.
  */
@@ -145,65 +146,182 @@ function buildHeroShell(input: {
   return section("hero", content, paddingFor(input.density));
 }
 
-function buildFeaturesShell(
+/** Inner-page hero — filled from profile (Phase 4 only injects home Hero). */
+function buildInnerHeroShell(
+  profile: AiBusinessProfile,
+  pageType: PageType,
+  primaryHref: string,
   density: AiContentDensity,
-  slotCount: number,
 ): AiGeneratedSection {
-  const items = Array.from({ length: slotCount }, () => ({
-    title: "",
-    description: "",
-  }));
+  const meta = PAGE_TYPE_META[pageType];
+  const cta = profile.primaryCta;
   return section(
-    "features",
-    { heading: "", items },
-    paddingFor(density),
-  );
-}
-
-function buildCtaShell(
-  density: AiContentDensity,
-  buttonHref: string,
-): AiGeneratedSection {
-  return section(
-    "cta",
+    "hero",
     {
-      heading: "",
-      body: "",
-      buttonLabel: "",
-      buttonHref,
+      eyebrow: profile.name,
+      heading: meta.title,
+      subheading:
+        profile.description?.trim() ||
+        profile.slogan ||
+        `Explore ${meta.title.toLowerCase()} from ${profile.name}.`,
+      primaryLabel: cta?.label || "Get in touch",
+      primaryHref: cta?.href || primaryHref,
+      secondaryLabel: "",
+      secondaryHref: "",
+      align: "left",
+      height: "sm",
+      overlay: 25,
+      animation: "fade",
+      backgroundMediaId: null,
+      mobileMediaId: null,
+      desktopMediaId: null,
+      backgroundVideoUrl: "",
     },
     paddingFor(density),
   );
 }
 
-function buildFormShell(density: AiContentDensity): AiGeneratedSection {
+function featureLabels(profile: AiBusinessProfile): string[] {
+  const fromFeatures = profile.suggestedFeatures.filter((item) => item.trim());
+  if (fromFeatures.length > 0) return fromFeatures;
+  return profile.trustSignals.filter((item) => item.trim());
+}
+
+function buildFeaturesShell(
+  profile: AiBusinessProfile,
+  density: AiContentDensity,
+  slotCount: number,
+): AiGeneratedSection {
+  const labels = featureLabels(profile);
+  const audience = profile.audience?.trim();
+  const items = Array.from({ length: slotCount }, (_, index) => {
+    const title = labels[index] || labels[index % Math.max(labels.length, 1)] || "Highlight";
+    return {
+      title: title.charAt(0).toUpperCase() + title.slice(1),
+      description: audience
+        ? `Built for ${audience}.`
+        : `A core part of what ${profile.name} offers.`,
+    };
+  });
+  return section(
+    "features",
+    {
+      heading: labels.length > 0 ? "What we offer" : `Why choose ${profile.name}`,
+      items,
+    },
+    paddingFor(density),
+  );
+}
+
+function buildCtaShell(
+  profile: AiBusinessProfile,
+  density: AiContentDensity,
+  buttonHref: string,
+): AiGeneratedSection {
+  const cta = profile.primaryCta;
+  return section(
+    "cta",
+    {
+      heading: profile.slogan?.trim() || `Ready to work with ${profile.name}?`,
+      body:
+        profile.description?.trim() ||
+        `Reach out to learn how ${profile.name} can help.`,
+      buttonLabel: cta?.label || "Get in touch",
+      buttonHref: cta?.href || buttonHref,
+    },
+    paddingFor(density),
+  );
+}
+
+function buildFormShell(
+  profile: AiBusinessProfile,
+  density: AiContentDensity,
+): AiGeneratedSection {
   return section(
     "form",
-    { formSlug: "contact", heading: "" },
+    {
+      formSlug: "contact",
+      heading: profile.primaryCta?.label
+        ? `Contact ${profile.name}`
+        : "Send a message",
+    },
     paddingFor(density),
   );
 }
 
-function buildRichTextShell(density: AiContentDensity): AiGeneratedSection {
-  return section("richText", { html: "" }, paddingFor(density));
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
-function buildProductsShell(density: AiContentDensity): AiGeneratedSection {
-  return section("products", { heading: "", items: [] }, paddingFor(density));
+function buildRichTextShell(
+  profile: AiBusinessProfile,
+  density: AiContentDensity,
+): AiGeneratedSection {
+  const body =
+    profile.description?.trim() ||
+    profile.slogan?.trim() ||
+    `${profile.name} helps ${profile.audience?.trim() || "customers"} with clear, reliable service.`;
+  return section(
+    "richText",
+    { html: `<p>${escapeHtml(body)}</p>` },
+    paddingFor(density),
+  );
 }
 
-function buildCollectionsShell(density: AiContentDensity): AiGeneratedSection {
+function catalogItems(profile: AiBusinessProfile, count: number) {
+  const labels = featureLabels(profile);
+  return Array.from({ length: count }, (_, index) => {
+    const name =
+      labels[index] ||
+      labels[index % Math.max(labels.length, 1)] ||
+      `Item ${index + 1}`;
+    return {
+      name: name.charAt(0).toUpperCase() + name.slice(1),
+      description: profile.description?.trim() || `Featured by ${profile.name}.`,
+      href: "#",
+    };
+  });
+}
+
+function buildProductsShell(
+  profile: AiBusinessProfile,
+  density: AiContentDensity,
+): AiGeneratedSection {
+  return section(
+    "products",
+    {
+      heading: "Products",
+      items: catalogItems(profile, density === "sparse" ? 2 : 3),
+    },
+    paddingFor(density),
+  );
+}
+
+function buildCollectionsShell(
+  profile: AiBusinessProfile,
+  density: AiContentDensity,
+): AiGeneratedSection {
   return section(
     "collections",
-    { heading: "", items: [] },
+    {
+      heading: "Collections",
+      items: catalogItems(profile, density === "sparse" ? 2 : 3),
+    },
     paddingFor(density),
   );
 }
 
-function buildGalleryPlaceholder(density: AiContentDensity): AiGeneratedSection {
+function buildGalleryPlaceholder(
+  profile: AiBusinessProfile,
+  density: AiContentDensity,
+): AiGeneratedSection {
   return section(
     "gallery",
-    { heading: "", mediaIds: [] },
+    { heading: `${profile.name} gallery`, mediaIds: [] },
     paddingFor(density),
   );
 }
@@ -216,11 +334,14 @@ function buildImagePlaceholder(density: AiContentDensity): AiGeneratedSection {
   );
 }
 
-function buildBlogListShell(density: AiContentDensity): AiGeneratedSection {
+function buildBlogListShell(
+  profile: AiBusinessProfile,
+  density: AiContentDensity,
+): AiGeneratedSection {
   const limit = density === "sparse" ? 3 : density === "dense" ? 12 : 6;
   return section(
     "blogList",
-    { heading: "", limit },
+    { heading: `Latest from ${profile.name}`, limit },
     paddingFor(density),
   );
 }
@@ -372,6 +493,7 @@ function capRoles(
 function composeRoleSection(
   role: AiPlanSectionRole,
   ctx: {
+    profile: AiBusinessProfile;
     density: AiContentDensity;
     plan: AiWebsitePlan;
     dna: AiBusinessDNA;
@@ -384,6 +506,7 @@ function composeRoleSection(
   const density = ctx.density;
   const slots = featureSlotCount(density);
   const visual = wantsVisualPlaceholder(ctx.plan, ctx.dna, role);
+  const profile = ctx.profile;
 
   switch (role) {
     case "hero":
@@ -401,33 +524,39 @@ function composeRoleSection(
     case "offer":
     case "proof":
     case "trust": {
-      const out: AiGeneratedSection[] = [buildFeaturesShell(density, slots)];
+      const out: AiGeneratedSection[] = [
+        buildFeaturesShell(profile, density, slots),
+      ];
       if (visual && role !== "value_proposition") {
-        out.push(buildGalleryPlaceholder(density));
+        out.push(buildGalleryPlaceholder(profile, density));
       }
       return out;
     }
     case "story": {
-      const out: AiGeneratedSection[] = [buildRichTextShell(density)];
+      const out: AiGeneratedSection[] = [
+        buildRichTextShell(profile, density),
+      ];
       if (visual) out.push(buildImagePlaceholder(density));
       return out;
     }
     case "catalog": {
       const out: AiGeneratedSection[] = [];
-      if (ctx.pages.includes("products")) out.push(buildProductsShell(density));
-      if (ctx.pages.includes("collections")) {
-        out.push(buildCollectionsShell(density));
+      if (ctx.pages.includes("products")) {
+        out.push(buildProductsShell(profile, density));
       }
-      if (out.length === 0) out.push(buildProductsShell(density));
-      if (visual) out.push(buildGalleryPlaceholder(density));
+      if (ctx.pages.includes("collections")) {
+        out.push(buildCollectionsShell(profile, density));
+      }
+      if (out.length === 0) out.push(buildProductsShell(profile, density));
+      if (visual) out.push(buildGalleryPlaceholder(profile, density));
       return out;
     }
     case "faq":
-      return [buildRichTextShell(density)];
+      return [buildRichTextShell(profile, density)];
     case "contact":
-      return [buildFormShell(density)];
+      return [buildFormShell(profile, density)];
     case "cta":
-      return [buildCtaShell(density, ctx.primaryHref)];
+      return [buildCtaShell(profile, density, ctx.primaryHref)];
     default: {
       const type = ROLE_TO_SECTION_TYPE[role];
       return [section(type, {}, paddingFor(density))];
@@ -466,7 +595,7 @@ function composeHomePage(
   input: AiWebsiteComposerInput,
   pages: PageType[],
 ): AiGeneratedPage {
-  const { plan, dna } = input;
+  const { plan, dna, profile } = input;
   const density = dna.contentDensity.value;
   const primaryHref = resolveCtaHref(plan, pages);
   const secondaryHref = resolveSecondaryHref(plan, pages);
@@ -489,6 +618,7 @@ function composeHomePage(
   for (const role of roles) {
     composed.push(
       ...composeRoleSection(role, {
+        profile,
         density,
         plan,
         dna,
@@ -515,69 +645,51 @@ function composeHomePage(
 
 function composeInnerPage(
   pageType: PageType,
+  profile: AiBusinessProfile,
   density: AiContentDensity,
   primaryHref: string,
   plan: AiWebsitePlan,
 ): AiGeneratedPage {
   const meta = PAGE_TYPE_META[pageType];
-  const layout = paddingFor(density);
   const sections: AiGeneratedSection[] = [];
 
   sections.push(
-    section(
-      "hero",
-      {
-        eyebrow: "",
-        heading: "",
-        subheading: "",
-        primaryLabel: "",
-        primaryHref,
-        secondaryLabel: "",
-        secondaryHref: "",
-        align: "left",
-        height: "sm",
-        overlay: 25,
-        animation: "fade",
-        backgroundMediaId: null,
-        mobileMediaId: null,
-        desktopMediaId: null,
-        backgroundVideoUrl: "",
-      },
-      layout,
-    ),
+    buildInnerHeroShell(profile, pageType, primaryHref, density),
   );
 
   switch (pageType) {
     case "about":
-      sections.push(buildRichTextShell(density));
+      sections.push(buildRichTextShell(profile, density));
       if (plan.trustBuildingFlow.value !== "guarantees_near_cta") {
-        sections.push(buildFeaturesShell(density, featureSlotCount(density)));
+        sections.push(
+          buildFeaturesShell(profile, density, featureSlotCount(density)),
+        );
       }
       if (plan.contentPriorities.value.includes("visual_showcase")) {
-        sections.push(buildGalleryPlaceholder(density));
+        sections.push(buildGalleryPlaceholder(profile, density));
       }
-      sections.push(buildCtaShell(density, primaryHref));
+      sections.push(buildCtaShell(profile, density, primaryHref));
       break;
     case "contact":
-      sections.push(buildFormShell(density));
+      sections.push(buildFormShell(profile, density));
       break;
     case "products":
-      sections.push(buildProductsShell(density));
+      sections.push(buildProductsShell(profile, density));
       if (density === "rich" || density === "dense") {
-        sections.push(buildCtaShell(density, primaryHref));
+        sections.push(buildCtaShell(profile, density, primaryHref));
       }
       break;
     case "collections":
-      sections.push(buildCollectionsShell(density));
+      sections.push(buildCollectionsShell(profile, density));
       break;
     case "blog":
-      sections.push(buildBlogListShell(density));
+      sections.push(buildBlogListShell(profile, density));
       break;
     case "custom":
-      sections.push(buildRichTextShell(density));
+      sections.push(buildRichTextShell(profile, density));
       break;
     default:
-      sections.push(buildRichTextShell(density));
+      sections.push(buildRichTextShell(profile, density));
   }
 
   return {
@@ -685,12 +797,13 @@ function buildHeader(
   pages: PageType[],
 ): AiGeneratedHeader {
   const ctaHref = resolveCtaHref(plan, pages);
+  const cta = profile.primaryCta;
   return {
     logoText: profile.name,
     showLogo: true,
     sticky: true,
-    ctaLabel: null,
-    ctaHref,
+    ctaLabel: cta?.label || "Get in touch",
+    ctaHref: cta?.href || ctaHref,
     ctaStyle: "primary",
     announcementText: null,
     announcementEnabled: false,
@@ -756,7 +869,7 @@ function buildFooter(
 function buildSeo(profile: AiBusinessProfile): AiGeneratedSeo {
   return {
     defaultTitle: profile.name,
-    defaultDescription: null,
+    defaultDescription: profile.description?.trim() || profile.slogan || null,
     robots: "index,follow",
     twitterHandle: null,
   };
@@ -805,7 +918,8 @@ function buildNavigation(
 
 /**
  * Compose a validating AiWebsiteBlueprint from plan + upstream signals.
- * Pure / synchronous / deterministic. No marketing copy.
+ * Pure / synchronous / deterministic. Home Hero copy stays empty for Phase 4;
+ * other sections use the already-inferred business profile.
  */
 export function composeWebsiteBlueprint(
   input: AiWebsiteComposerInput,
@@ -830,7 +944,9 @@ export function composeWebsiteBlueprint(
     if (pageType === "home") {
       pages.push(composeHomePage(input, uniquePages));
     } else {
-      pages.push(composeInnerPage(pageType, density, primaryHref, plan));
+      pages.push(
+        composeInnerPage(pageType, profile, density, primaryHref, plan),
+      );
     }
   }
 
