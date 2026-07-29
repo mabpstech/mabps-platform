@@ -69,7 +69,7 @@ export async function runGenerationPlan(
         },
       );
 
-      console.info("[ai/hero]", {
+      console.info("[ai/hero] Hero generated from new pipeline", {
         task,
         content: generated.content,
         meta: generated.meta,

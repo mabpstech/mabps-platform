@@ -2,6 +2,10 @@
  * Live Hero replacement (AI Pipeline Phase 4).
  * Swaps the legacy Hero inside Builder JSON / blueprint with adapted
  * generator output. Does not touch Builder UI or Editor.
+ *
+ * Source of truth for home Hero *content*: generationRun.hero (Hero Generator).
+ * Legacy Composer shell is structure-only and used only when the new pipeline
+ * did not produce a Hero.
  */
 
 import { adaptHeroToBuilderSection } from "@/lib/website/ai/builder-adapter/hero";
@@ -15,6 +19,14 @@ import type {
   AiGeneratedSection,
   AiWebsiteBlueprint,
 } from "@/lib/website/ai/types";
+
+/** Whether home Hero content came from the new pipeline or legacy shell. */
+export type HeroBlueprintSource = "pipeline" | "fallback";
+
+export type ApplyHeroToBlueprintResult = {
+  blueprint: AiWebsiteBlueprint;
+  source: HeroBlueprintSource;
+};
 
 /**
  * Replace the first Hero with `heroSection` and drop any extras.
@@ -103,18 +115,23 @@ export function applyHeroToPage(
 /**
  * Replace the home-page Hero inside a composed blueprint.
  * About / Features / CTA and other pages stay unchanged.
- * When generationRun.hero is null, returns the blueprint as-is (legacy Hero).
+ * When generationRun.hero is null, keeps the legacy Composer shell (fallback).
  */
 export function applyHeroToBlueprint(
   blueprint: AiWebsiteBlueprint,
   generationRun: GenerationRunResult,
   options: BuilderAdapterOptions = {},
-): AiWebsiteBlueprint {
+): ApplyHeroToBlueprintResult {
   if (!generationRun.hero) {
-    return blueprint;
+    console.info("[ai/hero] Hero fallback used", {
+      reason: "generationRun.hero is null",
+      message:
+        "Keeping legacy Composer home Hero shell; new pipeline produced no Hero.",
+    });
+    return { blueprint, source: "fallback" };
   }
 
-  return {
+  const next: AiWebsiteBlueprint = {
     ...blueprint,
     pages: blueprint.pages.map((page) =>
       page.pageType === "home"
@@ -122,4 +139,19 @@ export function applyHeroToBlueprint(
         : page,
     ),
   };
+
+  const homeHero = next.pages
+    .find((page) => page.pageType === "home")
+    ?.sections.find((section) => section.type === "hero");
+
+  console.info("[ai/hero] Hero injected into blueprint", {
+    source: "pipeline",
+    pageType: "home",
+    heading: homeHero?.content.heading ?? generationRun.hero.headline,
+    subheading: homeHero?.content.subheading ?? generationRun.hero.subheadline,
+    primaryLabel:
+      homeHero?.content.primaryLabel ?? generationRun.hero.primaryCTA,
+  });
+
+  return { blueprint: next, source: "pipeline" };
 }

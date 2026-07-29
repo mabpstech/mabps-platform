@@ -114,6 +114,8 @@ function heroLayout(
 
 /**
  * Structural hero shell — layout / CTA hrefs only. Text fields stay empty.
+ * Home Hero *copy* is authored solely by the Hero Generator (Phase 3) and
+ * injected in Phase 4. This shell is the legacy fallback structure only.
  */
 function buildHeroShell(input: {
   layout: HeroLayoutVariant;

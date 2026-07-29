@@ -38,6 +38,8 @@ export {
   applyHeroToBlueprint,
   applyHeroToPage,
   replaceHeroInSections,
+  type ApplyHeroToBlueprintResult,
+  type HeroBlueprintSource,
 } from "@/lib/website/ai/builder-adapter/replace";
 
 export {

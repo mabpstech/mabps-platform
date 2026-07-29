@@ -364,8 +364,13 @@ function assertBuilderHeroContent(content: Record<string, unknown>) {
     blueprint,
     EXAMPLE_GENERATION_RUN_WITH_HERO,
   );
-  const homePage = withHero.pages.find((page) => page.pageType === "home")!;
-  const aboutPage = withHero.pages.find((page) => page.pageType === "about")!;
+  assert.equal(withHero.source, "pipeline");
+  const homePage = withHero.blueprint.pages.find(
+    (page) => page.pageType === "home",
+  )!;
+  const aboutPage = withHero.blueprint.pages.find(
+    (page) => page.pageType === "about",
+  )!;
   const homeHeroes = homePage.sections.filter((s) => s.type === "hero");
   assert.equal(homeHeroes.length, 1);
   assert.equal(homeHeroes[0]?.content.heading, EXAMPLE_HERO_SECTION.headline);
@@ -392,10 +397,11 @@ function assertBuilderHeroContent(content: Record<string, unknown>) {
     heroMeta: null,
   };
   const fallback = applyHeroToBlueprint(blueprint, emptyRun);
+  assert.equal(fallback.source, "fallback");
   assert.equal(
-    fallback.pages.find((page) => page.pageType === "home")?.sections.find(
-      (s) => s.type === "hero",
-    )?.content.heading,
+    fallback.blueprint.pages
+      .find((page) => page.pageType === "home")
+      ?.sections.find((s) => s.type === "hero")?.content.heading,
     "Legacy Home",
   );
 

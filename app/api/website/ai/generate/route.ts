@@ -45,6 +45,7 @@ export async function POST(request: Request) {
           llmFallback: result.meta.llmFallback,
           provider: result.meta.provider,
           model: result.meta.model,
+          heroSource: result.meta.heroSource,
         },
         site: {
           name: result.blueprint.site.name,

@@ -17,10 +17,16 @@ import {
 } from "../lib/website/ai";
 import { inferBusinessProfile } from "../lib/website/ai/intelligence";
 import {
+  loadPublicSite,
+  resolvePublicPage,
+} from "../lib/website/public";
+import { publishSite } from "../lib/website/publish";
+import {
   deleteSite,
   getSiteById,
   listPages,
   listSections,
+  replaceSections,
 } from "../lib/website/repository";
 
 function seedWorkspace(label: string): string {
@@ -38,6 +44,25 @@ function seedWorkspace(label: string): string {
       new Date().toISOString(),
     );
   return workspaceId;
+}
+
+/** Publish-event table is CLI-migrated; ensure it exists for local verify DBs. */
+function ensurePublishEventTable(): void {
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS "website_publish_event" (
+      "id" text not null primary key,
+      "siteId" text not null references "website_site" ("id") on delete cascade,
+      "action" text not null,
+      "status" text not null,
+      "versionLabel" text not null,
+      "actorUserId" text,
+      "actorName" text,
+      "note" text,
+      "createdAt" text not null
+    );
+    CREATE INDEX IF NOT EXISTS "website_publish_event_siteId_idx"
+      on "website_publish_event" ("siteId", "createdAt");
+  `);
 }
 
 function cleanupWorkspace(workspaceId: string): void {
@@ -121,6 +146,7 @@ async function main() {
 
       assert.equal(result.meta.usedLlm, false);
       assert.equal(result.meta.llmFallback, false);
+      assert.equal(result.meta.heroSource, "pipeline");
       assert.equal(result.plannerMeta.usedLlm, false);
       assert.ok(result.businessPlan.pages.length >= 1);
       assert.ok(result.plannerWebsite.pages.length >= 1);
@@ -215,6 +241,86 @@ async function main() {
           );
         }
       }
+
+      // Hero survives reload (re-read from DB)
+      const reloadedHome = listPages(result.siteId).find(
+        (page) => page.pageType === "home",
+      );
+      assert.ok(reloadedHome);
+      const reloadedHero = listSections(reloadedHome!.id).find(
+        (section) => section.type === "hero",
+      );
+      assert.ok(reloadedHero);
+      assert.equal(
+        String(reloadedHero!.content.heading ?? ""),
+        result.generationRun.hero.headline,
+      );
+
+      // Hero survives save (replaceSections round-trip)
+      const savedSections = replaceSections(
+        reloadedHome!.id,
+        listSections(reloadedHome!.id).map((section) => ({
+          id: section.id,
+          type: section.type,
+          content: section.content,
+          settings: section.settings,
+        })),
+      );
+      const savedHero = savedSections.find((section) => section.type === "hero");
+      assert.ok(savedHero);
+      assert.equal(
+        String(savedHero!.content.heading ?? ""),
+        result.generationRun.hero.headline,
+      );
+      assert.equal(
+        String(savedHero!.content.subheading ?? ""),
+        result.generationRun.hero.subheadline,
+      );
+
+      // Hero survives preview (draft site + preview=1)
+      const draftSite = getSiteById(result.siteId);
+      assert.ok(draftSite);
+      const previewView = loadPublicSite(draftSite!, { preview: true });
+      assert.ok(previewView);
+      const previewPage = resolvePublicPage(result.siteId, [], {
+        preview: true,
+      });
+      assert.ok(previewPage);
+      const previewHero = previewPage!.sections.find(
+        (section) => section.type === "hero",
+      );
+      assert.ok(previewHero);
+      assert.equal(
+        String(previewHero!.content.heading ?? ""),
+        result.generationRun.hero.headline,
+      );
+
+      // Hero survives publish + public load
+      ensurePublishEventTable();
+      const published = publishSite(result.siteId);
+      assert.equal(published.site.status, "published");
+      const publicView = loadPublicSite(published.site, { preview: false });
+      assert.ok(publicView);
+      const publicPage = resolvePublicPage(result.siteId, [], {
+        preview: false,
+      });
+      assert.ok(publicPage);
+      const publicHero = publicPage!.sections.find(
+        (section) => section.type === "hero",
+      );
+      assert.ok(publicHero);
+      assert.equal(
+        String(publicHero!.content.heading ?? ""),
+        result.generationRun.hero.headline,
+      );
+      assert.equal(
+        String(publicHero!.content.subheading ?? ""),
+        result.generationRun.hero.subheadline,
+      );
+      assert.equal(
+        String(publicHero!.content.primaryLabel ?? ""),
+        result.generationRun.hero.primaryCTA,
+      );
     } finally {
       cleanupWorkspace(workspaceId);
     }

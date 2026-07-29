@@ -4,18 +4,22 @@
  * User Prompt → Business Planner → Website Planner → Generation Orchestrator →
  * (Phase 3: hero-generator via orchestrator) → OpenAI prompt signals → validate →
  * Business Intelligence → DNA → Brand Strategy → Website Plan → Creative Direction →
- * Website Composer → (Phase 4: replace home Hero from generationRun) →
+ * Website Composer (structure + empty Hero shell) →
+ * (Phase 4: inject home Hero from generationRun; legacy shell only on failure) →
  * Blueprint Executor.
  *
- * Phase 1–2.5 planners are logged and passed through. Phase 3 hero content is
- * produced only through the orchestrator (not Builder/Editor). Phase 4 swaps
- * the legacy home Hero for the adapted generator Hero when present.
+ * Home Hero content has one source of truth: the Hero Generator (via orchestrator).
+ * Composer never authors Hero copy. Phase 4 injects generator content; if the new
+ * pipeline fails or returns no Hero, the legacy empty Composer shell is kept.
  *
  * LLM never writes Website Builder data. Validation failure falls back to
  * deterministic inference — generation must not fail because of the LLM.
  */
 
-import { applyHeroToBlueprint } from "@/lib/website/ai/builder-adapter";
+import {
+  applyHeroToBlueprint,
+  type HeroBlueprintSource,
+} from "@/lib/website/ai/builder-adapter";
 import { executeWebsiteBlueprint } from "@/lib/website/ai/blueprint-executor";
 import { deriveBrandStrategy } from "@/lib/website/ai/brand-strategy";
 import {
@@ -74,7 +78,11 @@ export type AiWebsiteGeneratePipelineMeta = {
   inputTokens: number;
   outputTokens: number;
   validationIssues: Array<{ path: string; message: string }>;
+  /** Where the persisted home Hero content came from. */
+  heroSource: HeroBlueprintSource;
 };
+
+type PromptSignalsMeta = Omit<AiWebsiteGeneratePipelineMeta, "heroSource">;
 
 export type AiWebsiteGeneratePipelineResult = AiWebsiteGenerateResult & {
   /** Phase 1 business planner output (pass-through; not yet consumed downstream). */
@@ -122,9 +130,9 @@ async function extractValidatedSignals(
   options: AiWebsiteGenerateServiceOptions,
 ): Promise<{
   signals: AiWebsitePromptSignals | null;
-  meta: AiWebsiteGeneratePipelineMeta;
+  meta: PromptSignalsMeta;
 }> {
-  const emptyMeta = (): AiWebsiteGeneratePipelineMeta => ({
+  const emptyMeta = (): PromptSignalsMeta => ({
     usedLlm: false,
     llmFallback: false,
     provider: null,
@@ -289,23 +297,42 @@ export async function generateWebsiteFromPrompt(
     generationPlan,
   });
 
-  const generationRun = await runGenerationPlan(
-    {
-      businessPlan: plannerResult.plan,
-      websitePlan: websitePlannerResult.plan,
+  // Hero Generator is the sole content author for home Hero. On failure, keep
+  // the legacy Composer shell later in Phase 4 (do not abort site generation).
+  let generationRun: GenerationRunResult;
+  try {
+    generationRun = await runGenerationPlan(
+      {
+        businessPlan: plannerResult.plan,
+        websitePlan: websitePlannerResult.plan,
+        plan: generationPlan,
+        workspaceId: normalized.workspaceId,
+        apiKey: options.apiKey,
+        baseUrl: options.baseUrl,
+        model: options.model,
+      },
+      {
+        skipLlm: options.skipLlm,
+        heroCompleteJson: options.heroCompleteJson,
+      },
+    );
+  } catch (error) {
+    console.info("[ai/hero] Hero fallback used", {
+      reason: "new pipeline failed",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Hero generation pipeline threw.",
+    });
+    generationRun = {
       plan: generationPlan,
-      workspaceId: normalized.workspaceId,
-      apiKey: options.apiKey,
-      baseUrl: options.baseUrl,
-      model: options.model,
-    },
-    {
-      skipLlm: options.skipLlm,
-      heroCompleteJson: options.heroCompleteJson,
-    },
-  );
+      results: [],
+      hero: null,
+      heroMeta: null,
+    };
+  }
 
-  const { signals, meta } = await extractValidatedSignals(
+  const { signals, meta: signalsMeta } = await extractValidatedSignals(
     normalized.prompt,
     normalized.workspaceId,
     options,
@@ -338,7 +365,7 @@ export async function generateWebsiteFromPrompt(
   });
   const direction = directionResult.direction;
 
-  // 6. Website Composer (deterministic blueprint — never from LLM)
+  // 6. Website Composer — structure only; home Hero text fields stay empty
   const composed = await composeWebsite({
     profile,
     dna,
@@ -348,14 +375,17 @@ export async function generateWebsiteFromPrompt(
     options: normalized.options,
   });
 
-  // 7. Phase 4 — replace legacy home Hero with generationRun Hero (fallback: keep legacy)
-  const blueprint: AiWebsiteBlueprint = applyHeroToBlueprint(
-    composed.blueprint,
-    generationRun,
-  );
+  // 7. Phase 4 — inject Hero Generator content (legacy shell only if missing)
+  const heroApply = applyHeroToBlueprint(composed.blueprint, generationRun);
+  const blueprint: AiWebsiteBlueprint = heroApply.blueprint;
   assertAiWebsiteBlueprint(blueprint);
 
-  // 8. Blueprint Executor → Website Builder
+  const meta: AiWebsiteGeneratePipelineMeta = {
+    ...signalsMeta,
+    heroSource: heroApply.source,
+  };
+
+  // 8. Blueprint Executor → Website Builder (persists injected Hero)
   const executed = executeWebsiteBlueprint({
     workspaceId: normalized.workspaceId,
     blueprint,

@@ -326,10 +326,12 @@ export {
   resolveHeroLayoutFields,
   type AdaptGenerationRunInput,
   type AdaptHeroInput,
+  type ApplyHeroToBlueprintResult,
   type BuilderAdapterOptions,
   type BuilderHeroContent,
   type BuilderJson,
   type BuilderSectionJson,
+  type HeroBlueprintSource,
 } from "@/lib/website/ai/builder-adapter";
 
 export {
