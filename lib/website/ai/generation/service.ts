@@ -1,11 +1,11 @@
 /**
- * AI Website Generation service (Sprint B3 + Phase 1 planner).
+ * AI Website Generation service (Sprint B3 + Phase 1–2 planners).
  *
- * User Prompt → Business Planner → OpenAI prompt signals → validate →
- * Business Intelligence → DNA → Brand Strategy → Website Plan →
+ * User Prompt → Business Planner → Website Planner → OpenAI prompt signals →
+ * validate → Business Intelligence → DNA → Brand Strategy → Website Plan →
  * Creative Direction → Website Composer → Blueprint Executor.
  *
- * Phase 1: planner output is logged and passed through only — downstream
+ * Phase 1–2: planner outputs are logged and passed through only — downstream
  * generation logic is unchanged.
  *
  * LLM never writes Website Builder data. Validation failure falls back to
@@ -48,6 +48,12 @@ import type {
 import { assertAiWebsiteBlueprint } from "@/lib/website/ai/validate";
 import { composeWebsite } from "@/lib/website/ai/website-composer";
 import { deriveWebsitePlan } from "@/lib/website/ai/website-plan";
+import {
+  planWebsiteFromBusinessPlan,
+  type WebsitePlan,
+  type WebsitePlannerLlmCompleter,
+  type WebsitePlannerMeta,
+} from "@/lib/website/ai/website-planner";
 
 export type AiWebsiteGeneratePipelineMeta = {
   usedLlm: boolean;
@@ -65,6 +71,9 @@ export type AiWebsiteGeneratePipelineResult = AiWebsiteGenerateResult & {
   /** Website structure slice of the business plan. */
   plannerWebsite: PlannerWebsitePlan;
   plannerMeta: BusinessPlannerMeta;
+  /** Phase 2 website planner output (pass-through; not yet consumed downstream). */
+  websitePlan: WebsitePlan;
+  websitePlannerMeta: WebsitePlannerMeta;
   profile: AiBusinessProfile;
   dna: AiBusinessDNA;
   strategy: AiBrandStrategy;
@@ -80,6 +89,8 @@ export type AiWebsiteGenerateServiceOptions = {
   llmProvider?: AiWebsiteLlmProvider;
   /** Inject a business-planner LLM completer (tests). */
   businessPlannerCompleteJson?: BusinessPlannerLlmCompleter;
+  /** Inject a website-planner LLM completer (tests). */
+  websitePlannerCompleteJson?: WebsitePlannerLlmCompleter;
   /** Skip LLM entirely and use deterministic inference only. */
   skipLlm?: boolean;
   /** Force an API key for the OpenAI adapter. */
@@ -229,6 +240,27 @@ export async function generateWebsiteFromPrompt(
     meta: plannerResult.meta,
   });
 
+  // 0b. Website Planner (Phase 2) — structure only; log + pass through only
+  const websitePlannerResult = await planWebsiteFromBusinessPlan(
+    {
+      businessPlan: plannerResult.plan,
+      prompt: normalized.prompt,
+      workspaceId: normalized.workspaceId,
+      apiKey: options.apiKey,
+      baseUrl: options.baseUrl,
+      model: options.model,
+    },
+    {
+      skipLlm: options.skipLlm,
+      completeJson: options.websitePlannerCompleteJson,
+    },
+  );
+  console.info("[ai/website-planner]", {
+    businessPlan: plannerResult.plan,
+    plan: websitePlannerResult.plan,
+    meta: websitePlannerResult.meta,
+  });
+
   const { signals, meta } = await extractValidatedSignals(
     normalized.prompt,
     normalized.workspaceId,
@@ -286,6 +318,8 @@ export async function generateWebsiteFromPrompt(
     businessPlan: plannerResult.plan,
     plannerWebsite: plannerResult.website,
     plannerMeta: plannerResult.meta,
+    websitePlan: websitePlannerResult.plan,
+    websitePlannerMeta: websitePlannerResult.meta,
     profile,
     dna,
     strategy,

@@ -1,8 +1,9 @@
 /**
  * AI Website Generator — shared foundation, Business Planner (Phase 1),
- * Business Intelligence (C2), Business DNA (C3), Brand Strategy (C4),
- * Website Planning (C5), Website Composer (C6), Creative Director (C7),
- * Blueprint Executor (B1), and Generation pipeline (B3: OpenAI → engines → builder).
+ * Website Planner (Phase 2), Business Intelligence (C2), Business DNA (C3),
+ * Brand Strategy (C4), Website Planning (C5), Website Composer (C6),
+ * Creative Director (C7), Blueprint Executor (B1), and Generation pipeline
+ * (B3: OpenAI → engines → builder).
  */
 
 export {
@@ -227,6 +228,33 @@ export {
   type SectionPlan,
   type WebsitePlan as BusinessPlannerWebsitePlan,
 } from "@/lib/website/ai/business-planner";
+
+export {
+  EXAMPLE_WEBSITE_PLAN,
+  EXAMPLE_WEBSITE_PLANNER_BUSINESS_PLAN,
+  WEBSITE_PLANNER_SYSTEM_PROMPT,
+  WEBSITE_PLAN_FORBIDDEN_KEYS,
+  WEBSITE_PLAN_KEYS,
+  buildWebsitePlanJsonSchemaPrompt,
+  completeWebsitePlanWithOpenAi,
+  hasWebsitePlannerOpenAiCredentials,
+  inferWebsitePlanFromBusinessPlan,
+  inferWebsiteStructurePlan,
+  parseWebsitePlan,
+  parseWebsitePlanFromContent,
+  planWebsiteFromBusinessPlan,
+  planWebsiteFromBusinessPlanSync,
+  resolveWebsiteStructurePlan,
+  type WebsitePagePlan,
+  type WebsitePlan,
+  type WebsitePlanKey,
+  type WebsitePlanParseResult,
+  type WebsitePlannerInput,
+  type WebsitePlannerLlmCompleter,
+  type WebsitePlannerMeta,
+  type WebsitePlannerOptions,
+  type WebsitePlannerResult,
+} from "@/lib/website/ai/website-planner";
 
 export {
   AI_BUSINESS_INTELLIGENCE_PROVIDER_IDS,

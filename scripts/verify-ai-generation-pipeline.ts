@@ -124,6 +124,9 @@ async function main() {
       assert.equal(result.plannerMeta.usedLlm, false);
       assert.ok(result.businessPlan.pages.length >= 1);
       assert.ok(result.plannerWebsite.pages.length >= 1);
+      assert.equal(result.websitePlannerMeta.usedLlm, false);
+      assert.ok(result.websitePlan.pages.some((page) => page.id === "home"));
+      assert.ok(result.websitePlan.navigation.includes("Home"));
       assert.equal(isAiWebsiteBlueprint(result.blueprint), true);
       assert.ok(result.direction.artDirection.value);
       assert.ok(result.plan.requiredPages.value.length >= 1);
