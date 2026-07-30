@@ -5,6 +5,7 @@ import {
   requireWebsiteMemberApi,
 } from "@/lib/website/access";
 import { websiteErrorResponse } from "@/lib/website/http";
+import { readExpectedUpdatedAt } from "@/lib/website/edit-conflict";
 import {
   deletePage,
   getPageById,
@@ -84,6 +85,7 @@ export async function PATCH(request: Request, context: RouteContext) {
             : undefined,
       publishedAt:
         status === "published" ? new Date().toISOString() : undefined,
+      expectedUpdatedAt: readExpectedUpdatedAt(body),
     });
 
     // Sections are saved on this registered page route so editors do not depend

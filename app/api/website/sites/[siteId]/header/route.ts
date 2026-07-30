@@ -5,6 +5,7 @@ import {
   requireWebsiteMemberApi,
 } from "@/lib/website/access";
 import { websiteErrorResponse } from "@/lib/website/http";
+import { readExpectedUpdatedAt } from "@/lib/website/edit-conflict";
 import { getHeaderBySiteId, updateHeader } from "@/lib/website/repository";
 import { isButtonStyle } from "@/lib/website/types";
 
@@ -89,6 +90,7 @@ export async function PUT(request: Request, context: RouteContext) {
       showSearch:
         typeof body.showSearch === "boolean" ? body.showSearch : undefined,
       showCart: typeof body.showCart === "boolean" ? body.showCart : undefined,
+      expectedUpdatedAt: readExpectedUpdatedAt(body),
     });
 
     return NextResponse.json({ header });

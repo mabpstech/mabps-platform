@@ -8,6 +8,10 @@ import {
   slugify,
 } from "@/lib/website/defaults";
 import {
+  assertExpectedUpdatedAt,
+  navigationRevision,
+} from "@/lib/website/edit-conflict";
+import {
   buildTemplatePages,
   type DefaultPageSeed,
   type SiteCategoryId,
@@ -971,11 +975,14 @@ export function getThemeBySiteId(siteId: string): WebsiteTheme | null {
 
 export function updateTheme(
   siteId: string,
-  input: Partial<Omit<WebsiteTheme, "id" | "siteId" | "createdAt" | "updatedAt">>,
+  input: Partial<Omit<WebsiteTheme, "id" | "siteId" | "createdAt" | "updatedAt">> & {
+    expectedUpdatedAt?: string | null;
+  },
 ): WebsiteTheme {
   ensureWebsiteReady();
   const existing = getThemeBySiteId(siteId);
   if (!existing) throw new Error("Theme not found.");
+  assertExpectedUpdatedAt(existing.updatedAt, input.expectedUpdatedAt);
 
   const timestamp = nowIso();
   let tokens: ThemeTokens = existing.tokens;
@@ -1097,11 +1104,14 @@ export function getHeaderBySiteId(siteId: string): WebsiteHeader | null {
 
 export function updateHeader(
   siteId: string,
-  input: Partial<Omit<WebsiteHeader, "id" | "siteId" | "createdAt" | "updatedAt">>,
+  input: Partial<Omit<WebsiteHeader, "id" | "siteId" | "createdAt" | "updatedAt">> & {
+    expectedUpdatedAt?: string | null;
+  },
 ): WebsiteHeader {
   ensureWebsiteReady();
   const existing = getHeaderBySiteId(siteId);
   if (!existing) throw new Error("Header not found.");
+  assertExpectedUpdatedAt(existing.updatedAt, input.expectedUpdatedAt);
   const timestamp = nowIso();
   // Partial API/wizard payloads often include `ctaStyle: undefined`. Spreading that
   // would wipe the seeded value and fail the NOT NULL constraint on write.
@@ -1154,11 +1164,14 @@ export function getFooterBySiteId(siteId: string): WebsiteFooter | null {
 
 export function updateFooter(
   siteId: string,
-  input: Partial<Omit<WebsiteFooter, "id" | "siteId" | "createdAt" | "updatedAt">>,
+  input: Partial<Omit<WebsiteFooter, "id" | "siteId" | "createdAt" | "updatedAt">> & {
+    expectedUpdatedAt?: string | null;
+  },
 ): WebsiteFooter {
   ensureWebsiteReady();
   const existing = getFooterBySiteId(siteId);
   if (!existing) throw new Error("Footer not found.");
+  assertExpectedUpdatedAt(existing.updatedAt, input.expectedUpdatedAt);
   const timestamp = nowIso();
   const next = { ...existing, ...input };
   sqlite
@@ -1201,8 +1214,13 @@ export function replaceNavItems(
     parentKey?: string | null;
     openInNewTab?: boolean;
   }>,
+  options?: { expectedUpdatedAt?: string | null },
 ): WebsiteNavItem[] {
   ensureWebsiteReady();
+  assertExpectedUpdatedAt(
+    navigationRevision(listNavItems(siteId)),
+    options?.expectedUpdatedAt,
+  );
   const timestamp = nowIso();
 
   const run = sqlite.transaction(() => {
@@ -1293,11 +1311,14 @@ export function getSeoBySiteId(siteId: string): WebsiteSeo | null {
 
 export function updateSeo(
   siteId: string,
-  input: Partial<Omit<WebsiteSeo, "id" | "siteId" | "createdAt" | "updatedAt">>,
+  input: Partial<Omit<WebsiteSeo, "id" | "siteId" | "createdAt" | "updatedAt">> & {
+    expectedUpdatedAt?: string | null;
+  },
 ): WebsiteSeo {
   ensureWebsiteReady();
   const existing = getSeoBySiteId(siteId);
   if (!existing) throw new Error("SEO settings not found.");
+  assertExpectedUpdatedAt(existing.updatedAt, input.expectedUpdatedAt);
   const timestamp = nowIso();
   const next = { ...existing, ...input };
   const jsonLd =
@@ -1436,11 +1457,13 @@ export function updatePage(
     seoOgImageMediaId: string | null;
     seoRobots: string | null;
     publishedAt: string | null;
+    expectedUpdatedAt: string | null;
   }>,
 ): WebsitePage {
   ensureWebsiteReady();
   const existing = getPageById(pageId);
   if (!existing) throw new Error("Page not found.");
+  assertExpectedUpdatedAt(existing.updatedAt, input.expectedUpdatedAt);
 
   let nextSlug = existing.slug;
   if (input.slug !== undefined) {
@@ -1790,11 +1813,13 @@ export function updateBlogPost(
     seoTitle: string | null;
     seoDescription: string | null;
     publishedAt: string | null;
+    expectedUpdatedAt: string | null;
   }>,
 ): WebsiteBlogPost {
   ensureWebsiteReady();
   const existing = getBlogPostById(postId);
   if (!existing) throw new Error("Blog post not found.");
+  assertExpectedUpdatedAt(existing.updatedAt, input.expectedUpdatedAt);
 
   let nextSlug = existing.slug;
   if (input.slug !== undefined) {
@@ -2287,11 +2312,13 @@ export function updateForm(
     successMessage: string;
     notifyEmail: string | null;
     status: FormStatus;
+    expectedUpdatedAt: string | null;
   }>,
 ): WebsiteForm {
   ensureWebsiteReady();
   const existing = getFormById(formId);
   if (!existing) throw new Error("Form not found.");
+  assertExpectedUpdatedAt(existing.updatedAt, input.expectedUpdatedAt);
 
   let nextSlug = existing.slug;
   if (input.slug !== undefined) {

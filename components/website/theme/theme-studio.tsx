@@ -2,8 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { SaveBar, type SaveState } from "@/components/website/ui/save-bar";
+import { SaveBar } from "@/components/website/ui/save-bar";
 import { Toast } from "@/components/website/ui/toast";
+import {
+  editorFetchJson,
+  useEditorPersistence,
+} from "@/components/website/hooks/use-editor-persistence";
 import {
   STUDIO_NAV,
   type StudioNavId,
@@ -36,57 +40,65 @@ export function ThemeStudio({
   const [section, setSection] = useState<StudioNavId>("presets");
   const [device, setDevice] = useState<PreviewDevice>("desktop");
   const [importText, setImportText] = useState("");
-  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [revision, setRevision] = useState(theme.updatedAt);
   const [toast, setToast] = useState<{
     message: string;
     tone: "success" | "error";
   } | null>(null);
-  const hydrated = useRef(false);
+  const skipDirty = useRef(false);
+  const tokensRef = useRef(tokens);
+  const customCssRef = useRef(customCss);
+  tokensRef.current = tokens;
+  customCssRef.current = customCss;
 
   useEffect(() => {
-    if (!hydrated.current) {
-      hydrated.current = true;
-      return;
-    }
-    setSaveState((current) => (current === "saving" ? current : "dirty"));
-  }, [tokens, customCss]);
+    skipDirty.current = true;
+    setTokens(theme.tokens);
+    setCustomCss(theme.customCss);
+    setRevision(theme.updatedAt);
+  }, [theme]);
+
+  const { saveState, saveNow } = useEditorPersistence<{ theme?: WebsiteTheme }>({
+    enabled: canManage,
+    resourceKey: `theme:${siteId}`,
+    revision,
+    onRevisionChange: setRevision,
+    skipNextDirtyRef: skipDirty,
+    deps: [tokens, customCss],
+    onRemoteUpdate: () => router.refresh(),
+    onError: (error) => setToast({ message: error.message, tone: "error" }),
+    onSaved: (result, { silent, editedDuringSave }) => {
+      if (result.data?.theme && !editedDuringSave) {
+        skipDirty.current = true;
+        setTokens(result.data.theme.tokens);
+        setCustomCss(result.data.theme.customCss);
+      }
+      if (!silent) {
+        setToast({ message: "Theme saved", tone: "success" });
+        router.refresh();
+      }
+    },
+    save: async ({ expectedUpdatedAt, signal }) => {
+      const data = await editorFetchJson<{ theme?: WebsiteTheme }>(
+        `/api/website/sites/${siteId}/theme`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          signal,
+          body: JSON.stringify({
+            tokens: tokensRef.current,
+            customCss: customCssRef.current,
+            expectedUpdatedAt,
+          }),
+        },
+      );
+      if (!data.theme?.updatedAt) throw new Error("Unable to save theme.");
+      return { updatedAt: data.theme.updatedAt, data };
+    },
+  });
 
   function updateTokens(next: ThemeTokens) {
     setTokens(next);
-  }
-
-  async function save() {
-    if (!canManage) return;
-    setSaveState("saving");
-    try {
-      const response = await fetch(`/api/website/sites/${siteId}/theme`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tokens, customCss }),
-      });
-      const data = (await response.json()) as {
-        error?: string;
-        theme?: WebsiteTheme;
-      };
-      if (!response.ok) throw new Error(data.error || "Unable to save theme.");
-      if (data.theme) {
-        setTokens(data.theme.tokens);
-        setCustomCss(data.theme.customCss);
-      }
-      setSaveState("saved");
-      setToast({ message: "Theme saved", tone: "success" });
-      router.refresh();
-      window.setTimeout(() => {
-        setSaveState((current) => (current === "saved" ? "idle" : current));
-      }, 1600);
-    } catch (err) {
-      setSaveState("error");
-      setToast({
-        message:
-          err instanceof Error ? err.message : "Couldn’t save the theme. Try again.",
-        tone: "error",
-      });
-    }
   }
 
   function handleExport() {
@@ -148,7 +160,12 @@ export function ThemeStudio({
   return (
     <div className="space-y-4 pb-24">
       {canManage ? (
-        <SaveBar state={saveState} onSave={() => void save()} label="Save theme" />
+        <SaveBar
+          state={saveState}
+          onSave={() => void saveNow({ silent: false })}
+          onReload={() => router.refresh()}
+          label="Save theme"
+        />
       ) : null}
 
       <div className="flex flex-wrap items-end justify-between gap-3">

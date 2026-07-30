@@ -8,7 +8,11 @@ import {
 } from "@/lib/auth/styles";
 import { LivePreview } from "@/components/website/live-preview";
 import { MediaPicker } from "@/components/website/media-picker";
-import { SaveBar, type SaveState } from "@/components/website/ui/save-bar";
+import {
+  editorFetchJson,
+  useEditorPersistence,
+} from "@/components/website/hooks/use-editor-persistence";
+import { SaveBar } from "@/components/website/ui/save-bar";
 import { Toast } from "@/components/website/ui/toast";
 import type { WebsiteHeader } from "@/lib/website/types";
 
@@ -48,69 +52,92 @@ export function HeaderEditor({
           .announcementEnabled,
       ),
   );
-  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [revision, setRevision] = useState(header.updatedAt);
   const [toast, setToast] = useState<{
     message: string;
     tone: "success" | "error";
   } | null>(null);
   const [previewToken, setPreviewToken] = useState(0);
-  const hydrated = useRef(false);
+  const skipDirty = useRef(false);
+  const formRef = useRef(form);
+  const logoSizeRef = useRef(logoSize);
+  const announcementRef = useRef(announcement);
+  const showAnnouncementRef = useRef(showAnnouncement);
+  formRef.current = form;
+  logoSizeRef.current = logoSize;
+  announcementRef.current = announcement;
+  showAnnouncementRef.current = showAnnouncement;
 
   useEffect(() => {
-    if (!hydrated.current) {
-      hydrated.current = true;
-      return;
-    }
-    setSaveState((current) => (current === "saving" ? current : "dirty"));
-  }, [form, logoSize, announcement, showAnnouncement]);
+    skipDirty.current = true;
+    setForm(header);
+    setLogoSize(readLogoSize(header));
+    setAnnouncement(
+      (header as WebsiteHeader & { announcementText?: string | null })
+        .announcementText ?? "",
+    );
+    setShowAnnouncement(
+      Boolean(
+        (header as WebsiteHeader & { announcementEnabled?: boolean })
+          .announcementEnabled,
+      ),
+    );
+    setRevision(header.updatedAt);
+  }, [header]);
 
-  async function save() {
-    if (!canManage) return;
-    setSaveState("saving");
-    try {
-      const response = await fetch(`/api/website/sites/${siteId}/header`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          logoSize,
-          announcementText: announcement || null,
-          announcementEnabled: showAnnouncement,
-          // Search/cart are not shipped yet — keep them off in production chrome.
-          showSearch: false,
-          showCart: false,
-        }),
-      });
-      const data = (await response.json()) as {
-        error?: string;
-        header?: WebsiteHeader;
-      };
-      if (!response.ok) throw new Error(data.error || "Unable to save header.");
-      if (data.header) {
-        setForm(data.header);
-        setLogoSize(readLogoSize(data.header));
+  const { saveState, saveNow } = useEditorPersistence<{ header?: WebsiteHeader }>({
+    enabled: canManage,
+    resourceKey: `header:${siteId}`,
+    revision,
+    onRevisionChange: setRevision,
+    skipNextDirtyRef: skipDirty,
+    deps: [form, logoSize, announcement, showAnnouncement],
+    onRemoteUpdate: () => router.refresh(),
+    onError: (error) => setToast({ message: error.message, tone: "error" }),
+    onSaved: (result, { silent, editedDuringSave }) => {
+      if (result.data?.header && !editedDuringSave) {
+        skipDirty.current = true;
+        setForm(result.data.header);
+        setLogoSize(readLogoSize(result.data.header));
       }
-      setSaveState("saved");
-      setToast({ message: "Header saved", tone: "success" });
       setPreviewToken((current) => current + 1);
-      router.refresh();
-      window.setTimeout(() => {
-        setSaveState((current) => (current === "saved" ? "idle" : current));
-      }, 1600);
-    } catch (err) {
-      setSaveState("error");
-      setToast({
-        message:
-          err instanceof Error ? err.message : "Couldn’t save the header. Try again.",
-        tone: "error",
-      });
-    }
-  }
+      if (!silent) {
+        setToast({ message: "Header saved", tone: "success" });
+        router.refresh();
+      }
+    },
+    save: async ({ expectedUpdatedAt, signal }) => {
+      const data = await editorFetchJson<{ header?: WebsiteHeader }>(
+        `/api/website/sites/${siteId}/header`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          signal,
+          body: JSON.stringify({
+            ...formRef.current,
+            logoSize: logoSizeRef.current,
+            announcementText: announcementRef.current || null,
+            announcementEnabled: showAnnouncementRef.current,
+            showSearch: false,
+            showCart: false,
+            expectedUpdatedAt,
+          }),
+        },
+      );
+      if (!data.header?.updatedAt) throw new Error("Unable to save header.");
+      return { updatedAt: data.header.updatedAt, data };
+    },
+  });
 
   return (
     <div className="space-y-4">
       {canManage ? (
-        <SaveBar state={saveState} onSave={() => void save()} label="Save header" />
+        <SaveBar
+          state={saveState}
+          onSave={() => void saveNow({ silent: false })}
+          onReload={() => router.refresh()}
+          label="Save header"
+        />
       ) : null}
 
       <div className="min-w-0 max-w-xl">

@@ -9,7 +9,11 @@ import {
   authSecondaryButtonClassName,
 } from "@/lib/auth/styles";
 import { LivePreview } from "@/components/website/live-preview";
-import { SaveBar, type SaveState } from "@/components/website/ui/save-bar";
+import {
+  editorFetchJson,
+  useEditorPersistence,
+} from "@/components/website/hooks/use-editor-persistence";
+import { SaveBar } from "@/components/website/ui/save-bar";
 import { Toast } from "@/components/website/ui/toast";
 import type {
   FooterColumn,
@@ -58,78 +62,88 @@ export function FooterEditor({
     footer.socialLinks,
   );
   const [columns, setColumns] = useState<FooterColumn[]>(footer.columns);
-  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [revision, setRevision] = useState(footer.updatedAt);
   const [toast, setToast] = useState<{
     message: string;
     tone: "success" | "error";
   } | null>(null);
   const [previewToken, setPreviewToken] = useState(0);
-  const hydrated = useRef(false);
+  const skipDirty = useRef(false);
+  const formRef = useRef(form);
+  const socialLinksRef = useRef(socialLinks);
+  const columnsRef = useRef(columns);
+  formRef.current = form;
+  socialLinksRef.current = socialLinks;
+  columnsRef.current = columns;
 
   useEffect(() => {
-    if (!hydrated.current) {
-      hydrated.current = true;
-      return;
-    }
-    setSaveState((current) => (current === "saving" ? current : "dirty"));
-  }, [form, socialLinks, columns]);
+    skipDirty.current = true;
+    setForm(footer);
+    setSocialLinks(footer.socialLinks);
+    setColumns(footer.columns);
+    setRevision(footer.updatedAt);
+  }, [footer]);
 
-  async function save() {
-    if (!canManage) return;
-    const invalid = socialLinks.find(
-      (link) => link.href.trim() && !isValidSocialHref(link.href),
-    );
-    if (invalid) {
-      setSaveState("error");
-      setToast({
-        message: `Social link “${invalid.label || "Untitled"}” needs a valid http(s), mailto, or tel URL.`,
-        tone: "error",
-      });
-      return;
-    }
-
-    setSaveState("saving");
-    try {
-      const response = await fetch(`/api/website/sites/${siteId}/footer`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          socialLinks: socialLinks.filter((link) => link.href.trim()),
-          columns,
-        }),
-      });
-      const data = (await response.json()) as {
-        error?: string;
-        footer?: WebsiteFooter;
-      };
-      if (!response.ok) throw new Error(data.error || "Unable to save footer.");
-      if (data.footer) {
-        setForm(data.footer);
-        setSocialLinks(data.footer.socialLinks);
-        setColumns(data.footer.columns);
+  const { saveState, saveNow } = useEditorPersistence<{ footer?: WebsiteFooter }>({
+    enabled: canManage,
+    resourceKey: `footer:${siteId}`,
+    revision,
+    onRevisionChange: setRevision,
+    skipNextDirtyRef: skipDirty,
+    deps: [form, socialLinks, columns],
+    onRemoteUpdate: () => router.refresh(),
+    onError: (error) => setToast({ message: error.message, tone: "error" }),
+    onSaved: (result, { silent, editedDuringSave }) => {
+      if (result.data?.footer && !editedDuringSave) {
+        skipDirty.current = true;
+        setForm(result.data.footer);
+        setSocialLinks(result.data.footer.socialLinks);
+        setColumns(result.data.footer.columns);
       }
-      setSaveState("saved");
-      setToast({ message: "Footer saved", tone: "success" });
       setPreviewToken((current) => current + 1);
-      router.refresh();
-      window.setTimeout(() => {
-        setSaveState((current) => (current === "saved" ? "idle" : current));
-      }, 1600);
-    } catch (err) {
-      setSaveState("error");
-      setToast({
-        message:
-          err instanceof Error ? err.message : "Couldn’t save the footer. Try again.",
-        tone: "error",
-      });
-    }
-  }
+      if (!silent) {
+        setToast({ message: "Footer saved", tone: "success" });
+        router.refresh();
+      }
+    },
+    save: async ({ expectedUpdatedAt, signal }) => {
+      const invalid = socialLinksRef.current.find(
+        (link) => link.href.trim() && !isValidSocialHref(link.href),
+      );
+      if (invalid) {
+        throw new Error(
+          `Social link “${invalid.label || "Untitled"}” needs a valid http(s), mailto, or tel URL.`,
+        );
+      }
+
+      const data = await editorFetchJson<{ footer?: WebsiteFooter }>(
+        `/api/website/sites/${siteId}/footer`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          signal,
+          body: JSON.stringify({
+            ...formRef.current,
+            socialLinks: socialLinksRef.current.filter((link) => link.href.trim()),
+            columns: columnsRef.current,
+            expectedUpdatedAt,
+          }),
+        },
+      );
+      if (!data.footer?.updatedAt) throw new Error("Unable to save footer.");
+      return { updatedAt: data.footer.updatedAt, data };
+    },
+  });
 
   return (
     <div className="space-y-4">
       {canManage ? (
-        <SaveBar state={saveState} onSave={() => void save()} label="Save footer" />
+        <SaveBar
+          state={saveState}
+          onSave={() => void saveNow({ silent: false })}
+          onReload={() => router.refresh()}
+          label="Save footer"
+        />
       ) : null}
 
       <div className="min-w-0 max-w-xl">

@@ -5,6 +5,7 @@ import {
   requireWebsiteMemberApi,
 } from "@/lib/website/access";
 import { websiteErrorResponse } from "@/lib/website/http";
+import { readExpectedUpdatedAt } from "@/lib/website/edit-conflict";
 import { getSeoBySiteId, updateSeo } from "@/lib/website/repository";
 
 type RouteContext = {
@@ -67,6 +68,7 @@ export async function PUT(request: Request, context: RouteContext) {
           : typeof body.jsonLd === "string"
             ? body.jsonLd
             : undefined,
+      expectedUpdatedAt: readExpectedUpdatedAt(body),
     });
 
     return NextResponse.json({ seo });

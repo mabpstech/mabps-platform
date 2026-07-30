@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -28,8 +27,11 @@ import {
   EditorHeaderActions,
   SaveBar,
   authSecondaryButtonClassName,
-  type SaveState,
 } from "@/components/website/ui/save-bar";
+import {
+  editorFetchJson,
+  useEditorPersistence,
+} from "@/components/website/hooks/use-editor-persistence";
 import { Toast } from "@/components/website/ui/toast";
 import {
   PAGE_STATUSES,
@@ -145,7 +147,7 @@ export function PageBuilder({
     position: "before" | "after";
   } | null>(null);
   const [addType, setAddType] = useState<SectionType>("hero");
-  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [pageRevision, setPageRevision] = useState(page.updatedAt);
   const [toast, setToast] = useState<{
     message: string;
     tone: "success" | "error";
@@ -153,10 +155,7 @@ export function PageBuilder({
   const [showSettings, setShowSettings] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
   const [previewToken, setPreviewToken] = useState(0);
-  const hydrated = useRef(false);
   const skipDirty = useRef(false);
-  const savingRef = useRef(false);
-  const editVersionRef = useRef(0);
   const titleRef = useRef(title);
   const slugRef = useRef(slug);
   const statusRef = useRef(status);
@@ -196,129 +195,93 @@ export function PageBuilder({
     }
   }, []);
 
-  const saveAll = useCallback(
-    async ({ silent = false }: { silent?: boolean } = {}) => {
-      if (!canManage || savingRef.current) return;
-      savingRef.current = true;
-      const versionAtStart = editVersionRef.current;
-      const snapshotTitle = titleRef.current;
-      const snapshotSlug = slugRef.current;
-      const snapshotStatus = statusRef.current;
-      const snapshotSeoTitle = seoTitleRef.current;
-      const snapshotSeoDescription = seoDescriptionRef.current;
-      const snapshotSeoOgImageMediaId = seoOgImageMediaIdRef.current;
-      const snapshotSeoRobots = seoRobotsRef.current;
-      const snapshotSections = sectionsRef.current;
+  useEffect(() => {
+    setPageRevision(page.updatedAt);
+  }, [page.updatedAt]);
 
-      setSaveState("saving");
-      try {
-        // Save meta + sections on the page route (registered). Do not use the
-        // nested `/sections` PUT — it can return a framework 404 under Turbopack.
-        const saveResponse = await fetch(
-          `/api/website/sites/${siteId}/pages/${page.id}`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              title: snapshotTitle,
-              slug: snapshotSlug,
-              status: snapshotStatus,
-              seoTitle: snapshotSeoTitle || null,
-              seoDescription: snapshotSeoDescription || null,
-              seoOgImageMediaId: snapshotSeoOgImageMediaId,
-              seoRobots: snapshotSeoRobots || null,
-              sections: snapshotSections.map((section) => ({
-                id: section.id.startsWith("new-") ? undefined : section.id,
-                type: section.type,
-                content: section.content,
-                settings: section.settings,
-              })),
-            }),
-          },
+  const { saveState, saveNow } = useEditorPersistence<{
+    page?: WebsitePage;
+    sections?: WebsiteSection[];
+  }>({
+    enabled: canManage,
+    resourceKey: `page:${page.id}`,
+    revision: pageRevision,
+    onRevisionChange: setPageRevision,
+    skipNextDirtyRef: skipDirty,
+    deps: [
+      title,
+      slug,
+      status,
+      seoTitle,
+      seoDescription,
+      seoOgImageMediaId,
+      seoRobots,
+      sections,
+    ],
+    onRemoteUpdate: () => router.refresh(),
+    onError: (error) => {
+      setToast({ message: error.message, tone: "error" });
+    },
+    onSaved: (result, { silent, editedDuringSave }) => {
+      if (result.data?.sections) {
+        if (!editedDuringSave) {
+          skipDirty.current = true;
+        }
+        setSections((current) =>
+          mergeSavedSections(current, result.data!.sections!),
         );
-        const saveData = (await saveResponse.json()) as {
-          error?: string;
-          sections?: WebsiteSection[];
-        };
-        if (!saveResponse.ok) {
-          throw new Error(saveData.error || "Unable to save page.");
-        }
-
-        const editedDuringSave = editVersionRef.current !== versionAtStart;
-
-        if (saveData.sections) {
-          // ID remap only — never clobber in-progress content from the response.
-          // Skip dirty tracking when nothing changed during the request.
-          if (!editedDuringSave) {
-            skipDirty.current = true;
-          }
-          setSections((current) =>
-            mergeSavedSections(current, saveData.sections!),
-          );
-        }
-
-        if (editedDuringSave) {
-          // Debounced effect will schedule another save for the newer draft.
-          setSaveState("dirty");
-        } else {
-          setSaveState("saved");
-          setPreviewToken((current) => current + 1);
-          if (!silent) {
-            setToast({ message: "Page saved", tone: "success" });
-            router.refresh();
-          }
-          window.setTimeout(() => {
-            setSaveState((current) =>
-              current === "saved" ? "idle" : current,
-            );
-          }, 1800);
-        }
-      } catch (err) {
-        setSaveState("error");
-        setToast({
-          message:
-            err instanceof Error ? err.message : "Couldn’t save the page. Try again.",
-          tone: "error",
-        });
-      } finally {
-        savingRef.current = false;
+      }
+      if (!silent) {
+        setToast({ message: "Page saved", tone: "success" });
+        setPreviewToken((current) => current + 1);
+        router.refresh();
+      } else if (!editedDuringSave) {
+        setPreviewToken((current) => current + 1);
       }
     },
-    [canManage, page.id, router, siteId],
-  );
+    save: async ({ expectedUpdatedAt, signal }) => {
+      const snapshotSections = sectionsRef.current;
+      const data = await editorFetchJson<{
+        error?: string;
+        page?: WebsitePage;
+        sections?: WebsiteSection[];
+      }>(`/api/website/sites/${siteId}/pages/${page.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        signal,
+        body: JSON.stringify({
+          title: titleRef.current,
+          slug: slugRef.current,
+          status: statusRef.current,
+          seoTitle: seoTitleRef.current || null,
+          seoDescription: seoDescriptionRef.current || null,
+          seoOgImageMediaId: seoOgImageMediaIdRef.current,
+          seoRobots: seoRobotsRef.current || null,
+          expectedUpdatedAt,
+          sections: snapshotSections.map((section) => ({
+            id: section.id.startsWith("new-") ? undefined : section.id,
+            type: section.type,
+            content: section.content,
+            settings: section.settings,
+          })),
+        }),
+      });
 
-  // Debounce autosave on content changes so every keystroke resets the timer
-  // and saveAll always reads the latest values via refs.
-  useEffect(() => {
-    if (!hydrated.current) {
-      hydrated.current = true;
-      return;
-    }
-    if (skipDirty.current) {
-      skipDirty.current = false;
-      return;
-    }
-    if (!canManage) return;
+      if (!data.page?.updatedAt) {
+        throw new Error("Unable to save page.");
+      }
 
-    editVersionRef.current += 1;
-    setSaveState((current) => (current === "saving" ? current : "dirty"));
+      return {
+        updatedAt: data.page.updatedAt,
+        data,
+      };
+    },
+  });
 
-    const timer = window.setTimeout(() => {
-      void saveAll({ silent: true });
-    }, 2500);
-    return () => window.clearTimeout(timer);
-  }, [
-    title,
-    slug,
-    status,
-    seoTitle,
-    seoDescription,
-    seoOgImageMediaId,
-    seoRobots,
-    sections,
-    canManage,
-    saveAll,
-  ]);
+  // When a save completes while the user kept typing, merge IDs without
+  // treating the merge as a new dirty edit — handled via skipDirty in onSaved.
+  // If edits happened during save, the persistence hook leaves state dirty and
+  // the debounce effect schedules another save.
 
   function reorder(
     fromId: string,
@@ -487,7 +450,8 @@ export function PageBuilder({
       {canManage ? (
         <SaveBar
           state={saveState}
-          onSave={() => void saveAll()}
+          onSave={() => void saveNow({ silent: false })}
+          onReload={() => router.refresh()}
           label="Save page"
         />
       ) : null}

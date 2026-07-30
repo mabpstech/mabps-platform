@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   authButtonClassName,
   authInputClassName,
@@ -10,7 +10,12 @@ import {
   authSecondaryButtonClassName,
 } from "@/lib/auth/styles";
 import { MediaPicker } from "@/components/website/media-picker";
+import {
+  editorFetchJson,
+  useEditorPersistence,
+} from "@/components/website/hooks/use-editor-persistence";
 import { StatusBadge } from "@/components/website/ui/empty-state";
+import { SaveBar } from "@/components/website/ui/save-bar";
 import { Toast } from "@/components/website/ui/toast";
 import type { WebsiteBlogPost } from "@/lib/website/types";
 
@@ -25,59 +30,91 @@ export function BlogPostEditor({
 }) {
   const router = useRouter();
   const [form, setForm] = useState(post);
-  const [pending, setPending] = useState(false);
+  const [revision, setRevision] = useState(post.updatedAt);
   const [toast, setToast] = useState<{
     message: string;
     tone: "success" | "error";
   } | null>(null);
+  const skipDirty = useRef(false);
+  const formRef = useRef(form);
+  const pendingStatusRef = useRef<WebsiteBlogPost["status"] | null>(null);
+  formRef.current = form;
 
-  async function save(status?: WebsiteBlogPost["status"]) {
-    if (!canManage) return;
-    setPending(true);
-    try {
-      const response = await fetch(
+  useEffect(() => {
+    skipDirty.current = true;
+    setForm(post);
+    setRevision(post.updatedAt);
+  }, [post]);
+
+  const { saveState, saveNow } = useEditorPersistence<{ post?: WebsiteBlogPost }>({
+    enabled: canManage,
+    resourceKey: `blog:${post.id}`,
+    revision,
+    onRevisionChange: setRevision,
+    skipNextDirtyRef: skipDirty,
+    deps: [form],
+    onRemoteUpdate: () => router.refresh(),
+    onError: (error) => setToast({ message: error.message, tone: "error" }),
+    onSaved: (result, { silent, editedDuringSave }) => {
+      if (result.data?.post && !editedDuringSave) {
+        skipDirty.current = true;
+        setForm(result.data.post);
+      }
+      if (!silent) {
+        setToast({
+          message:
+            result.data?.post?.status === "published"
+              ? "Post published"
+              : "Post saved",
+          tone: "success",
+        });
+        router.refresh();
+      }
+    },
+    save: async ({ expectedUpdatedAt, signal }) => {
+      const status = pendingStatusRef.current ?? formRef.current.status;
+      pendingStatusRef.current = null;
+      const data = await editorFetchJson<{ post?: WebsiteBlogPost }>(
         `/api/website/sites/${siteId}/blog/${post.id}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
+          signal,
           body: JSON.stringify({
-            title: form.title,
-            slug: form.slug,
-            excerpt: form.excerpt,
-            content: form.content,
-            authorName: form.authorName,
-            coverMediaId: form.coverMediaId,
-            seoTitle: form.seoTitle,
-            seoDescription: form.seoDescription,
-            status: status ?? form.status,
+            title: formRef.current.title,
+            slug: formRef.current.slug,
+            excerpt: formRef.current.excerpt,
+            content: formRef.current.content,
+            authorName: formRef.current.authorName,
+            coverMediaId: formRef.current.coverMediaId,
+            seoTitle: formRef.current.seoTitle,
+            seoDescription: formRef.current.seoDescription,
+            status,
+            expectedUpdatedAt,
           }),
         },
       );
-      const data = (await response.json()) as {
-        error?: string;
-        post?: WebsiteBlogPost;
-      };
-      if (!response.ok) throw new Error(data.error || "Unable to save post.");
-      if (data.post) setForm(data.post);
-      setToast({
-        message:
-          status === "published" ? "Post published" : "Post saved",
-        tone: "success",
-      });
-      router.refresh();
-    } catch (err) {
-      setToast({
-        message:
-          err instanceof Error ? err.message : "Couldn’t save the post. Try again.",
-        tone: "error",
-      });
-    } finally {
-      setPending(false);
-    }
+      if (!data.post?.updatedAt) throw new Error("Unable to save post.");
+      return { updatedAt: data.post.updatedAt, data };
+    },
+  });
+
+  async function saveWithStatus(status: WebsiteBlogPost["status"]) {
+    pendingStatusRef.current = status;
+    await saveNow({ silent: false });
   }
 
   return (
     <div className="space-y-4">
+      {canManage ? (
+        <SaveBar
+          state={saveState}
+          onSave={() => void saveWithStatus(form.status === "published" ? "published" : "draft")}
+          onReload={() => router.refresh()}
+          label="Save post"
+        />
+      ) : null}
+
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
@@ -99,18 +136,20 @@ export function BlogPostEditor({
               <button
                 type="button"
                 className={`${authSecondaryButtonClassName} !w-auto px-3`}
-                onClick={() => void save("draft")}
-                disabled={pending}
+                onClick={() => void saveWithStatus("draft")}
+                disabled={saveState === "saving" || saveState === "retrying"}
               >
                 Save draft
               </button>
               <button
                 type="button"
                 className={`${authButtonClassName} !w-auto px-4`}
-                onClick={() => void save("published")}
-                disabled={pending}
+                onClick={() => void saveWithStatus("published")}
+                disabled={saveState === "saving" || saveState === "retrying"}
               >
-                {pending ? "Saving…" : "Publish"}
+                {saveState === "saving" || saveState === "retrying"
+                  ? "Saving…"
+                  : "Publish"}
               </button>
             </>
           ) : null}
@@ -126,7 +165,7 @@ export function BlogPostEditor({
             onChange={(event) =>
               setForm((current) => ({ ...current, title: event.target.value }))
             }
-            disabled={!canManage || pending}
+            disabled={!canManage}
           />
         </div>
         <div>
@@ -137,7 +176,7 @@ export function BlogPostEditor({
             onChange={(event) =>
               setForm((current) => ({ ...current, slug: event.target.value }))
             }
-            disabled={!canManage || pending}
+            disabled={!canManage}
           />
         </div>
         <div>
@@ -151,7 +190,7 @@ export function BlogPostEditor({
                 excerpt: event.target.value || null,
               }))
             }
-            disabled={!canManage || pending}
+            disabled={!canManage}
           />
         </div>
         <div>
@@ -165,7 +204,7 @@ export function BlogPostEditor({
                 content: event.target.value,
               }))
             }
-            disabled={!canManage || pending}
+            disabled={!canManage}
           />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -180,7 +219,7 @@ export function BlogPostEditor({
                   authorName: event.target.value || null,
                 }))
               }
-              disabled={!canManage || pending}
+              disabled={!canManage}
             />
           </div>
           <MediaPicker
@@ -189,7 +228,7 @@ export function BlogPostEditor({
             onChange={(coverMediaId) =>
               setForm((current) => ({ ...current, coverMediaId }))
             }
-            disabled={!canManage || pending}
+            disabled={!canManage}
             label="Cover image"
             hint="cover"
           />

@@ -5,6 +5,7 @@ import {
   requireWebsiteMemberApi,
 } from "@/lib/website/access";
 import { websiteErrorResponse } from "@/lib/website/http";
+import { readExpectedUpdatedAt } from "@/lib/website/edit-conflict";
 import { getThemeBySiteId, updateTheme } from "@/lib/website/repository";
 import { normalizeThemeTokens } from "@/lib/website/theme/normalize";
 import { isButtonStyle } from "@/lib/website/types";
@@ -87,6 +88,7 @@ export async function PUT(request: Request, context: RouteContext) {
           : typeof body.customCss === "string"
             ? body.customCss
             : undefined,
+      expectedUpdatedAt: readExpectedUpdatedAt(body),
     });
 
     return NextResponse.json({ theme });

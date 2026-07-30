@@ -5,6 +5,7 @@ import {
   requireWebsiteMemberApi,
 } from "@/lib/website/access";
 import { websiteErrorResponse } from "@/lib/website/http";
+import { readExpectedUpdatedAt } from "@/lib/website/edit-conflict";
 import {
   deleteBlogPost,
   getBlogPostById,
@@ -83,6 +84,7 @@ export async function PATCH(request: Request, context: RouteContext) {
           : typeof body.seoDescription === "string"
             ? body.seoDescription
             : undefined,
+      expectedUpdatedAt: readExpectedUpdatedAt(body),
     });
 
     return NextResponse.json({ post: updated });

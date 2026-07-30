@@ -4,27 +4,23 @@ import {
   authButtonClassName,
   authSecondaryButtonClassName,
 } from "@/lib/auth/styles";
-
-export type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
+import type { SaveState } from "@/components/website/hooks/use-editor-persistence";
 
 function StatusDot({ state }: { state: SaveState }) {
   const tone =
-    state === "error"
+    state === "error" || state === "conflict"
       ? "bg-red-500"
       : state === "dirty"
         ? "bg-amber-500"
-        : state === "saving"
+        : state === "saving" || state === "retrying"
           ? "bg-sky-500"
           : state === "saved"
             ? "bg-emerald-500"
             : "bg-zinc-300";
 
   return (
-    <span
-      className={`relative flex h-2 w-2 shrink-0 ${state === "saving" ? "" : ""}`}
-      aria-hidden
-    >
-      {state === "saving" ? (
+    <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
+      {state === "saving" || state === "retrying" ? (
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-60" />
       ) : null}
       <span className={`relative inline-flex h-2 w-2 rounded-full ${tone}`} />
@@ -61,35 +57,43 @@ function SaveSpinner() {
 export function SaveBar({
   state,
   onSave,
+  onReload,
   disabled,
   label = "Save",
 }: {
   state: SaveState;
   onSave: () => void;
+  onReload?: () => void;
   disabled?: boolean;
   label?: string;
 }) {
   const status =
     state === "saving"
       ? "Saving changes…"
-      : state === "saved"
-        ? "All changes saved"
-        : state === "dirty"
-          ? "Unsaved changes"
-          : state === "error"
-            ? "Couldn’t save — try again"
-            : "All changes saved";
+      : state === "retrying"
+        ? "Connection issue — retrying…"
+        : state === "saved"
+          ? "All changes saved"
+          : state === "dirty"
+            ? "Unsaved changes"
+            : state === "conflict"
+              ? "Edited in another tab — reload to continue"
+              : state === "error"
+                ? "Couldn’t save — retrying when possible"
+                : "All changes saved";
 
   const statusTone =
-    state === "error"
+    state === "error" || state === "conflict"
       ? "text-red-700"
       : state === "dirty"
         ? "text-amber-800"
         : state === "saved"
           ? "text-emerald-700"
-          : state === "saving"
+          : state === "saving" || state === "retrying"
             ? "text-sky-800"
             : "text-zinc-500";
+
+  const busy = state === "saving" || state === "retrying";
 
   return (
     <div className="sticky top-0 z-30 -mx-1 mb-2 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200/80 bg-white/90 px-4 py-2.5 shadow-[0_8px_24px_rgba(15,23,42,0.04)] backdrop-blur-md">
@@ -97,27 +101,47 @@ export function SaveBar({
         <StatusDot state={state} />
         <p
           className={`truncate text-sm font-medium tracking-[-0.01em] ${statusTone}`}
-          role={state === "error" ? "alert" : "status"}
-          aria-live={state === "error" ? "assertive" : "polite"}
+          role={
+            state === "error" || state === "conflict" ? "alert" : "status"
+          }
+          aria-live={
+            state === "error" || state === "conflict" ? "assertive" : "polite"
+          }
         >
           {status}
         </p>
       </div>
-      <button
-        type="button"
-        className={`${authButtonClassName} !w-auto min-w-[8rem] gap-2 px-4 py-2`}
-        onClick={onSave}
-        disabled={disabled || state === "saving" || state === "idle"}
-      >
-        {state === "saving" ? (
-          <>
-            <SaveSpinner />
-            Saving…
-          </>
+      <div className="flex flex-wrap items-center gap-2">
+        {state === "conflict" && onReload ? (
+          <button
+            type="button"
+            className={`${authButtonClassName} !w-auto min-w-[8rem] gap-2 px-4 py-2`}
+            onClick={onReload}
+          >
+            Reload
+          </button>
         ) : (
-          label
+          <button
+            type="button"
+            className={`${authButtonClassName} !w-auto min-w-[8rem] gap-2 px-4 py-2`}
+            onClick={onSave}
+            disabled={
+              disabled || busy || state === "idle" || state === "conflict"
+            }
+          >
+            {busy ? (
+              <>
+                <SaveSpinner />
+                {state === "retrying" ? "Retrying…" : "Saving…"}
+              </>
+            ) : state === "error" ? (
+              "Retry save"
+            ) : (
+              label
+            )}
+          </button>
         )}
-      </button>
+      </div>
     </div>
   );
 }
@@ -134,4 +158,5 @@ export function EditorHeaderActions({
   );
 }
 
+export type { SaveState };
 export { authSecondaryButtonClassName };

@@ -5,6 +5,7 @@ import {
   requireWebsiteMemberApi,
 } from "@/lib/website/access";
 import { websiteErrorResponse } from "@/lib/website/http";
+import { readExpectedUpdatedAt } from "@/lib/website/edit-conflict";
 import {
   deleteForm,
   getFormById,
@@ -70,6 +71,7 @@ export async function PUT(request: Request, context: RouteContext) {
             ? body.notifyEmail
             : undefined,
       status,
+      expectedUpdatedAt: readExpectedUpdatedAt(body),
     });
 
     if (Array.isArray(body.fields)) {

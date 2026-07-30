@@ -7,9 +7,13 @@ import {
   authLabelClassName,
 } from "@/lib/auth/styles";
 import { MediaPicker } from "@/components/website/media-picker";
-import { SaveBar, type SaveState } from "@/components/website/ui/save-bar";
+import {
+  editorFetchJson,
+  useEditorPersistence,
+} from "@/components/website/hooks/use-editor-persistence";
+import { SaveBar } from "@/components/website/ui/save-bar";
 import { Toast } from "@/components/website/ui/toast";
-import type { WebsiteSeo } from "@/lib/website/types";
+import type { WebsiteSeo, WebsiteTheme } from "@/lib/website/types";
 
 export function SeoEditor({
   siteId,
@@ -30,64 +34,81 @@ export function SeoEditor({
   const [form, setForm] = useState(seo);
   const [faviconId, setFaviconId] = useState<string | null>(faviconMediaId);
   const [showAdvanced, setShowAdvanced] = useState(Boolean(seo.jsonLd));
-  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [seoRevision, setSeoRevision] = useState(seo.updatedAt);
   const [toast, setToast] = useState<{
     message: string;
     tone: "success" | "error";
   } | null>(null);
-  const hydrated = useRef(false);
+  const skipDirty = useRef(false);
+  const formRef = useRef(form);
+  const faviconIdRef = useRef(faviconId);
+  formRef.current = form;
+  faviconIdRef.current = faviconId;
 
   useEffect(() => {
-    if (!hydrated.current) {
-      hydrated.current = true;
-      return;
-    }
-    setSaveState((current) => (current === "saving" ? current : "dirty"));
-  }, [form, faviconId]);
+    skipDirty.current = true;
+    setForm(seo);
+    setFaviconId(faviconMediaId);
+    setSeoRevision(seo.updatedAt);
+  }, [seo, faviconMediaId]);
 
-  async function save() {
-    if (!canManage) return;
-    setSaveState("saving");
-    try {
-      const [seoResponse, themeResponse] = await Promise.all([
-        fetch(`/api/website/sites/${siteId}/seo`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
-        }),
-        fetch(`/api/website/sites/${siteId}/theme`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ faviconMediaId: faviconId }),
-        }),
-      ]);
-      const seoData = (await seoResponse.json()) as {
-        error?: string;
-        seo?: WebsiteSeo;
-      };
-      const themeData = (await themeResponse.json()) as { error?: string };
-      if (!seoResponse.ok) throw new Error(seoData.error || "Unable to save SEO.");
-      if (!themeResponse.ok) {
-        throw new Error(themeData.error || "Unable to save favicon.");
+  const { saveState, saveNow } = useEditorPersistence<{
+    seo?: WebsiteSeo;
+    theme?: WebsiteTheme;
+  }>({
+    enabled: canManage,
+    resourceKey: `seo:${siteId}`,
+    revision: seoRevision,
+    onRevisionChange: setSeoRevision,
+    skipNextDirtyRef: skipDirty,
+    deps: [form, faviconId],
+    onRemoteUpdate: () => router.refresh(),
+    onError: (error) => setToast({ message: error.message, tone: "error" }),
+    onSaved: (result, { silent, editedDuringSave }) => {
+      if (result.data?.seo && !editedDuringSave) {
+        skipDirty.current = true;
+        setForm(result.data.seo);
       }
-      if (seoData.seo) setForm(seoData.seo);
-      setSaveState("saved");
-      setToast({ message: "Search settings saved", tone: "success" });
-      router.refresh();
-      window.setTimeout(() => {
-        setSaveState((current) => (current === "saved" ? "idle" : current));
-      }, 1600);
-    } catch (err) {
-      setSaveState("error");
-      setToast({
-        message:
-          err instanceof Error
-            ? err.message
-            : "Couldn’t save search settings. Try again.",
-        tone: "error",
-      });
-    }
-  }
+      if (!silent) {
+        setToast({ message: "Search settings saved", tone: "success" });
+        router.refresh();
+      }
+    },
+    save: async ({ expectedUpdatedAt, signal }) => {
+      // Favicon lives on theme; SEO revision gates the primary document.
+      // Theme writes are last-known-wins for favicon-only changes in this editor.
+      const [seoData, themeData] = await Promise.all([
+        editorFetchJson<{ seo?: WebsiteSeo }>(
+          `/api/website/sites/${siteId}/seo`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            signal,
+            body: JSON.stringify({
+              ...formRef.current,
+              expectedUpdatedAt,
+            }),
+          },
+        ),
+        editorFetchJson<{ theme?: WebsiteTheme }>(
+          `/api/website/sites/${siteId}/theme`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            signal,
+            body: JSON.stringify({
+              faviconMediaId: faviconIdRef.current,
+            }),
+          },
+        ),
+      ]);
+      if (!seoData.seo?.updatedAt) throw new Error("Unable to save SEO.");
+      return {
+        updatedAt: seoData.seo.updatedAt,
+        data: { seo: seoData.seo, theme: themeData.theme },
+      };
+    },
+  });
 
   const previewTitle =
     form.defaultTitle?.trim() || `${siteName} | Website`;
@@ -103,7 +124,8 @@ export function SeoEditor({
       {canManage ? (
         <SaveBar
           state={saveState}
-          onSave={() => void save()}
+          onSave={() => void saveNow({ silent: false })}
+          onReload={() => router.refresh()}
           label="Save search settings"
         />
       ) : null}

@@ -10,8 +10,13 @@ import {
 } from "@/lib/auth/styles";
 import { LivePreview } from "@/components/website/live-preview";
 import { EmptyState } from "@/components/website/ui/empty-state";
-import { SaveBar, type SaveState } from "@/components/website/ui/save-bar";
+import {
+  editorFetchJson,
+  useEditorPersistence,
+} from "@/components/website/hooks/use-editor-persistence";
+import { SaveBar } from "@/components/website/ui/save-bar";
 import { Toast } from "@/components/website/ui/toast";
+import { navigationRevision } from "@/lib/website/edit-conflict";
 import type { WebsiteNavItem, WebsitePage } from "@/lib/website/types";
 
 type DraftItem = {
@@ -51,21 +56,71 @@ export function NavigationEditor({
   const router = useRouter();
   const [items, setItems] = useState<DraftItem[]>(() => toDraft(navigation));
   const [dragKey, setDragKey] = useState<string | null>(null);
-  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [revision, setRevision] = useState(() => navigationRevision(navigation));
   const [toast, setToast] = useState<{
     message: string;
     tone: "success" | "error";
   } | null>(null);
   const [previewToken, setPreviewToken] = useState(0);
-  const hydrated = useRef(false);
+  const skipDirty = useRef(false);
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
 
   useEffect(() => {
-    if (!hydrated.current) {
-      hydrated.current = true;
-      return;
-    }
-    setSaveState((current) => (current === "saving" ? current : "dirty"));
-  }, [items]);
+    skipDirty.current = true;
+    setItems(toDraft(navigation));
+    setRevision(navigationRevision(navigation));
+  }, [navigation]);
+
+  const { saveState, saveNow } = useEditorPersistence<{
+    navigation?: WebsiteNavItem[];
+  }>({
+    enabled: canManage,
+    resourceKey: `navigation:${siteId}`,
+    revision,
+    onRevisionChange: setRevision,
+    skipNextDirtyRef: skipDirty,
+    deps: [items],
+    onRemoteUpdate: () => router.refresh(),
+    onError: (error) => setToast({ message: error.message, tone: "error" }),
+    onSaved: (result, { silent, editedDuringSave }) => {
+      if (result.data?.navigation && !editedDuringSave) {
+        skipDirty.current = true;
+        setItems(toDraft(result.data.navigation));
+      }
+      setPreviewToken((current) => current + 1);
+      if (!silent) {
+        setToast({ message: "Menu saved", tone: "success" });
+        router.refresh();
+      }
+    },
+    save: async ({ expectedUpdatedAt, signal }) => {
+      const data = await editorFetchJson<{ navigation?: WebsiteNavItem[] }>(
+        `/api/website/sites/${siteId}/navigation`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          signal,
+          body: JSON.stringify({
+            expectedUpdatedAt,
+            items: itemsRef.current.map((item) => ({
+              clientKey: item.key,
+              label: item.label,
+              href: item.href || null,
+              pageId: item.pageId || null,
+              parentKey: item.parentKey,
+              openInNewTab: item.openInNewTab,
+            })),
+          }),
+        },
+      );
+      if (!data.navigation) throw new Error("Unable to save navigation.");
+      return {
+        updatedAt: navigationRevision(data.navigation),
+        data,
+      };
+    },
+  });
 
   const topLevelParents = useMemo(
     () => items.filter((item) => !item.parentKey),
@@ -122,59 +177,13 @@ export function NavigationEditor({
     });
   }
 
-  async function save() {
-    if (!canManage) return;
-    setSaveState("saving");
-    try {
-      const response = await fetch(`/api/website/sites/${siteId}/navigation`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: items.map((item) => ({
-            clientKey: item.key,
-            label: item.label,
-            href: item.href || null,
-            pageId: item.pageId || null,
-            parentKey: item.parentKey,
-            openInNewTab: item.openInNewTab,
-          })),
-        }),
-      });
-      const data = (await response.json()) as {
-        error?: string;
-        navigation?: WebsiteNavItem[];
-      };
-      if (!response.ok) {
-        throw new Error(data.error || "Unable to save navigation.");
-      }
-      if (data.navigation) {
-        setItems(toDraft(data.navigation));
-      }
-      setSaveState("saved");
-      setToast({ message: "Menu saved", tone: "success" });
-      setPreviewToken((current) => current + 1);
-      router.refresh();
-      window.setTimeout(() => {
-        setSaveState((current) => (current === "saved" ? "idle" : current));
-      }, 1600);
-    } catch (err) {
-      setSaveState("error");
-      setToast({
-        message:
-          err instanceof Error
-            ? err.message
-            : "Couldn’t save the menu. Try again.",
-        tone: "error",
-      });
-    }
-  }
-
   return (
     <div className="space-y-4">
       {canManage ? (
         <SaveBar
           state={saveState}
-          onSave={() => void save()}
+          onSave={() => void saveNow({ silent: false })}
+          onReload={() => router.refresh()}
           label="Save menu"
         />
       ) : null}

@@ -2,15 +2,20 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   authButtonClassName,
   authInputClassName,
   authLabelClassName,
   authSecondaryButtonClassName,
 } from "@/lib/auth/styles";
+import {
+  editorFetchJson,
+  useEditorPersistence,
+} from "@/components/website/hooks/use-editor-persistence";
 import { EmptyState } from "@/components/website/ui/empty-state";
 import { InlineBanner } from "@/components/website/ui/inline-banner";
+import { SaveBar } from "@/components/website/ui/save-bar";
 import {
   FORM_FIELD_TYPES,
   type FormFieldType,
@@ -55,27 +60,94 @@ export function FormEditor({
       options: field.options.join(", "),
     })),
   );
+  const [revision, setRevision] = useState(form.updatedAt);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const skipDirty = useRef(false);
+  const nameRef = useRef(name);
+  const slugRef = useRef(slug);
+  const successMessageRef = useRef(successMessage);
+  const notifyEmailRef = useRef(notifyEmail);
+  const fieldsRef = useRef(fields);
+  nameRef.current = name;
+  slugRef.current = slug;
+  successMessageRef.current = successMessage;
+  notifyEmailRef.current = notifyEmail;
+  fieldsRef.current = fields;
 
-  async function save() {
-    if (!canManage) return;
-    setPending(true);
-    setError(null);
-    setMessage(null);
-    try {
-      const response = await fetch(
+  useEffect(() => {
+    skipDirty.current = true;
+    setName(form.name);
+    setSlug(form.slug);
+    setSuccessMessage(form.successMessage);
+    setNotifyEmail(form.notifyEmail ?? "");
+    setFields(
+      form.fields.map((field) => ({
+        key: field.id,
+        label: field.label,
+        name: field.name,
+        fieldType: field.fieldType,
+        placeholder: field.placeholder ?? "",
+        required: field.required,
+        options: field.options.join(", "),
+      })),
+    );
+    setRevision(form.updatedAt);
+  }, [form]);
+
+  const { saveState, saveNow } = useEditorPersistence<{
+    form?: WebsiteFormWithFields;
+  }>({
+    enabled: canManage,
+    resourceKey: `form:${form.id}`,
+    revision,
+    onRevisionChange: setRevision,
+    skipNextDirtyRef: skipDirty,
+    deps: [name, slug, successMessage, notifyEmail, fields],
+    onRemoteUpdate: () => router.refresh(),
+    onError: (err) => {
+      setMessage(null);
+      setError(err.message);
+    },
+    onSaved: (result, { silent, editedDuringSave }) => {
+      if (result.data?.form && !editedDuringSave) {
+        skipDirty.current = true;
+        setName(result.data.form.name);
+        setSlug(result.data.form.slug);
+        setSuccessMessage(result.data.form.successMessage);
+        setNotifyEmail(result.data.form.notifyEmail ?? "");
+        setFields(
+          result.data.form.fields.map((field) => ({
+            key: field.id,
+            label: field.label,
+            name: field.name,
+            fieldType: field.fieldType,
+            placeholder: field.placeholder ?? "",
+            required: field.required,
+            options: field.options.join(", "),
+          })),
+        );
+      }
+      if (!silent) {
+        setError(null);
+        setMessage("Form saved.");
+        router.refresh();
+      }
+    },
+    save: async ({ expectedUpdatedAt, signal }) => {
+      const data = await editorFetchJson<{ form?: WebsiteFormWithFields }>(
         `/api/website/sites/${siteId}/forms/${form.id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
+          signal,
           body: JSON.stringify({
-            name,
-            slug,
-            successMessage,
-            notifyEmail: notifyEmail || null,
-            fields: fields.map((field) => ({
+            name: nameRef.current,
+            slug: slugRef.current,
+            successMessage: successMessageRef.current,
+            notifyEmail: notifyEmailRef.current || null,
+            expectedUpdatedAt,
+            fields: fieldsRef.current.map((field) => ({
               label: field.label,
               name: field.name,
               fieldType: field.fieldType,
@@ -89,19 +161,24 @@ export function FormEditor({
           }),
         },
       );
-      const data = (await response.json()) as { error?: string };
-      if (!response.ok) throw new Error(data.error || "Unable to save form.");
-      setMessage("Form saved.");
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save form.");
-    } finally {
-      setPending(false);
-    }
-  }
+      if (!data.form?.updatedAt) throw new Error("Unable to save form.");
+      return { updatedAt: data.form.updatedAt, data };
+    },
+  });
+
+  const pending = saveState === "saving" || saveState === "retrying";
 
   return (
     <div className="space-y-6">
+      {canManage ? (
+        <SaveBar
+          state={saveState}
+          onSave={() => void saveNow({ silent: false })}
+          onReload={() => router.refresh()}
+          label="Save form"
+        />
+      ) : null}
+
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900">{form.name}</h1>
@@ -120,8 +197,8 @@ export function FormEditor({
             <button
               type="button"
               className={`${authButtonClassName} !w-auto px-4`}
-              onClick={save}
-              disabled={pending}
+              onClick={() => void saveNow({ silent: false })}
+              disabled={pending || saveState === "conflict"}
             >
               {pending ? "Saving…" : "Save form"}
             </button>

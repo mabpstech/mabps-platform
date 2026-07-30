@@ -5,6 +5,7 @@ import {
   requireWebsiteMemberApi,
 } from "@/lib/website/access";
 import { websiteErrorResponse } from "@/lib/website/http";
+import { readExpectedUpdatedAt } from "@/lib/website/edit-conflict";
 import { listNavItems, replaceNavItems } from "@/lib/website/repository";
 
 type RouteContext = {
@@ -27,16 +28,17 @@ export async function PUT(request: Request, context: RouteContext) {
     const { workspace } = await requireWebsiteManagerApi();
     const { siteId } = await context.params;
     await requireSiteForWorkspace(siteId, workspace.id);
-    const body = (await request.json()) as { items?: unknown };
+    const body = (await request.json()) as Record<string, unknown>;
+    const rawItems = body.items;
 
-    if (!Array.isArray(body.items)) {
+    if (!Array.isArray(rawItems)) {
       return NextResponse.json(
         { error: "items array is required." },
         { status: 400 },
       );
     }
 
-    const items = body.items.map((item, index) => {
+    const items = rawItems.map((item, index) => {
       if (!item || typeof item !== "object") {
         throw new Error(`Invalid navigation item at index ${index}.`);
       }
@@ -60,7 +62,9 @@ export async function PUT(request: Request, context: RouteContext) {
       };
     });
 
-    const navigation = replaceNavItems(siteId, items);
+    const navigation = replaceNavItems(siteId, items, {
+      expectedUpdatedAt: readExpectedUpdatedAt(body),
+    });
     return NextResponse.json({ navigation });
   } catch (error) {
     return websiteErrorResponse(error);

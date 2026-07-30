@@ -5,6 +5,7 @@ import {
   requireWebsiteMemberApi,
 } from "@/lib/website/access";
 import { websiteErrorResponse } from "@/lib/website/http";
+import { readExpectedUpdatedAt } from "@/lib/website/edit-conflict";
 import { getFooterBySiteId, updateFooter } from "@/lib/website/repository";
 import type { FooterColumn, FooterSocialLink } from "@/lib/website/types";
 
@@ -57,6 +58,7 @@ export async function PUT(request: Request, context: RouteContext) {
           : typeof body.textColor === "string"
             ? body.textColor
             : undefined,
+      expectedUpdatedAt: readExpectedUpdatedAt(body),
     });
 
     return NextResponse.json({ footer });
