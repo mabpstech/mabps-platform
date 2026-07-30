@@ -12,13 +12,23 @@ import {
   ENCRYPTED_SECRET_PREFIX,
 } from "./lib/secret-crypto.mjs";
 
-const previous = process.env.MABPS_SECRETS_KEY;
+const previousKey = process.env.MABPS_SECRETS_KEY;
+const previousEnv = process.env.NODE_ENV;
 
 try {
+  process.env.NODE_ENV = "development";
   delete process.env.MABPS_SECRETS_KEY;
   assert.equal(encryptSecret("plain-token"), "plain-token");
   assert.equal(decryptSecret("plain-token"), "plain-token");
 
+  process.env.NODE_ENV = "production";
+  delete process.env.MABPS_SECRETS_KEY;
+  assert.throws(
+    () => encryptSecret("must-not-store-plaintext"),
+    /MABPS_SECRETS_KEY is required in production/,
+  );
+
+  process.env.NODE_ENV = "development";
   process.env.MABPS_SECRETS_KEY = "test-key-for-secret-crypto-smoke";
   const cipher = encryptSecret("sk-live-example-secret");
   assert.ok(cipher.startsWith(ENCRYPTED_SECRET_PREFIX));
@@ -37,6 +47,8 @@ try {
 
   console.log("secret-crypto smoke test passed");
 } finally {
-  if (previous === undefined) delete process.env.MABPS_SECRETS_KEY;
-  else process.env.MABPS_SECRETS_KEY = previous;
+  if (previousKey === undefined) delete process.env.MABPS_SECRETS_KEY;
+  else process.env.MABPS_SECRETS_KEY = previousKey;
+  if (previousEnv === undefined) delete process.env.NODE_ENV;
+  else process.env.NODE_ENV = previousEnv;
 }

@@ -1079,6 +1079,8 @@ export function createConversation(input: {
   visitorPhone?: string | null;
   externalThreadId?: string | null;
   metadata?: Record<string, unknown>;
+  /** SHA-256 hash of the visitor session secret (widget/public channels). */
+  visitorSessionSecretHash?: string | null;
 }): ChatbotConversation {
   ensureChatbotReady();
   const id = randomUUID();
@@ -1088,9 +1090,9 @@ export function createConversation(input: {
       `INSERT INTO "chatbot_conversation" (
         "id", "botId", "workspaceId", "channel", "status", "visitorId",
         "visitorName", "visitorEmail", "visitorPhone", "externalThreadId",
-        "crmLeadId", "assignedUserId", "handoffReason", "metadataJson",
-        "lastMessageAt", "createdAt", "updatedAt"
-      ) VALUES (?, ?, ?, ?, 'ai', ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?, ?, ?)`,
+        "crmLeadId", "assignedUserId", "handoffReason", "visitorSessionSecretHash",
+        "metadataJson", "lastMessageAt", "createdAt", "updatedAt"
+      ) VALUES (?, ?, ?, ?, 'ai', ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?, ?, ?, ?)`,
     )
     .run(
       id,
@@ -1102,6 +1104,7 @@ export function createConversation(input: {
       asStringOrNull(input.visitorEmail),
       asStringOrNull(input.visitorPhone),
       asStringOrNull(input.externalThreadId),
+      asStringOrNull(input.visitorSessionSecretHash),
       JSON.stringify(input.metadata ?? {}),
       timestamp,
       timestamp,

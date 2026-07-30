@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { PlatformAuthError } from "@/lib/platform/access";
+import { SecretsKeyRequiredError } from "@/lib/platform/secret-crypto";
 
 export type PlatformErrorResponseOptions = {
   /** Log prefix, e.g. "crm" */
@@ -28,6 +29,16 @@ export function platformErrorResponse(
       { error: error.message },
       { status: error.status },
     );
+  }
+
+  if (error instanceof SecretsKeyRequiredError) {
+    console.error(`[${options.label}]`, {
+      status: 503,
+      matched: true,
+      message: error.message,
+      error: { name: error.name, message: error.message },
+    });
+    return NextResponse.json({ error: error.message }, { status: 503 });
   }
 
   const message =

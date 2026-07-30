@@ -1,9 +1,11 @@
 /**
  * Provider secrets at rest (AES-256-GCM).
  *
- * When `MABPS_SECRETS_KEY` is unset, encrypt/decrypt are passthrough so existing
- * plaintext rows keep working. When set, new writes are prefixed `mabps:v1:`.
- * Plaintext (unprefixed) values still decrypt as-is until migrated.
+ * Development: when `MABPS_SECRETS_KEY` is unset, encrypt/decrypt are passthrough
+ * so local plaintext rows keep working.
+ * Production (`NODE_ENV=production`): encrypt refuses to run without the key
+ * (fail fast — never silently store plaintext). Decrypt still accepts legacy
+ * plaintext so unmigrated rows remain readable; ciphertext without a key throws.
  *
  * Do not encrypt values used as SQL equality lookup keys (webhook path secrets,
  * verify tokens, automation API keys) — those need a different design.
@@ -24,6 +26,20 @@ export const ENCRYPTED_SECRET_PREFIX = "mabps:v1:";
 
 const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
+
+export class SecretsKeyRequiredError extends Error {
+  constructor(message?: string) {
+    super(
+      message ??
+        `${SECRETS_KEY_ENV} is required in production to store provider secrets. Generate with: openssl rand -base64 32`,
+    );
+    this.name = "SecretsKeyRequiredError";
+  }
+}
+
+export function isProductionRuntime(): boolean {
+  return process.env.NODE_ENV === "production";
+}
 
 export function isSecretsKeyConfigured(): boolean {
   return Boolean(process.env[SECRETS_KEY_ENV]?.trim());
@@ -57,14 +73,21 @@ function resolveKeyBytes(): Buffer | null {
 }
 
 /**
- * Encrypt a secret for DB storage. No-op when key unset or value already encrypted.
+ * Encrypt a secret for DB storage. Idempotent for already-encrypted values.
+ * Production without key: throws SecretsKeyRequiredError (no plaintext fallback).
+ * Development without key: passthrough plaintext.
  */
 export function encryptSecret(plaintext: string): string {
   if (!plaintext) return plaintext;
   if (isEncryptedSecret(plaintext)) return plaintext;
 
   const key = resolveKeyBytes();
-  if (!key) return plaintext;
+  if (!key) {
+    if (isProductionRuntime()) {
+      throw new SecretsKeyRequiredError();
+    }
+    return plaintext;
+  }
 
   const iv = randomBytes(IV_LENGTH);
   const cipher = createCipheriv("aes-256-gcm", key, iv);

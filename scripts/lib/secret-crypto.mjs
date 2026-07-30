@@ -16,6 +16,10 @@ export const ENCRYPTED_SECRET_PREFIX = "mabps:v1:";
 const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
 
+export function isProductionRuntime() {
+  return process.env.NODE_ENV === "production";
+}
+
 export function isSecretsKeyConfigured() {
   return Boolean(process.env[SECRETS_KEY_ENV]?.trim());
 }
@@ -49,7 +53,14 @@ export function encryptSecret(plaintext) {
   if (isEncryptedSecret(plaintext)) return plaintext;
 
   const key = resolveKeyBytes();
-  if (!key) return plaintext;
+  if (!key) {
+    if (isProductionRuntime()) {
+      throw new Error(
+        `${SECRETS_KEY_ENV} is required in production to store provider secrets. Generate with: openssl rand -base64 32`,
+      );
+    }
+    return plaintext;
+  }
 
   const iv = randomBytes(IV_LENGTH);
   const cipher = createCipheriv("aes-256-gcm", key, iv);

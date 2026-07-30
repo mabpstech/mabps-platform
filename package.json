@@ -27,6 +27,7 @@
     "db:migrate:all": "node ./scripts/migrate-all.mjs",
     "db:encrypt-secrets": "node ./scripts/encrypt-provider-secrets.mjs",
     "test:secret-crypto": "node ./scripts/test-secret-crypto.mjs",
+    "test:visitor-session": "node ./scripts/test-visitor-session.mjs",
     "db:backup": "node ./scripts/backup-sqlite.mjs",
     "automation:worker": "node ./scripts/automation-worker.mjs"
   },

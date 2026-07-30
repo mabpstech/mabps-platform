@@ -20,6 +20,8 @@ export {
 export {
   SECRETS_KEY_ENV,
   ENCRYPTED_SECRET_PREFIX,
+  SecretsKeyRequiredError,
+  isProductionRuntime,
   isSecretsKeyConfigured,
   isEncryptedSecret,
   encryptSecret,

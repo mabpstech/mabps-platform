@@ -108,6 +108,7 @@ CREATE TABLE IF NOT EXISTS "chatbot_conversation" (
   "crmLeadId" text,
   "assignedUserId" text,
   "handoffReason" text,
+  "visitorSessionSecretHash" text,
   "metadataJson" text not null default '{}',
   "lastMessageAt" text,
   "createdAt" text not null,

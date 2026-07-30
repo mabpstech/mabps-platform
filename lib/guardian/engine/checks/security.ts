@@ -93,5 +93,47 @@ export async function runSecurityChecks(
       : undefined,
   });
 
+  const secretsKeySet = Boolean(process.env.MABPS_SECRETS_KEY?.trim());
+  const secretsKeyMissingInProd = isProd && !secretsKeySet;
+  outputs.push({
+    category: "security",
+    checkKey: "security.secrets_at_rest_key",
+    title: "Provider secrets encryption key",
+    status: secretsKeyMissingInProd ? "fail" : secretsKeySet ? "pass" : "warn",
+    severity: secretsKeyMissingInProd ? "critical" : "info",
+    message: secretsKeyMissingInProd
+      ? "MABPS_SECRETS_KEY is required in production; encrypt refuses plaintext fallback."
+      : secretsKeySet
+        ? "MABPS_SECRETS_KEY is configured."
+        : "MABPS_SECRETS_KEY is unset (allowed in non-production only).",
+    findings: secretsKeyMissingInProd
+      ? [
+          {
+            code: "SEC_SECRETS_KEY_MISSING",
+            title: "Missing MABPS_SECRETS_KEY in production",
+            description:
+              "Without MABPS_SECRETS_KEY, production cannot safely store provider tokens.",
+            severity: "critical",
+            suggestion:
+              "Set MABPS_SECRETS_KEY (openssl rand -base64 32) and run npm run db:encrypt-secrets.",
+            autoRepairable: false,
+            repair: {
+              action: "document_env_var",
+              title: "Configure MABPS_SECRETS_KEY",
+              description: "Add a strong encryption key for provider secrets at rest.",
+              oneClick: false,
+              riskLevel: "high",
+              steps: [
+                "Run: openssl rand -base64 32",
+                "Set MABPS_SECRETS_KEY in production secrets",
+                "Run: npm run db:encrypt-secrets",
+                "Restart the application",
+              ],
+            },
+          },
+        ]
+      : undefined,
+  });
+
   return outputs;
 }

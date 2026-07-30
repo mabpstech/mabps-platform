@@ -10,6 +10,12 @@ import {
   getWidgetByBotId,
   listMessages,
 } from "@/lib/chatbot/repository";
+import {
+  generateVisitorSessionSecret,
+  readVisitorSessionSecret,
+  visitorSessionSecretsMatch,
+  getVisitorSessionSecretHash,
+} from "@/lib/chatbot/visitor-session";
 import { enforcePublicRateLimit } from "@/lib/platform/rate-limit";
 
 type RouteContext = { params: Promise<{ publicKey: string }> };
@@ -39,19 +45,24 @@ export async function POST(request: Request, context: RouteContext) {
     >;
     const conversationId =
       typeof body.conversationId === "string" ? body.conversationId : null;
+    const providedSecret = readVisitorSessionSecret({ request, body });
 
-    if (conversationId) {
+    if (conversationId && providedSecret) {
       const existing = getConversationById(conversationId);
+      const storedHash = getVisitorSessionSecretHash(conversationId);
       if (
         existing &&
         existing.botId === bot.id &&
-        existing.workspaceId === bot.workspaceId
+        existing.workspaceId === bot.workspaceId &&
+        visitorSessionSecretsMatch(storedHash, providedSecret)
       ) {
         return NextResponse.json({
           conversation: existing,
+          sessionSecret: providedSecret,
           messages: listMessages(existing.id),
         });
       }
+      // Stale/invalid local session — fall through and issue a new one.
     }
 
     const visitorId =
@@ -59,6 +70,7 @@ export async function POST(request: Request, context: RouteContext) {
         ? body.visitorId.trim()
         : randomUUID();
 
+    const { secret, hash } = generateVisitorSessionSecret();
     const conversation = createConversation({
       botId: bot.id,
       workspaceId: bot.workspaceId,
@@ -70,6 +82,7 @@ export async function POST(request: Request, context: RouteContext) {
         typeof body.visitorEmail === "string" ? body.visitorEmail : null,
       visitorPhone:
         typeof body.visitorPhone === "string" ? body.visitorPhone : null,
+      visitorSessionSecretHash: hash,
       metadata: {
         userAgent: request.headers.get("user-agent"),
         origin: request.headers.get("origin"),
@@ -89,6 +102,7 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json(
       {
         conversation,
+        sessionSecret: secret,
         messages: listMessages(conversation.id),
       },
       { status: 201 },

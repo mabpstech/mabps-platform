@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import type { ChatbotMessage } from "@/lib/chatbot/types";
 
+/** Must match `VISITOR_SESSION_HEADER` in lib/chatbot/visitor-session.ts */
+const VISITOR_SESSION_HEADER = "x-mabps-chatbot-session";
+
 type PublicConfig = {
   bot: {
     name: string;
@@ -18,9 +21,19 @@ type PublicConfig = {
   };
 };
 
+function storageKeys(publicKey: string) {
+  const base = `mabps_chat_${publicKey}`;
+  return {
+    conversation: base,
+    visitor: `${base}_visitor`,
+    session: `${base}_session`,
+  };
+}
+
 export function EmbedChat({ publicKey }: { publicKey: string }) {
   const [config, setConfig] = useState<PublicConfig | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [sessionSecret, setSessionSecret] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatbotMessage[]>([]);
   const [content, setContent] = useState("");
   const [leadName, setLeadName] = useState("");
@@ -42,21 +55,31 @@ export function EmbedChat({ publicKey }: { publicKey: string }) {
         if (cancelled) return;
         setConfig(configData);
 
-        const storedKey = `mabps_chat_${publicKey}`;
-        const stored =
+        const keys = storageKeys(publicKey);
+        const storedConversation =
           typeof window !== "undefined"
-            ? window.localStorage.getItem(storedKey)
+            ? window.localStorage.getItem(keys.conversation)
+            : null;
+        const storedSecret =
+          typeof window !== "undefined"
+            ? window.localStorage.getItem(keys.session)
             : null;
         const sessionRes = await fetch(
           `/api/chatbot/public/${publicKey}/session`,
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...(storedSecret
+                ? { [VISITOR_SESSION_HEADER]: storedSecret }
+                : {}),
+            },
             body: JSON.stringify({
-              conversationId: stored,
+              conversationId: storedConversation,
+              sessionSecret: storedSecret,
               visitorId:
                 typeof window !== "undefined"
-                  ? window.localStorage.getItem(`${storedKey}_visitor`)
+                  ? window.localStorage.getItem(keys.visitor)
                   : null,
             }),
           },
@@ -64,21 +87,24 @@ export function EmbedChat({ publicKey }: { publicKey: string }) {
         const sessionData = (await sessionRes.json()) as {
           error?: string;
           conversation?: { id: string; visitorId?: string | null };
+          sessionSecret?: string;
           messages?: ChatbotMessage[];
         };
         if (!sessionRes.ok) {
           throw new Error(sessionData.error || "Unable to start chat.");
         }
         if (cancelled) return;
-        if (sessionData.conversation) {
+        if (sessionData.conversation && sessionData.sessionSecret) {
           setConversationId(sessionData.conversation.id);
+          setSessionSecret(sessionData.sessionSecret);
           window.localStorage.setItem(
-            storedKey,
+            keys.conversation,
             sessionData.conversation.id,
           );
+          window.localStorage.setItem(keys.session, sessionData.sessionSecret);
           if (sessionData.conversation.visitorId) {
             window.localStorage.setItem(
-              `${storedKey}_visitor`,
+              keys.visitor,
               sessionData.conversation.visitorId,
             );
           }
@@ -96,9 +122,16 @@ export function EmbedChat({ publicKey }: { publicKey: string }) {
     };
   }, [publicKey]);
 
+  function sessionHeaders(): HeadersInit {
+    return {
+      "Content-Type": "application/json",
+      ...(sessionSecret ? { [VISITOR_SESSION_HEADER]: sessionSecret } : {}),
+    };
+  }
+
   async function send(event: React.FormEvent) {
     event.preventDefault();
-    if (!conversationId || !content.trim()) return;
+    if (!conversationId || !content.trim() || !sessionSecret) return;
     setPending(true);
     setError(null);
     try {
@@ -106,8 +139,12 @@ export function EmbedChat({ publicKey }: { publicKey: string }) {
         `/api/chatbot/public/${publicKey}/messages`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ conversationId, content }),
+          headers: sessionHeaders(),
+          body: JSON.stringify({
+            conversationId,
+            content,
+            sessionSecret,
+          }),
         },
       );
       const data = (await response.json()) as {
@@ -126,15 +163,16 @@ export function EmbedChat({ publicKey }: { publicKey: string }) {
 
   async function submitLead(event: React.FormEvent) {
     event.preventDefault();
-    if (!conversationId) return;
+    if (!conversationId || !sessionSecret) return;
     setPending(true);
     setError(null);
     try {
       const response = await fetch(`/api/chatbot/public/${publicKey}/lead`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: sessionHeaders(),
         body: JSON.stringify({
           conversationId,
+          sessionSecret,
           name: leadName,
           email: leadEmail,
         }),
@@ -151,7 +189,7 @@ export function EmbedChat({ publicKey }: { publicKey: string }) {
   }
 
   async function requestHandoff() {
-    if (!conversationId) return;
+    if (!conversationId || !sessionSecret) return;
     setPending(true);
     setError(null);
     try {
@@ -159,14 +197,19 @@ export function EmbedChat({ publicKey }: { publicKey: string }) {
         `/api/chatbot/public/${publicKey}/handoff`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ conversationId }),
+          headers: sessionHeaders(),
+          body: JSON.stringify({ conversationId, sessionSecret }),
         },
       );
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error || "Unable to request handoff.");
       const refresh = await fetch(
-        `/api/chatbot/public/${publicKey}/messages?conversationId=${conversationId}`,
+        `/api/chatbot/public/${publicKey}/messages?conversationId=${encodeURIComponent(conversationId)}`,
+        {
+          headers: sessionSecret
+            ? { [VISITOR_SESSION_HEADER]: sessionSecret }
+            : {},
+        },
       );
       const refreshData = (await refresh.json()) as {
         messages?: ChatbotMessage[];
@@ -258,13 +301,13 @@ export function EmbedChat({ publicKey }: { publicKey: string }) {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Type a message…"
-          disabled={pending || !conversationId}
+          disabled={pending || !conversationId || !sessionSecret}
         />
         <button
           type="submit"
           className="rounded-full px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
           style={{ backgroundColor: color }}
-          disabled={pending || !conversationId}
+          disabled={pending || !conversationId || !sessionSecret}
         >
           Send
         </button>
@@ -275,7 +318,7 @@ export function EmbedChat({ publicKey }: { publicKey: string }) {
           type="button"
           onClick={requestHandoff}
           className="border-t border-zinc-100 px-3 py-2 text-center text-xs text-zinc-500 hover:text-zinc-800"
-          disabled={pending || !conversationId}
+          disabled={pending || !conversationId || !sessionSecret}
         >
           Talk to a human
         </button>

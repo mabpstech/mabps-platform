@@ -7,6 +7,7 @@ import {
   getBotByPublicKey,
   getConversationById,
 } from "@/lib/chatbot/repository";
+import { assertVisitorSessionAccess } from "@/lib/chatbot/visitor-session";
 import { enforcePublicRateLimit } from "@/lib/platform/rate-limit";
 
 type RouteContext = { params: Promise<{ publicKey: string }> };
@@ -44,6 +45,13 @@ export async function POST(request: Request, context: RouteContext) {
         { status: 404 },
       );
     }
+
+    const denied = assertVisitorSessionAccess({
+      conversationId: conversation.id,
+      request,
+      body,
+    });
+    if (denied) return denied;
 
     const handoff = createHandoff({
       conversationId: conversation.id,

@@ -8,6 +8,7 @@ import {
   getWidgetByBotId,
   listMessages,
 } from "@/lib/chatbot/repository";
+import { assertVisitorSessionAccess } from "@/lib/chatbot/visitor-session";
 import { enforcePublicRateLimit } from "@/lib/platform/rate-limit";
 
 type RouteContext = { params: Promise<{ publicKey: string }> };
@@ -23,9 +24,8 @@ export async function GET(request: Request, context: RouteContext) {
     if (!bot || bot.status !== "active") {
       return NextResponse.json({ error: "Bot not found." }, { status: 404 });
     }
-    const conversationId = new URL(request.url).searchParams.get(
-      "conversationId",
-    );
+    const searchParams = new URL(request.url).searchParams;
+    const conversationId = searchParams.get("conversationId");
     if (!conversationId) {
       return NextResponse.json(
         { error: "conversationId is required." },
@@ -39,6 +39,14 @@ export async function GET(request: Request, context: RouteContext) {
         { status: 404 },
       );
     }
+
+    const denied = assertVisitorSessionAccess({
+      conversationId,
+      request,
+      searchParams,
+    });
+    if (denied) return denied;
+
     return NextResponse.json({
       conversation,
       messages: listMessages(conversationId),
@@ -94,6 +102,13 @@ export async function POST(request: Request, context: RouteContext) {
         { status: 404 },
       );
     }
+
+    const denied = assertVisitorSessionAccess({
+      conversationId: conversation.id,
+      request,
+      body,
+    });
+    if (denied) return denied;
 
     const result = await handleVisitorMessage({
       conversationId: conversation.id,
