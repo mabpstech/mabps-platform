@@ -31,9 +31,6 @@ export function SignupForm({ googleEnabled = false }: SignupFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [workspaceName, setWorkspaceName] = useState("");
-  const [workspaceSlug, setWorkspaceSlug] = useState("");
-  const [slugTouched, setSlugTouched] = useState(false);
-  const [workspaceLogo, setWorkspaceLogo] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -42,7 +39,6 @@ export function SignupForm({ googleEnabled = false }: SignupFormProps) {
     () => slugifyWorkspace(workspaceName),
     [workspaceName],
   );
-  const effectiveSlug = slugTouched ? workspaceSlug : derivedSlug;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -57,9 +53,9 @@ export function SignupForm({ googleEnabled = false }: SignupFormProps) {
     }
 
     if (!acceptingInvite) {
-      const finalSlug = slugifyWorkspace(effectiveSlug);
+      const finalSlug = slugifyWorkspace(derivedSlug);
       if (!workspaceName.trim() || !finalSlug) {
-        setError("Workspace name and slug are required.");
+        setError("Workspace name is required.");
         setPending(false);
         return;
       }
@@ -89,11 +85,10 @@ export function SignupForm({ googleEnabled = false }: SignupFormProps) {
         return;
       }
 
-      const finalSlug = slugifyWorkspace(effectiveSlug);
+      const finalSlug = slugifyWorkspace(derivedSlug);
       const { data, error: createError } = await authClient.organization.create({
         name: workspaceName.trim(),
         slug: finalSlug,
-        logo: workspaceLogo.trim() || undefined,
         keepCurrentActiveOrganization: false,
       });
 
@@ -207,40 +202,6 @@ export function SignupForm({ googleEnabled = false }: SignupFormProps) {
                 className={authInputClassName}
                 disabled={pending}
                 placeholder="Acme Studio"
-              />
-            </div>
-            <div>
-              <label htmlFor="workspace-slug" className={authLabelClassName}>
-                Workspace slug
-              </label>
-              <input
-                id="workspace-slug"
-                name="workspaceSlug"
-                type="text"
-                required
-                value={effectiveSlug}
-                onChange={(event) => {
-                  setSlugTouched(true);
-                  setWorkspaceSlug(event.target.value);
-                }}
-                className={authInputClassName}
-                disabled={pending}
-                placeholder="acme-studio"
-              />
-            </div>
-            <div>
-              <label htmlFor="workspace-logo" className={authLabelClassName}>
-                Logo URL <span className="font-normal text-zinc-400">(optional)</span>
-              </label>
-              <input
-                id="workspace-logo"
-                name="workspaceLogo"
-                type="url"
-                value={workspaceLogo}
-                onChange={(event) => setWorkspaceLogo(event.target.value)}
-                className={authInputClassName}
-                disabled={pending}
-                placeholder="https://…"
               />
             </div>
           </>

@@ -12,7 +12,14 @@ import {
   authLabelClassName,
 } from "@/lib/auth/styles";
 
-export function CreateWorkspaceForm() {
+type CreateWorkspaceFormProps = {
+  /** First-run onboarding: hide advanced fields (slug, logo). */
+  simplified?: boolean;
+};
+
+export function CreateWorkspaceForm({
+  simplified = false,
+}: CreateWorkspaceFormProps) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -31,7 +38,11 @@ export function CreateWorkspaceForm() {
 
     const finalSlug = slugifyWorkspace(effectiveSlug);
     if (!name.trim() || !finalSlug) {
-      setError("Workspace name and slug are required.");
+      setError(
+        simplified
+          ? "Workspace name is required."
+          : "Workspace name and slug are required.",
+      );
       setPending(false);
       return;
     }
@@ -39,7 +50,7 @@ export function CreateWorkspaceForm() {
     const { data, error: createError } = await authClient.organization.create({
       name: name.trim(),
       slug: finalSlug,
-      logo: logo.trim() || undefined,
+      logo: simplified ? undefined : logo.trim() || undefined,
       keepCurrentActiveOrganization: false,
     });
 
@@ -81,43 +92,48 @@ export function CreateWorkspaceForm() {
           placeholder="Acme Studio"
         />
       </div>
-      <div>
-        <label htmlFor="workspace-slug" className={authLabelClassName}>
-          Slug
-        </label>
-        <input
-          id="workspace-slug"
-          name="slug"
-          type="text"
-          required
-          value={effectiveSlug}
-          onChange={(event) => {
-            setSlugTouched(true);
-            setSlug(event.target.value);
-          }}
-          className={authInputClassName}
-          disabled={pending}
-          placeholder="acme-studio"
-        />
-        <p className="mt-1 text-xs text-zinc-500">
-          Unique URL-safe identifier for this workspace.
-        </p>
-      </div>
-      <div>
-        <label htmlFor="workspace-logo" className={authLabelClassName}>
-          Logo URL <span className="font-normal text-zinc-400">(optional)</span>
-        </label>
-        <input
-          id="workspace-logo"
-          name="logo"
-          type="url"
-          value={logo}
-          onChange={(event) => setLogo(event.target.value)}
-          className={authInputClassName}
-          disabled={pending}
-          placeholder="https://…"
-        />
-      </div>
+      {!simplified ? (
+        <>
+          <div>
+            <label htmlFor="workspace-slug" className={authLabelClassName}>
+              Slug
+            </label>
+            <input
+              id="workspace-slug"
+              name="slug"
+              type="text"
+              required
+              value={effectiveSlug}
+              onChange={(event) => {
+                setSlugTouched(true);
+                setSlug(event.target.value);
+              }}
+              className={authInputClassName}
+              disabled={pending}
+              placeholder="acme-studio"
+            />
+            <p className="mt-1 text-xs text-zinc-500">
+              Unique URL-safe identifier for this workspace.
+            </p>
+          </div>
+          <div>
+            <label htmlFor="workspace-logo" className={authLabelClassName}>
+              Logo URL{" "}
+              <span className="font-normal text-zinc-400">(optional)</span>
+            </label>
+            <input
+              id="workspace-logo"
+              name="logo"
+              type="url"
+              value={logo}
+              onChange={(event) => setLogo(event.target.value)}
+              className={authInputClassName}
+              disabled={pending}
+              placeholder="https://…"
+            />
+          </div>
+        </>
+      ) : null}
       {error ? <div className={authErrorClassName}>{error}</div> : null}
       <button type="submit" disabled={pending} className={authButtonClassName}>
         {pending ? "Creating…" : "Create workspace"}

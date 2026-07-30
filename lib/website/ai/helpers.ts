@@ -53,6 +53,31 @@ export function aiSafeSlug(input: string, fallback = "page"): string {
   return slugify(input) || fallback;
 }
 
+/** True when a name is empty or the forbidden public placeholder. */
+export function isPlaceholderSiteName(
+  name: string | null | undefined,
+): boolean {
+  const normalized = name?.trim().toLowerCase() ?? "";
+  return !normalized || normalized === "new website";
+}
+
+/**
+ * Public sites must never brand as "New website".
+ * Prefer a real candidate, then workspace name — never the placeholder.
+ */
+export function resolvePublicSiteName(
+  candidate: string | null | undefined,
+  workspaceName?: string | null,
+): string {
+  if (!isPlaceholderSiteName(candidate)) {
+    return clampAiTextByKey(candidate!.trim(), "siteName");
+  }
+  if (!isPlaceholderSiteName(workspaceName)) {
+    return clampAiTextByKey(workspaceName!.trim(), "siteName");
+  }
+  return "Untitled website";
+}
+
 export function createEmptyIntent(
   prompt = "",
 ): AiGenerationIntent {

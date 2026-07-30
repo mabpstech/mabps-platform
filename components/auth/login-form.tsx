@@ -44,6 +44,14 @@ export function LoginForm({
       return;
     }
 
+    // Ensure an active workspace after login when memberships exist.
+    // Signup already sets this; login previously left activeOrganizationId unset.
+    try {
+      await fetch("/api/workspace/ensure-active", { method: "POST" });
+    } catch {
+      // Layout/API ensureActiveWorkspace will heal; don't block sign-in.
+    }
+
     router.push(callbackUrl);
     router.refresh();
   }

@@ -5,7 +5,10 @@ import {
   type WorkspaceRole,
 } from "@/lib/auth/permissions";
 import { auth, type Session } from "@/lib/auth/server";
-import { requireWorkspace } from "@/lib/auth/workspace";
+import {
+  ensureActiveWorkspace,
+  requireWorkspace,
+} from "@/lib/auth/workspace";
 
 /** Shared auth error for module API/page guards. */
 export class PlatformAuthError extends Error {
@@ -65,14 +68,14 @@ export function createModuleAccess<TExtra extends object = object>(
       throw new ModuleAuthError("Authentication required.", 401);
     }
 
-    const activeId = session.session.activeOrganizationId;
-    if (!activeId) {
+    const workspace = await ensureActiveWorkspace(session);
+    if (!workspace) {
       throw new ModuleAuthError("No active workspace.", 400);
     }
 
     const fullOrg = await auth.api.getFullOrganization({
       headers: requestHeaders,
-      query: { organizationId: activeId },
+      query: { organizationId: workspace.id },
     });
 
     if (!fullOrg) {

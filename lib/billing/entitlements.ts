@@ -9,9 +9,11 @@ import {
   countWorkspaceMembers,
   ensureFreeSubscription,
   getUsageValue,
+  setUsageValue,
 } from "@/lib/billing/repository";
 import type { UsageMetric, UsageSnapshot } from "@/lib/billing/types";
 import { CacheKeys, cacheGetOrSet } from "@/lib/platform/cache";
+import { countSitesForWorkspace } from "@/lib/website/repository";
 
 export type LimitCheckResult = {
   allowed: boolean;
@@ -45,9 +47,16 @@ export function getWorkspaceUsage(workspaceId: string): UsageSnapshot {
   const members =
     countWorkspaceMembers(workspaceId) + countPendingInvitations(workspaceId);
 
+  // Sites usage must match live site rows — counters can drift after deletes.
+  const sites = countSitesForWorkspace(workspaceId);
+  const storedSites = getUsageValue(workspaceId, "sites", "lifetime");
+  if (storedSites !== sites) {
+    setUsageValue(workspaceId, "sites", "lifetime", sites);
+  }
+
   return {
     members,
-    sites: getUsageValue(workspaceId, "sites", "lifetime"),
+    sites,
     storageMb: getUsageValue(workspaceId, "storageMb", "lifetime"),
     aiCredits: getUsageValue(workspaceId, "aiCredits", periodKey),
     automations: getUsageValue(workspaceId, "automations", "lifetime"),

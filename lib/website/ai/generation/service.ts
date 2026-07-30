@@ -32,8 +32,13 @@ import {
 import { deriveCreativeDirection } from "@/lib/website/ai/creative-director";
 import { deriveBusinessDna } from "@/lib/website/ai/dna";
 import { mergePromptSignalsIntoProfile } from "@/lib/website/ai/generation/merge";
-import { normalizeGenerateInput } from "@/lib/website/ai/helpers";
+import {
+  isPlaceholderSiteName,
+  normalizeGenerateInput,
+  resolvePublicSiteName,
+} from "@/lib/website/ai/helpers";
 import { analyzeBusinessPrompt } from "@/lib/website/ai/intelligence";
+import { sqlite } from "@/lib/db";
 import {
   getWebsiteLlmProvider,
   hasOpenAiWebsiteCredentials,
@@ -343,7 +348,19 @@ export async function generateWebsiteFromPrompt(
     prompt: normalized.prompt,
     options: normalized.options,
   });
-  const profile = mergePromptSignalsIntoProfile(bi.profile, signals);
+  let profile = mergePromptSignalsIntoProfile(bi.profile, signals);
+
+  // Never compose public copy under the forbidden placeholder name.
+  // Prefer workspace branding when inference left the placeholder.
+  if (isPlaceholderSiteName(profile.name)) {
+    const org = sqlite
+      .prepare(`SELECT "name" FROM "organization" WHERE "id" = ?`)
+      .get(normalized.workspaceId) as { name: string } | undefined;
+    profile = {
+      ...profile,
+      name: resolvePublicSiteName(profile.name, org?.name ?? null),
+    };
+  }
 
   // 2. Business DNA
   const dnaResult = await deriveBusinessDna({ profile });

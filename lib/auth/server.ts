@@ -72,9 +72,10 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 7,
     updateAge: 60 * 60 * 24,
+    // Cookie cache keeps a stale activeOrganizationId after login/setActive.
+    // Disable so get-session always reflects the DB session (workspace activation).
     cookieCache: {
-      enabled: true,
-      maxAge: 60 * 5,
+      enabled: false,
     },
   },
   plugins: [

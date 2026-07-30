@@ -12,8 +12,11 @@ import type {
   AiBlueprintExecuteResult,
 } from "@/lib/website/ai/blueprint-executor/types";
 import {
+  aiSafeSlug,
   ensureHomePageFirst,
+  isPlaceholderSiteName,
   resolveNavHref,
+  resolvePublicSiteName,
 } from "@/lib/website/ai/helpers";
 import type {
   AiGeneratedNavItem,
@@ -54,6 +57,109 @@ import type {
   WebsiteSection,
 } from "@/lib/website/types";
 import type { SiteCategoryId } from "@/lib/website/templates";
+
+function getWorkspaceDisplayName(workspaceId: string): string | null {
+  const row = sqlite
+    .prepare(`SELECT "name" FROM "organization" WHERE "id" = ?`)
+    .get(workspaceId) as { name: string } | undefined;
+  const name = row?.name?.trim();
+  return name || null;
+}
+
+/**
+ * Replace forbidden placeholder branding with the workspace name before persist.
+ * Does not change AI inference — only what customers see publicly.
+ */
+function applyPublicBranding(
+  blueprint: AiWebsiteBlueprint,
+  workspaceId: string,
+): AiWebsiteBlueprint {
+  const workspaceName = getWorkspaceDisplayName(workspaceId);
+  const siteName = resolvePublicSiteName(blueprint.site.name, workspaceName);
+  const brandName = resolvePublicSiteName(blueprint.brand.name, siteName);
+  const needsSiteRename = isPlaceholderSiteName(blueprint.site.name);
+  const needsLogoRename = isPlaceholderSiteName(blueprint.header.logoText);
+
+  const replacePlaceholder = (value: string | null | undefined) => {
+    if (!value || !/new website/i.test(value)) return value ?? null;
+    return value.replace(/new website/gi, brandName);
+  };
+
+  return {
+    ...blueprint,
+    site: {
+      ...blueprint.site,
+      name: siteName,
+      slug: needsSiteRename
+        ? aiSafeSlug(siteName, "site")
+        : blueprint.site.slug,
+    },
+    brand: {
+      ...blueprint.brand,
+      name: brandName,
+      description: replacePlaceholder(blueprint.brand.description) ?? "",
+      slogan: replacePlaceholder(blueprint.brand.slogan),
+    },
+    theme: {
+      ...blueprint.theme,
+      tokens: {
+        ...blueprint.theme.tokens,
+        brand: {
+          ...blueprint.theme.tokens?.brand,
+          businessName: isPlaceholderSiteName(
+            blueprint.theme.tokens?.brand?.businessName,
+          )
+            ? brandName
+            : blueprint.theme.tokens?.brand?.businessName,
+        },
+      },
+    },
+    header: {
+      ...blueprint.header,
+      logoText: needsLogoRename ? brandName : blueprint.header.logoText,
+      ctaLabel: replacePlaceholder(blueprint.header.ctaLabel),
+      announcementText: replacePlaceholder(blueprint.header.announcementText),
+    },
+    footer: {
+      ...blueprint.footer,
+      copyrightText:
+        replacePlaceholder(blueprint.footer.copyrightText) ??
+        blueprint.footer.copyrightText,
+      columns: blueprint.footer.columns?.map((column) => ({
+        ...column,
+        title: replacePlaceholder(column.title) ?? column.title,
+        links: column.links?.map((link) => ({
+          ...link,
+          label: replacePlaceholder(link.label) ?? link.label,
+        })),
+      })),
+    },
+    seo: {
+      ...blueprint.seo,
+      defaultTitle: replacePlaceholder(blueprint.seo.defaultTitle),
+      defaultDescription: replacePlaceholder(blueprint.seo.defaultDescription),
+    },
+    pages: blueprint.pages.map((page) => ({
+      ...page,
+      title: replacePlaceholder(page.title) ?? page.title,
+      seoTitle: replacePlaceholder(page.seoTitle),
+      seoDescription: replacePlaceholder(page.seoDescription),
+      sections: page.sections.map((section) => ({
+        ...section,
+        content: rewriteContentPlaceholders(section.content, brandName),
+      })),
+    })),
+  };
+}
+
+function rewriteContentPlaceholders(
+  content: Record<string, unknown>,
+  brandName: string,
+): Record<string, unknown> {
+  return JSON.parse(
+    JSON.stringify(content).replace(/new website/gi, brandName),
+  ) as Record<string, unknown>;
+}
 
 function requireHomePage(pages: AiGeneratedPage[]): AiGeneratedPage {
   const home = pages.find((page) => page.pageType === "home");
@@ -376,7 +482,10 @@ export function executeWebsiteBlueprint(
     throw new Error("workspaceId is required.");
   }
 
-  const blueprint = assertAiWebsiteBlueprint(input.blueprint);
+  const blueprint = applyPublicBranding(
+    assertAiWebsiteBlueprint(input.blueprint),
+    workspaceId,
+  );
   requireHomePage(blueprint.pages);
 
   const category: SiteCategoryId | null | undefined =

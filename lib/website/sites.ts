@@ -3,6 +3,7 @@ import {
   getWorkspaceUsage,
 } from "@/lib/billing/entitlements";
 import { setUsageValue } from "@/lib/billing/repository";
+import { isPlaceholderSiteName, resolvePublicSiteName } from "@/lib/website/ai/helpers";
 import {
   countSitesForWorkspace,
   createSite,
@@ -14,6 +15,14 @@ import {
 } from "@/lib/website/repository";
 import type { WebsiteSite } from "@/lib/website/types";
 import { removeSiteUploadDir } from "@/lib/website/media-storage";
+import { sqlite } from "@/lib/db";
+
+function workspaceDisplayName(workspaceId: string): string | null {
+  const row = sqlite
+    .prepare(`SELECT "name" FROM "organization" WHERE "id" = ?`)
+    .get(workspaceId) as { name: string } | undefined;
+  return row?.name?.trim() || null;
+}
 
 export function listWorkspaceSites(workspaceId: string): WebsiteSite[] {
   return listSitesForWorkspace(workspaceId);
@@ -27,7 +36,17 @@ export function createWorkspaceSite(input: {
   category?: import("@/lib/website/templates").SiteCategoryId | null;
 }): WebsiteSite {
   assertWithinLimit(input.workspaceId, "sites", { delta: 1 });
-  const site = createSite(input);
+  const renamed = isPlaceholderSiteName(input.name);
+  const name = resolvePublicSiteName(
+    input.name,
+    workspaceDisplayName(input.workspaceId),
+  );
+  const site = createSite({
+    ...input,
+    name,
+    // Regenerating slug when replacing the forbidden placeholder name.
+    slug: renamed ? undefined : input.slug,
+  });
   const count = countSitesForWorkspace(input.workspaceId);
   setUsageValue(input.workspaceId, "sites", "lifetime", count);
   return site;

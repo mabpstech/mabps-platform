@@ -54,7 +54,7 @@ export default async function OnboardingPage({
             This takes about 30 seconds. You&apos;ll be the Owner.
           </p>
           <div className="mt-4">
-            <CreateWorkspaceForm />
+            <CreateWorkspaceForm simplified />
           </div>
         </div>
       </FirstRunPanel>
