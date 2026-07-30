@@ -18,6 +18,16 @@ export {
   slugify,
 } from "@/lib/platform/secrets";
 export {
+  SECRETS_KEY_ENV,
+  ENCRYPTED_SECRET_PREFIX,
+  isSecretsKeyConfigured,
+  isEncryptedSecret,
+  encryptSecret,
+  decryptSecret,
+  encryptOptionalSecret,
+  decryptOptionalSecret,
+} from "@/lib/platform/secret-crypto";
+export {
   PUBLIC_RATE_LIMITS,
   checkRateLimit,
   enforcePublicRateLimit,

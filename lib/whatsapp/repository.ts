@@ -6,6 +6,10 @@ import {
   normalizePhone,
 } from "@/lib/whatsapp/defaults";
 import { migrateWhatsAppSchema } from "@/lib/whatsapp/migrate";
+import {
+  decryptOptionalSecret,
+  encryptOptionalSecret,
+} from "@/lib/platform/secret-crypto";
 import type {
   WhatsAppBroadcast,
   WhatsAppBroadcastRecipient,
@@ -73,7 +77,9 @@ function rowToSettings(row: Record<string, unknown>): WhatsAppSettings {
     phoneNumberId: (row.phoneNumberId as string | null) ?? null,
     displayPhoneNumber: (row.displayPhoneNumber as string | null) ?? null,
     wabaId: (row.wabaId as string | null) ?? null,
-    accessToken: (row.accessToken as string | null) ?? null,
+    accessToken: decryptOptionalSecret(
+      (row.accessToken as string | null) ?? null,
+    ),
     verifyToken: (row.verifyToken as string | null) ?? null,
     apiVersion: String(row.apiVersion || "v21.0"),
     businessName: (row.businessName as string | null) ?? null,
@@ -416,7 +422,7 @@ export function updateWhatsAppSettings(
       input.wabaId !== undefined
         ? asStringOrNull(input.wabaId)
         : existing.wabaId,
-      accessToken,
+      encryptOptionalSecret(accessToken),
       verifyToken,
       input.apiVersion?.trim() || existing.apiVersion,
       input.businessName !== undefined

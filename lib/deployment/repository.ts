@@ -11,6 +11,13 @@ import {
   slugify,
 } from "@/lib/deployment/defaults";
 import { migrateDeploymentSchema } from "@/lib/deployment/migrate";
+import {
+  decryptOptionalSecret,
+  decryptSecret,
+  encryptOptionalSecret,
+  encryptSecret,
+  isEncryptedSecret,
+} from "@/lib/platform/secret-crypto";
 import type {
   BuildLogLevel,
   DeploymentBuildLog,
@@ -211,9 +218,13 @@ function rowToSettings(row: Record<string, unknown>): DeploymentSettings {
       row.retentionDeployments ?? DEFAULT_RETENTION_DEPLOYMENTS,
     ),
     vercelTeamId: (row.vercelTeamId as string | null) ?? null,
-    vercelToken: (row.vercelToken as string | null) ?? null,
+    vercelToken: decryptOptionalSecret(
+      (row.vercelToken as string | null) ?? null,
+    ),
     cloudflareAccountId: (row.cloudflareAccountId as string | null) ?? null,
-    cloudflareApiToken: (row.cloudflareApiToken as string | null) ?? null,
+    cloudflareApiToken: decryptOptionalSecret(
+      (row.cloudflareApiToken as string | null) ?? null,
+    ),
     cloudflareZoneId: (row.cloudflareZoneId as string | null) ?? null,
     webhookUrl: (row.webhookUrl as string | null) ?? null,
     createdAt: String(row.createdAt),
@@ -297,12 +308,13 @@ function rowToDomain(row: Record<string, unknown>): DeploymentDomain {
 }
 
 function rowToEnvVar(row: Record<string, unknown>): DeploymentEnvVar {
+  const rawValue = String(row.value);
   return {
     id: String(row.id),
     workspaceId: String(row.workspaceId),
     projectId: String(row.projectId),
     key: String(row.key),
-    value: String(row.value),
+    value: isEncryptedSecret(rawValue) ? decryptSecret(rawValue) : rawValue,
     isSecret: Boolean(row.isSecret),
     target: parseEnvTarget(row.target),
     createdAt: String(row.createdAt),
@@ -557,11 +569,11 @@ export function updateDeploymentSettings(
       input.vercelTeamId !== undefined
         ? input.vercelTeamId
         : current.vercelTeamId,
-      vercelToken,
+      encryptOptionalSecret(vercelToken),
       input.cloudflareAccountId !== undefined
         ? input.cloudflareAccountId
         : current.cloudflareAccountId,
-      cloudflareApiToken,
+      encryptOptionalSecret(cloudflareApiToken),
       input.cloudflareZoneId !== undefined
         ? input.cloudflareZoneId
         : current.cloudflareZoneId,
@@ -1059,6 +1071,7 @@ export function upsertEnvVar(
     | undefined;
 
   if (existing) {
+    const isSecret = input.isSecret ?? Boolean(existing.isSecret);
     sqlite
       .prepare(
         `UPDATE "deployment_env_var" SET
@@ -1066,8 +1079,8 @@ export function upsertEnvVar(
          WHERE "id" = ?`,
       )
       .run(
-        input.value,
-        (input.isSecret ?? Boolean(existing.isSecret)) ? 1 : 0,
+        isSecret ? encryptSecret(input.value) : input.value,
+        isSecret ? 1 : 0,
         now,
         String(existing.id),
       );
@@ -1075,6 +1088,7 @@ export function upsertEnvVar(
   }
 
   const id = randomUUID();
+  const isSecret = input.isSecret ?? true;
   sqlite
     .prepare(
       `INSERT INTO "deployment_env_var" (
@@ -1087,8 +1101,8 @@ export function upsertEnvVar(
       workspaceId,
       input.projectId,
       input.key,
-      input.value,
-      (input.isSecret ?? true) ? 1 : 0,
+      isSecret ? encryptSecret(input.value) : input.value,
+      isSecret ? 1 : 0,
       target,
       now,
       now,

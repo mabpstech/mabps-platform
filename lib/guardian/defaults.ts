@@ -31,6 +31,8 @@ export const RECOMMENDED_ENV_VARS = [
   // Scale / ops (P3): worker secret for queue ticks; media driver defaults to local.
   "AUTOMATION_WORKER_SECRET",
   "BILLING_JOB_SECRET",
+  // Encrypt provider tokens at rest (AI, chatbot, email, WhatsApp, deployment).
+  "MABPS_SECRETS_KEY",
   // Optional scale: dedicated vectors + shared cache invalidation.
   "VECTOR_DATABASE_URL",
   "UPSTASH_REDIS_REST_URL",

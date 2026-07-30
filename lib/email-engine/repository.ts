@@ -11,6 +11,10 @@ import {
   slugify,
 } from "@/lib/email-engine/defaults";
 import { migrateEmailEngineSchema } from "@/lib/email-engine/migrate";
+import {
+  decryptOptionalSecret,
+  encryptOptionalSecret,
+} from "@/lib/platform/secret-crypto";
 import type {
   EmailCampaign,
   EmailCampaignRecipient,
@@ -99,10 +103,16 @@ function rowToSettings(row: Record<string, unknown>): EmailSettings {
         : Number(row.smtpPort),
     smtpSecure: Boolean(row.smtpSecure),
     smtpUser: (row.smtpUser as string | null) ?? null,
-    smtpPassword: (row.smtpPassword as string | null) ?? null,
-    resendApiKey: (row.resendApiKey as string | null) ?? null,
+    smtpPassword: decryptOptionalSecret(
+      (row.smtpPassword as string | null) ?? null,
+    ),
+    resendApiKey: decryptOptionalSecret(
+      (row.resendApiKey as string | null) ?? null,
+    ),
     sesAccessKeyId: (row.sesAccessKeyId as string | null) ?? null,
-    sesSecretAccessKey: (row.sesSecretAccessKey as string | null) ?? null,
+    sesSecretAccessKey: decryptOptionalSecret(
+      (row.sesSecretAccessKey as string | null) ?? null,
+    ),
     sesRegion: String(row.sesRegion || DEFAULT_SES_REGION),
     isConnected: Boolean(row.isConnected),
     crmSyncEnabled: Boolean(row.crmSyncEnabled),
@@ -111,7 +121,9 @@ function rowToSettings(row: Record<string, unknown>): EmailSettings {
     openTrackingEnabled: Boolean(row.openTrackingEnabled),
     clickTrackingEnabled: Boolean(row.clickTrackingEnabled),
     webhookPathSecret: (row.webhookPathSecret as string | null) ?? null,
-    trackingSecret: (row.trackingSecret as string | null) ?? null,
+    trackingSecret: decryptOptionalSecret(
+      (row.trackingSecret as string | null) ?? null,
+    ),
     createdAt: String(row.createdAt),
     updatedAt: String(row.updatedAt),
   };
@@ -380,7 +392,7 @@ export function ensureWorkspaceEmail(workspaceId: string): EmailSettings {
       DEFAULT_EMAIL_PROVIDER,
       DEFAULT_SES_REGION,
       generateWebhookPathSecret(),
-      generateTrackingSecret(),
+      encryptOptionalSecret(generateTrackingSecret()),
       timestamp,
       timestamp,
     );
@@ -523,10 +535,10 @@ export function updateEmailSettings(
       next.smtpPort,
       next.smtpSecure ? 1 : 0,
       next.smtpUser,
-      next.smtpPassword,
-      next.resendApiKey,
+      encryptOptionalSecret(next.smtpPassword),
+      encryptOptionalSecret(next.resendApiKey),
       next.sesAccessKeyId,
-      next.sesSecretAccessKey,
+      encryptOptionalSecret(next.sesSecretAccessKey),
       next.sesRegion,
       isConnected ? 1 : 0,
       next.crmSyncEnabled ? 1 : 0,
@@ -535,7 +547,7 @@ export function updateEmailSettings(
       next.openTrackingEnabled ? 1 : 0,
       next.clickTrackingEnabled ? 1 : 0,
       next.webhookPathSecret,
-      next.trackingSecret,
+      encryptOptionalSecret(next.trackingSecret),
       timestamp,
       workspaceId,
     );

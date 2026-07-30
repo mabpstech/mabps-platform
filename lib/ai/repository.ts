@@ -8,6 +8,10 @@ import {
   slugifyPromptName,
 } from "@/lib/ai/defaults";
 import { migrateAiSchema } from "@/lib/ai/migrate";
+import {
+  decryptSecret,
+  encryptSecret,
+} from "@/lib/platform/secret-crypto";
 import type {
   AiConversation,
   AiConversationStatus,
@@ -95,7 +99,7 @@ function rowToCredential(row: Record<string, unknown>): AiProviderCredential {
     provider: AI_PROVIDERS.includes(provider as AiProviderId)
       ? (provider as AiProviderId)
       : "openai",
-    apiKey: String(row.apiKey),
+    apiKey: decryptSecret(String(row.apiKey)),
     baseUrl: (row.baseUrl as string | null) ?? null,
     defaultModel: (row.defaultModel as string | null) ?? null,
     isActive: Boolean(row.isActive),
@@ -464,6 +468,7 @@ export function upsertProviderCredential(input: {
   const apiKey = input.apiKey.trim();
   if (!apiKey) throw new Error("API key is required.");
 
+  const storedApiKey = encryptSecret(apiKey);
   const existing = getProviderCredential(input.workspaceId, input.provider);
   if (existing) {
     sqlite
@@ -473,7 +478,7 @@ export function upsertProviderCredential(input: {
         WHERE "id" = ?`,
       )
       .run(
-        apiKey,
+        storedApiKey,
         asStringOrNull(input.baseUrl),
         asStringOrNull(input.defaultModel) || DEFAULT_AI_MODEL[input.provider],
         input.isActive === false ? 0 : 1,
@@ -492,7 +497,7 @@ export function upsertProviderCredential(input: {
         randomUUID(),
         input.workspaceId,
         input.provider,
-        apiKey,
+        storedApiKey,
         asStringOrNull(input.baseUrl),
         asStringOrNull(input.defaultModel) || DEFAULT_AI_MODEL[input.provider],
         input.isActive === false ? 0 : 1,

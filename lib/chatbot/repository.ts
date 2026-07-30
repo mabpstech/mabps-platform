@@ -8,6 +8,10 @@ import {
 } from "@/lib/chatbot/knowledge/storage";
 import { migrateChatbotSchema } from "@/lib/chatbot/migrate";
 import { defaultModelForProvider } from "@/lib/chatbot/providers";
+import {
+  decryptSecret,
+  encryptSecret,
+} from "@/lib/platform/secret-crypto";
 import type {
   AiProviderId,
   BotStatus,
@@ -100,7 +104,7 @@ function rowToCredential(
     id: String(row.id),
     workspaceId: String(row.workspaceId),
     provider: String(row.provider) as AiProviderId,
-    apiKey: String(row.apiKey),
+    apiKey: decryptSecret(String(row.apiKey)),
     baseUrl: asStringOrNull(row.baseUrl),
     defaultModel: asStringOrNull(row.defaultModel),
     isActive: boolFromInt(row.isActive),
@@ -617,6 +621,7 @@ export function upsertProviderCredential(input: {
   ensureChatbotReady();
   const apiKey = input.apiKey.trim();
   if (!apiKey) throw new Error("API key is required.");
+  const storedApiKey = encryptSecret(apiKey);
   const timestamp = nowIso();
   const existing = getProviderCredential(input.workspaceId, input.provider);
 
@@ -628,7 +633,7 @@ export function upsertProviderCredential(input: {
         WHERE "id" = ?`,
       )
       .run(
-        apiKey,
+        storedApiKey,
         asStringOrNull(input.baseUrl),
         asStringOrNull(input.defaultModel) ||
           defaultModelForProvider(input.provider),
@@ -648,7 +653,7 @@ export function upsertProviderCredential(input: {
         randomUUID(),
         input.workspaceId,
         input.provider,
-        apiKey,
+        storedApiKey,
         asStringOrNull(input.baseUrl),
         asStringOrNull(input.defaultModel) ||
           defaultModelForProvider(input.provider),
