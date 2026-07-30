@@ -77,6 +77,7 @@ export default function AboutPage() {
       <MarketingSection className="m-noise m-grid-atmosphere">
         <MarketingContainer className="max-w-3xl py-4 md:py-8">
           <SectionHeading
+            as="h1"
             title="About MABPS Technologies"
             lead="We build software that helps businesses create, automate and grow from one unified platform."
           />

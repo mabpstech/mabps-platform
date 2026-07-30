@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { MediaLibrary } from "@/components/website/media-library";
+import dynamic from "next/dynamic";
 import { isWorkspaceManager } from "@/lib/auth/permissions";
 import { requireWebsiteWorkspace } from "@/lib/website/access";
 import {
@@ -8,6 +8,19 @@ import {
   listMediaFolders,
   seedDefaultMediaFolders,
 } from "@/lib/website/repository";
+
+const MediaLibrary = dynamic(
+  () =>
+    import("@/components/website/media-library").then((mod) => mod.MediaLibrary),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex min-h-[50vh] items-center justify-center text-sm text-zinc-500">
+        Loading media library…
+      </div>
+    ),
+  },
+);
 
 type PageProps = {
   params: Promise<{ siteId: string }>;

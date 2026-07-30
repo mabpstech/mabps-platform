@@ -1,3 +1,4 @@
+import { sqlite } from "@/lib/db";
 import {
   listPages,
   listPublishEvents,
@@ -44,26 +45,32 @@ export function publishSite(
   }
 
   const publishedAt = new Date().toISOString();
-  const published = updateSite(siteId, {
-    status: "published",
-    publishedAt: site.publishedAt ?? publishedAt,
-  });
-
   const draftPageCount = pages.filter(
     (page) => page.status !== "published",
   ).length;
 
-  const event = recordPublishEvent({
-    siteId,
-    action: "publish",
-    status: "published",
-    actorUserId: actor.userId,
-    actorName: actor.name,
-    note:
-      draftPageCount > 0
-        ? `${draftPageCount} draft page${draftPageCount === 1 ? "" : "s"} remain private.`
-        : null,
+  const run = sqlite.transaction(() => {
+    const published = updateSite(siteId, {
+      status: "published",
+      publishedAt: site.publishedAt ?? publishedAt,
+    });
+
+    const event = recordPublishEvent({
+      siteId,
+      action: "publish",
+      status: "published",
+      actorUserId: actor.userId,
+      actorName: actor.name,
+      note:
+        draftPageCount > 0
+          ? `${draftPageCount} draft page${draftPageCount === 1 ? "" : "s"} remain private.`
+          : null,
+    });
+
+    return { published, event };
   });
+
+  const { published, event } = run();
 
   return {
     site: published,
@@ -82,15 +89,18 @@ export function unpublishSite(
 ): { site: WebsiteSite; event: WebsitePublishEvent } {
   const site = getSiteById(siteId);
   if (!site) throw new Error("Site not found.");
-  const unpublished = updateSite(siteId, { status: "unpublished" });
-  const event = recordPublishEvent({
-    siteId,
-    action: "unpublish",
-    status: "unpublished",
-    actorUserId: actor.userId,
-    actorName: actor.name,
+  const run = sqlite.transaction(() => {
+    const unpublished = updateSite(siteId, { status: "unpublished" });
+    const event = recordPublishEvent({
+      siteId,
+      action: "unpublish",
+      status: "unpublished",
+      actorUserId: actor.userId,
+      actorName: actor.name,
+    });
+    return { site: unpublished, event };
   });
-  return { site: unpublished, event };
+  return run();
 }
 
 export function getPublishHistory(

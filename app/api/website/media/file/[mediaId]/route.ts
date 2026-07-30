@@ -93,6 +93,13 @@ export async function GET(request: Request, context: RouteContext) {
       headers: {
         "Content-Type": mimeType,
         "Content-Length": String(buffer.byteLength),
+        "X-Content-Type-Options": "nosniff",
+        // Force download for non-image types; images stay inline for public sites.
+        ...(mimeType.startsWith("image/")
+          ? {}
+          : {
+              "Content-Disposition": `attachment; filename="${media.filename.replace(/"/g, "")}"`,
+            }),
         ETag: etag,
         "Cache-Control": published
           ? "public, max-age=86400, stale-while-revalidate=604800"

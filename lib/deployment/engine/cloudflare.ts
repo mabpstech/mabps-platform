@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from "@/lib/platform/fetch-timeout";
 import type {
   DeploymentEnvVar,
   DeploymentProject,
@@ -40,7 +41,7 @@ export async function createCloudflareDeployment(options: {
     );
   }
 
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `https://api.cloudflare.com/client/v4/accounts/${settings.cloudflareAccountId}/pages/projects/${projectName}/deployments`,
     {
       method: "POST",
@@ -50,6 +51,7 @@ export async function createCloudflareDeployment(options: {
         commit_hash: commitSha,
         commit_message: commitMessage,
       }),
+      timeoutMs: 45_000,
     },
   );
 

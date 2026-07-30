@@ -72,14 +72,17 @@ export async function runHealthCheck(options: {
       () => controller.abort(),
       settings.healthCheckTimeoutMs,
     );
-    const response = await fetch(url, {
-      method: "GET",
-      redirect: "follow",
-      signal: controller.signal,
-      headers: { "User-Agent": "MABPS-HealthCheck/1.0" },
-    });
-    clearTimeout(timer);
-    httpStatus = response.status;
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        redirect: "follow",
+        signal: controller.signal,
+        headers: { "User-Agent": "MABPS-HealthCheck/1.0" },
+      });
+      httpStatus = response.status;
+    } finally {
+      clearTimeout(timer);
+    }
   } catch (error) {
     errorMessage =
       error instanceof Error ? error.message : "Health check request failed.";
@@ -121,8 +124,10 @@ export async function runWorkspaceHealthChecks(
 
   const projects = listProjects(workspaceId, { status: "active", limit: 50 });
   const results: DeploymentHealthCheck[] = [];
+  const deadline = Date.now() + 60_000;
 
   for (const project of projects) {
+    if (Date.now() > deadline) break;
     try {
       results.push(
         await runHealthCheck({

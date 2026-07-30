@@ -57,8 +57,10 @@ function appHosts(): Set<string> {
  */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  // Prefer the Host header. Only fall back to x-forwarded-host when Host is absent
+  // (client-supplied XFH is spoofable if the edge does not overwrite it).
   const hostHeader =
-    request.headers.get("x-forwarded-host") || request.headers.get("host");
+    request.headers.get("host") || request.headers.get("x-forwarded-host");
   const hostname = hostHeader?.split(":")[0]?.toLowerCase();
 
   if (

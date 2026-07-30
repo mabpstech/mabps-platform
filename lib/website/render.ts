@@ -2,7 +2,7 @@ import {
   getFormBySlug,
   getFormWithFields,
   getSiteBundle,
-  listForms,
+  listFormsWithFields,
 } from "@/lib/website/repository";
 import {
   loadPublicBlogIndex,
@@ -28,16 +28,17 @@ export function loadRenderableSite(input: {
   if (!view) return null;
 
   const formsBySlug: Record<string, WebsiteFormWithFields> = {};
-  for (const form of listForms(site.id)) {
-    const withFields = getFormWithFields(form.id);
-    if (withFields) formsBySlug[form.slug] = withFields;
+  for (const form of listFormsWithFields(site.id)) {
+    formsBySlug[form.slug] = form;
   }
 
   // Ensure contact form slug resolves even if list order changes.
-  const contact = getFormBySlug(site.id, "contact");
-  if (contact) {
-    const withFields = getFormWithFields(contact.id);
-    if (withFields) formsBySlug.contact = withFields;
+  if (!formsBySlug.contact) {
+    const contact = getFormBySlug(site.id, "contact");
+    if (contact) {
+      const withFields = getFormWithFields(contact.id);
+      if (withFields) formsBySlug.contact = withFields;
+    }
   }
 
   return {

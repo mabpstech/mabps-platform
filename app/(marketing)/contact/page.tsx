@@ -123,6 +123,7 @@ export default function ContactPage() {
       <MarketingSection className="m-noise m-grid-atmosphere">
         <MarketingContainer className="max-w-3xl py-4 md:py-8">
           <SectionHeading
+            as="h1"
             title="Let's Build Something Great Together"
             lead="Whether you have questions about MABPS, need product guidance, or want to discuss your business, our team is here to help."
           />

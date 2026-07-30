@@ -10,6 +10,7 @@ import {
   createDeploymentRecord,
   createMonitorEvent,
   ensureWorkspaceDeployment,
+  failStaleDeployments,
   getProjectById,
   listEnvVars,
   pruneOldDeployments,
@@ -81,6 +82,8 @@ export async function runPublishPipeline(options: {
     deploymentId: deployment.id,
   });
 
+  failStaleDeployments(options.workspaceId, project.id);
+
   const startedAt = new Date().toISOString();
   deployment = updateDeploymentRecord(options.workspaceId, deployment.id, {
     status: "building",
@@ -100,7 +103,9 @@ export async function runPublishPipeline(options: {
   appendBuildLog(
     options.workspaceId,
     deployment.id,
-    `Injecting ${envVars.length} environment variable(s) for ${environment}`,
+    envVars.length > 0
+      ? `Workspace has ${envVars.length} env var(s) for ${environment} (configure on the provider project — not injected by this API call)`
+      : `No workspace env vars recorded for ${environment}`,
   );
   if (project.buildCommand) {
     appendBuildLog(
@@ -181,6 +186,8 @@ export async function runPublishPipeline(options: {
     const durationMs =
       new Date(finishedAt).getTime() - new Date(startedAt).getTime();
 
+    // Provider accepted the job. Mark ready/published for the local pointer;
+    // stuck building rows are recovered by failStaleDeployments on next publish.
     deployment = updateDeploymentRecord(options.workspaceId, deployment.id, {
       status: "ready",
       url: providerResult.url,
@@ -190,8 +197,15 @@ export async function runPublishPipeline(options: {
       durationMs,
       metadata: {
         ...deployment.metadata,
-        providerRaw: providerResult.raw,
+        providerDeploymentId: providerResult.providerDeploymentId,
         simulated: providerResult.simulated,
+        // Do not persist full provider payloads (may contain secrets).
+        providerStatus:
+          typeof providerResult.raw.readyState === "string"
+            ? providerResult.raw.readyState
+            : typeof providerResult.raw.status === "string"
+              ? providerResult.raw.status
+              : "accepted",
       },
     });
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { processTrialEndingNotifications } from "@/lib/billing/engine/emails";
 import { migrateBillingSchema } from "@/lib/billing/migrate";
 import { enforcePublicRateLimit } from "@/lib/platform/rate-limit";
+import { secretsMatch } from "@/lib/platform/secrets-compare";
 
 export const runtime = "nodejs";
 
@@ -16,12 +17,11 @@ function isAuthorized(request: Request): boolean {
   }
 
   const auth = request.headers.get("authorization");
-  if (auth === `Bearer ${secret}`) {
-    return true;
+  if (auth?.startsWith("Bearer ")) {
+    return secretsMatch(secret, auth.slice("Bearer ".length).trim());
   }
 
-  const headerSecret = request.headers.get("x-billing-job-secret");
-  return headerSecret === secret;
+  return secretsMatch(secret, request.headers.get("x-billing-job-secret"));
 }
 
 /**

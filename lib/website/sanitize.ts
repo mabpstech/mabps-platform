@@ -88,7 +88,7 @@ const RICH_HTML_OPTIONS: sanitizeHtml.IOptions = {
     "action",
     "formaction",
   ],
-  allowProtocolRelative: true,
+  allowProtocolRelative: false,
   parseStyleAttributes: false,
   // Keep text inside stripped wrappers (e.g. <form><p>hi</p></form> → <p>hi</p>),
   // while discarding contents of inherently executable tags (script/style/…).

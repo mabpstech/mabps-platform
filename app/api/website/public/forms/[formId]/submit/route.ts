@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { enforcePublicRateLimit } from "@/lib/platform/rate-limit";
+import { enforcePublicRateLimit, getClientIp } from "@/lib/platform/rate-limit";
 import {
   createFormSubmission,
   ensureWebsiteReady,
@@ -49,19 +49,27 @@ export async function POST(request: Request, context: RouteContext) {
         );
       }
       if (raw !== undefined) {
-        payload[field.name] = raw;
+        const asString = typeof raw === "string" ? raw : String(raw);
+        if (asString.length > 5_000) {
+          return NextResponse.json(
+            { error: `${field.label} is too long.` },
+            { status: 400 },
+          );
+        }
+        payload[field.name] = asString;
       }
     }
 
-    const forwarded = request.headers.get("x-forwarded-for");
-    const ip = forwarded?.split(",")[0]?.trim() || null;
-
+    const ip = getClientIp(request);
     const submission = createFormSubmission({
       formId: form.id,
       siteId: form.siteId,
       payload,
-      sourceUrl: typeof body.sourceUrl === "string" ? body.sourceUrl : null,
-      ipHash: hashIp(ip),
+      sourceUrl:
+        typeof body.sourceUrl === "string"
+          ? body.sourceUrl.slice(0, 2_000)
+          : null,
+      ipHash: hashIp(ip === "unknown" ? null : ip),
     });
 
     return NextResponse.json({

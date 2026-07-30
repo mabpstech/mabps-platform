@@ -48,18 +48,30 @@ export function PublicForm({
   }
 
   return (
-    <form onSubmit={submit} className="mx-auto max-w-xl space-y-4">
-      {form.fields.map((field) => (
+    <form onSubmit={submit} className="mx-auto max-w-xl space-y-4" noValidate>
+      {form.fields.map((field) => {
+        const inputId = `field-${field.id}`;
+        return (
         <div key={field.id}>
-          <label className="mb-1.5 block text-sm font-medium">
-            {field.label}
-            {field.required ? " *" : ""}
-          </label>
+          {field.fieldType === "checkbox" ? null : (
+            <label htmlFor={inputId} className="mb-1.5 block text-sm font-medium">
+              {field.label}
+              {field.required ? (
+                <span aria-hidden="true"> *</span>
+              ) : null}
+              {field.required ? (
+                <span className="sr-only"> (required)</span>
+              ) : null}
+            </label>
+          )}
           {field.fieldType === "textarea" ? (
             <textarea
+              id={inputId}
+              name={field.name}
               className="w-full border px-3 py-2 text-sm"
               style={{ borderRadius }}
               required={field.required}
+              aria-required={field.required || undefined}
               placeholder={field.placeholder ?? undefined}
               value={values[field.name] ?? ""}
               onChange={(event) =>
@@ -73,9 +85,12 @@ export function PublicForm({
             />
           ) : field.fieldType === "select" ? (
             <select
+              id={inputId}
+              name={field.name}
               className="w-full border px-3 py-2 text-sm"
               style={{ borderRadius }}
               required={field.required}
+              aria-required={field.required || undefined}
               value={values[field.name] ?? ""}
               onChange={(event) =>
                 setValues((current) => ({
@@ -93,10 +108,13 @@ export function PublicForm({
               ))}
             </select>
           ) : field.fieldType === "checkbox" ? (
-            <label className="flex items-center gap-2 text-sm">
+            <label htmlFor={inputId} className="flex items-center gap-2 text-sm">
               <input
+                id={inputId}
+                name={field.name}
                 type="checkbox"
                 checked={values[field.name] === "true"}
+                aria-required={field.required || undefined}
                 onChange={(event) =>
                   setValues((current) => ({
                     ...current,
@@ -106,9 +124,14 @@ export function PublicForm({
                 disabled={pending}
               />
               {field.placeholder || field.label}
+              {field.required ? (
+                <span className="sr-only"> (required)</span>
+              ) : null}
             </label>
           ) : (
             <input
+              id={inputId}
+              name={field.name}
               type={
                 field.fieldType === "email"
                   ? "email"
@@ -121,6 +144,7 @@ export function PublicForm({
               className="w-full border px-3 py-2 text-sm"
               style={{ borderRadius }}
               required={field.required}
+              aria-required={field.required || undefined}
               placeholder={field.placeholder ?? undefined}
               value={values[field.name] ?? ""}
               onChange={(event) =>
@@ -133,14 +157,21 @@ export function PublicForm({
             />
           )}
         </div>
-      ))}
+        );
+      })}
       {error ? (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p
+          role="alert"
+          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+        >
           {error}
         </p>
       ) : null}
       {success ? (
-        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+        <p
+          role="status"
+          className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+        >
           {success}
         </p>
       ) : null}

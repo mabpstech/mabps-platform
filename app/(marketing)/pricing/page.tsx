@@ -16,6 +16,7 @@ export default function PricingPage() {
       <section className="m-noise m-grid-atmosphere">
         <div className="m-container py-16 md:py-24">
           <SectionHeading
+            as="h1"
             align="center"
             eyebrow="Pricing"
             title="Simple plans for every stage of growth."

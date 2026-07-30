@@ -30,6 +30,7 @@ export const RECOMMENDED_ENV_VARS = [
   "OPENAI_API_KEY",
   // Scale / ops (P3): worker secret for queue ticks; media driver defaults to local.
   "AUTOMATION_WORKER_SECRET",
+  "BILLING_JOB_SECRET",
   // Optional scale: dedicated vectors + shared cache invalidation.
   "VECTOR_DATABASE_URL",
   "UPSTASH_REDIS_REST_URL",

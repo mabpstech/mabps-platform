@@ -24,6 +24,7 @@
     "db:migrate:guardian": "node ./scripts/migrate-guardian.mjs",
     "db:migrate:marketplace": "node ./scripts/migrate-marketplace.mjs",
     "db:migrate:all": "node ./scripts/migrate-all.mjs",
+    "db:backup": "node ./scripts/backup-sqlite.mjs",
     "automation:worker": "node ./scripts/automation-worker.mjs"
   },
   "dependencies": {

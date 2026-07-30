@@ -1,6 +1,10 @@
 import { inflateRawSync } from "node:zlib";
 import { readKnowledgeFile } from "@/lib/chatbot/knowledge/storage";
 import type { KnowledgeSourceType } from "@/lib/chatbot/types";
+import {
+  assertSafeOutboundUrl,
+  fetchPublicUrl,
+} from "@/lib/platform/safe-url";
 
 function stripHtml(html: string): string {
   return html
@@ -96,16 +100,18 @@ function extractDocxText(buffer: Buffer): string {
 }
 
 async function extractWebsiteText(url: string): Promise<string> {
-  const response = await fetch(url, {
+  assertSafeOutboundUrl(url);
+  const response = await fetchPublicUrl(url, {
     headers: {
       "User-Agent": "MABPS-ChatbotKnowledgeBot/1.0",
       Accept: "text/html,application/xhtml+xml,text/plain",
     },
-    redirect: "follow",
+    timeoutMs: 15_000,
   });
   if (!response.ok) {
     throw new Error(`Failed to fetch URL (${response.status}).`);
   }
+  assertSafeOutboundUrl(response.url || url);
   const contentType = response.headers.get("content-type") || "";
   const body = await response.text();
   if (contentType.includes("text/plain")) {

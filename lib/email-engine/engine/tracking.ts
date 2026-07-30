@@ -258,9 +258,11 @@ export function trackClick(input: {
   userAgent?: string | null;
   ip?: string | null;
 }): { message: EmailMessage | null; redirectUrl: string } {
+  // Caller must sanitize; keep a hard fallback so we never redirect to attacker input on miss.
+  const redirectUrl = input.url?.startsWith("/") ? input.url : input.url || "/";
   const message = getMessageByTrackingToken(input.token);
   if (!message) {
-    return { message: null, redirectUrl: input.url };
+    return { message: null, redirectUrl };
   }
   const settings = ensureWorkspaceEmail(message.workspaceId);
   if (settings.clickTrackingEnabled) {
@@ -269,10 +271,10 @@ export function trackClick(input: {
       message,
       type: "clicked",
       email: normalizeEmail(message.toEmail),
-      url: input.url,
+      url: redirectUrl,
       userAgent: input.userAgent,
       ip: input.ip,
     });
   }
-  return { message, redirectUrl: input.url };
+  return { message, redirectUrl };
 }

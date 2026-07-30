@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
 import { trackClick } from "@/lib/email-engine/engine/tracking";
-import { enforcePublicRateLimit } from "@/lib/platform/rate-limit";
+import { enforcePublicRateLimit, getClientIp } from "@/lib/platform/rate-limit";
+import { sanitizeRedirectUrl } from "@/lib/platform/safe-url";
 
 type Params = { params: Promise<{ token: string }> };
+
+function toAbsoluteRedirect(request: Request, target: string): URL {
+  if (target.startsWith("http://") || target.startsWith("https://")) {
+    return new URL(target);
+  }
+  return new URL(target.startsWith("/") ? target : `/${target}`, request.url);
+}
 
 export async function GET(request: Request, { params }: Params) {
   const limited = enforcePublicRateLimit(request, "tracking");
@@ -10,21 +18,22 @@ export async function GET(request: Request, { params }: Params) {
 
   const { token } = await params;
   const { searchParams } = new URL(request.url);
-  const url = searchParams.get("u") || "/";
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip");
+  const redirectUrl = sanitizeRedirectUrl(searchParams.get("u"), "/");
+  const ip = getClientIp(request);
 
   try {
     const result = trackClick({
       token,
-      url,
+      url: redirectUrl,
       userAgent: request.headers.get("user-agent"),
       ip,
     });
-    return NextResponse.redirect(result.redirectUrl, 302);
+    return NextResponse.redirect(
+      toAbsoluteRedirect(request, sanitizeRedirectUrl(result.redirectUrl, "/")),
+      302,
+    );
   } catch (error) {
     console.error("[email-engine:track-click]", error);
-    return NextResponse.redirect(url, 302);
+    return NextResponse.redirect(toAbsoluteRedirect(request, redirectUrl), 302);
   }
 }

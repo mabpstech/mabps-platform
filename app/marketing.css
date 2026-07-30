@@ -4,7 +4,7 @@
   --m-ink: #0b0c0f;
   --m-ink-soft: #1a1c22;
   --m-muted: #5e6472;
-  --m-muted-soft: #8b919e;
+  --m-muted-soft: #6b7280;
   --m-line: rgba(11, 12, 15, 0.08);
   --m-line-strong: rgba(11, 12, 15, 0.14);
   --m-surface: #f6f7f9;
@@ -170,6 +170,14 @@
 }
 
 .m-btn:focus-visible {
+  outline: 2px solid var(--m-accent);
+  outline-offset: 3px;
+}
+
+.m-nav-link:focus-visible,
+.mabps-marketing a:focus-visible,
+.mabps-marketing button:focus-visible,
+.m-card-interactive:focus-within {
   outline: 2px solid var(--m-accent);
   outline-offset: 3px;
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireNotificationsMemberApi } from "@/lib/notifications/access";
+import { requireNotificationsManagerApi } from "@/lib/notifications/access";
 import { sendWorkspaceNotification } from "@/lib/notifications/engine/send";
 import {
   notificationsErrorResponse,
@@ -11,7 +11,7 @@ import { ensureWorkspaceNotifications } from "@/lib/notifications/repository";
 
 export async function POST(request: Request) {
   try {
-    const { workspace, session } = await requireNotificationsMemberApi();
+    const { workspace, session } = await requireNotificationsManagerApi();
     ensureWorkspaceNotifications(workspace.id);
     const body = (await request.json()) as Record<string, unknown>;
 

@@ -54,13 +54,18 @@ export type RateLimitDenied = {
 export type RateLimitResult = RateLimitOk | RateLimitDenied;
 
 export function getClientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) {
-    const first = forwarded.split(",")[0]?.trim();
-    if (first) return first;
-  }
+  // Prefer proxy-injected single-hop headers. When X-Forwarded-For is a list,
+  // use the rightmost hop (set by the trusted edge) — leftmost is client-spoofable.
   const realIp = request.headers.get("x-real-ip")?.trim();
   if (realIp) return realIp;
+
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) {
+    const parts = forwarded.split(",").map((p) => p.trim()).filter(Boolean);
+    const trusted = parts[parts.length - 1];
+    if (trusted) return trusted;
+  }
+
   return "unknown";
 }
 

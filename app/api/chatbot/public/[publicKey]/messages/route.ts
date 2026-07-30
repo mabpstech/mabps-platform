@@ -80,6 +80,12 @@ export async function POST(request: Request, context: RouteContext) {
         { status: 400 },
       );
     }
+    if (body.content.length > 4_000) {
+      return NextResponse.json(
+        { error: "Message is too long." },
+        { status: 400 },
+      );
+    }
 
     const conversation = getConversationById(body.conversationId);
     if (!conversation || conversation.botId !== bot.id) {

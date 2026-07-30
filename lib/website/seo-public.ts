@@ -47,10 +47,11 @@ export function absolutePublicUrl(
   origin: string,
   path: string,
 ): string {
-  if (!path) return origin || "/";
+  if (!path) return origin || "";
   if (/^https?:\/\//i.test(path)) return path;
   const normalized = path.startsWith("/") ? path : `/${path}`;
-  if (!origin) return normalized;
+  // Never emit relative canonicals/og:url — require an absolute origin.
+  if (!origin || !/^https?:\/\//i.test(origin)) return "";
   return `${origin}${normalized}`;
 }
 

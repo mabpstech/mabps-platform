@@ -37,6 +37,10 @@ const sharedSecurityHeaders = [
     value: "max-age=63072000; includeSubDomains; preload",
   },
   {
+    key: "X-Content-Type-Options",
+    value: "nosniff",
+  },
+  {
     key: "Referrer-Policy",
     value: "strict-origin-when-cross-origin",
   },

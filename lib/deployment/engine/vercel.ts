@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from "@/lib/platform/fetch-timeout";
 import type { DeploymentEnvVar, DeploymentProject, DeploymentSettings } from "@/lib/deployment/types";
 
 export type VercelDeployResult = {
@@ -52,12 +53,13 @@ export async function createVercelDeployment(options: {
     },
   };
 
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `https://api.vercel.com/v13/deployments${teamQuery}`,
     {
       method: "POST",
       headers: vercelHeaders(settings.vercelToken),
       body: JSON.stringify(body),
+      timeoutMs: 45_000,
     },
   );
 
@@ -103,9 +105,13 @@ export async function testVercelConnection(
     : "";
 
   try {
-    const response = await fetch(`https://api.vercel.com/v2/user${teamQuery}`, {
-      headers: vercelHeaders(settings.vercelToken),
-    });
+    const response = await fetchWithTimeout(
+      `https://api.vercel.com/v2/user${teamQuery}`,
+      {
+        headers: vercelHeaders(settings.vercelToken),
+        timeoutMs: 15_000,
+      },
+    );
     if (!response.ok) {
       return {
         ok: false,

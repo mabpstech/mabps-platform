@@ -240,6 +240,7 @@ CREATE INDEX IF NOT EXISTS "website_section_pageId_idx" on "website_section" ("p
 CREATE INDEX IF NOT EXISTS "website_nav_item_siteId_idx" on "website_nav_item" ("siteId");
 CREATE INDEX IF NOT EXISTS "website_nav_item_parentId_idx" on "website_nav_item" ("parentId");
 CREATE INDEX IF NOT EXISTS "website_blog_post_siteId_idx" on "website_blog_post" ("siteId");
+CREATE INDEX IF NOT EXISTS "website_blog_post_siteId_status_idx" on "website_blog_post" ("siteId", "status");
 CREATE INDEX IF NOT EXISTS "website_media_siteId_idx" on "website_media" ("siteId");
 CREATE INDEX IF NOT EXISTS "website_media_workspaceId_idx" on "website_media" ("workspaceId");
 CREATE INDEX IF NOT EXISTS "website_media_folderId_idx" on "website_media" ("folderId");
@@ -248,4 +249,5 @@ CREATE INDEX IF NOT EXISTS "website_media_folder_siteId_idx" on "website_media_f
 CREATE INDEX IF NOT EXISTS "website_form_siteId_idx" on "website_form" ("siteId");
 CREATE INDEX IF NOT EXISTS "website_form_field_formId_idx" on "website_form_field" ("formId");
 CREATE INDEX IF NOT EXISTS "website_form_submission_formId_idx" on "website_form_submission" ("formId");
+CREATE INDEX IF NOT EXISTS "website_form_submission_siteId_idx" on "website_form_submission" ("siteId");
 CREATE INDEX IF NOT EXISTS "website_publish_event_siteId_idx" on "website_publish_event" ("siteId", "createdAt");

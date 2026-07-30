@@ -60,10 +60,10 @@ export function MarketingFooter() {
         </div>
 
         <div className="mt-14 flex flex-col gap-4 border-t border-white/10 pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-white/45">
+          <p className="text-sm text-white/70">
             © {year} {BRAND.company}. All rights reserved.
           </p>
-          <nav className="flex gap-5 text-sm text-white/55" aria-label="Social">
+          <nav className="flex gap-5 text-sm text-white/70" aria-label="Social">
             {SOCIAL_LINKS.map((link) => (
               <a
                 key={link.label}

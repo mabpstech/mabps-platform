@@ -150,9 +150,11 @@ export function PublicSiteView({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={mediaPublicUrl(blogPost.coverMediaId)}
-                alt=""
+                alt={blogPost.title}
                 className="mt-8 w-full object-cover"
                 style={{ borderRadius: theme.borderRadius }}
+                loading="lazy"
+                decoding="async"
               />
             ) : null}
             <div className="prose mt-8 max-w-none whitespace-pre-wrap">

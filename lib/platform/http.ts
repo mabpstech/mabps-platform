@@ -33,7 +33,9 @@ export function platformErrorResponse(
   const message =
     error instanceof Error ? error.message : options.fallback;
 
-  let status = 400;
+  // Default to 500 for unexpected failures; map known client/ops cases below.
+  let status = 500;
+  let matched = false;
 
   if (
     message.includes("Authentication required") ||
@@ -41,11 +43,13 @@ export function platformErrorResponse(
     message.includes("Invalid API key")
   ) {
     status = 401;
+    matched = true;
   } else if (
     message.includes("not found") ||
     message.includes("Not found")
   ) {
     status = 404;
+    matched = true;
   } else if (
     message.includes("Plan limit") ||
     message.includes("plan allows") ||
@@ -53,31 +57,59 @@ export function platformErrorResponse(
     message.includes("requires the")
   ) {
     status = 402;
+    matched = true;
   } else if (
     message.includes("permission") ||
     message.includes("Permission") ||
-    message.includes("denied")
+    message.includes("denied") ||
+    message.includes("Forbidden")
   ) {
     status = 403;
+    matched = true;
   } else if (
     message.includes("not configured") ||
     message.includes("Storage quota") ||
     message.includes("Stripe price")
   ) {
     status = 503;
+    matched = true;
   } else if (message.includes("not implemented")) {
     status = 501;
+    matched = true;
+  } else if (
+    message.includes("required") ||
+    message.includes("invalid") ||
+    message.includes("Invalid") ||
+    message.includes("must be") ||
+    message.includes("Unsupported") ||
+    message.includes("too long") ||
+    message.includes("Too many")
+  ) {
+    status = 400;
+    matched = true;
   } else if (options.extraRules) {
     for (const rule of options.extraRules) {
       if (rule.test(message)) {
         status = rule.status;
+        matched = true;
         break;
       }
     }
   }
 
-  console.error(`[${options.label}]`, error);
-  return NextResponse.json({ error: message }, { status });
+  console.error(`[${options.label}]`, {
+    status,
+    matched,
+    message,
+    error:
+      error instanceof Error
+        ? { name: error.name, message: error.message, stack: error.stack }
+        : error,
+  });
+  return NextResponse.json(
+    { error: status >= 500 ? options.fallback : message },
+    { status },
+  );
 }
 
 /** Shared pagination clamp used by list filter parsers. */

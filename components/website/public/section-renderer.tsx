@@ -263,14 +263,20 @@ export function SectionRenderer({
               className="grid gap-4 sm:grid-cols-3"
               style={{ gap: "var(--site-grid-gap)" }}
             >
-              {asStringArray(content.mediaIds).map((mediaId) => (
+              {asStringArray(content.mediaIds).map((mediaId, index) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   key={mediaId}
                   src={mediaPublicUrl(mediaId, "medium")}
-                  alt=""
+                  alt={
+                    content.heading
+                      ? `${String(content.heading)} image ${index + 1}`
+                      : `Gallery image ${index + 1}`
+                  }
                   className="aspect-[4/3] h-auto w-full object-cover"
                   style={{ borderRadius: "var(--site-radius-image)" }}
+                  loading="lazy"
+                  decoding="async"
                 />
               ))}
             </div>
@@ -455,8 +461,10 @@ function CatalogBlock({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={mediaPublicUrl(item.mediaId, "medium")}
-                alt=""
+                alt={String(item.name ?? item.title ?? "Catalog item")}
                 className="aspect-[16/10] h-auto w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+                loading="lazy"
+                decoding="async"
               />
             ) : (
               <div

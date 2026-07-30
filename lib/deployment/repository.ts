@@ -1589,22 +1589,76 @@ export function listDeploymentLogs(
   return rows.map(rowToOpLog);
 }
 
+/**
+ * Mark orphaned queued/building deployments as failed (process kill, hung fetch).
+ * Protects currentDeploymentId and previousDeploymentId from prune races.
+ */
+export function failStaleDeployments(
+  workspaceId: string,
+  projectId?: string,
+  olderThanMs = 30 * 60_000,
+): number {
+  ensureDeploymentReady();
+  const cutoff = new Date(Date.now() - olderThanMs).toISOString();
+  const clauses = [
+    `"workspaceId" = ?`,
+    `"status" IN ('queued', 'building')`,
+    `"createdAt" < ?`,
+  ];
+  const params: unknown[] = [workspaceId, cutoff];
+  if (projectId) {
+    clauses.push(`"projectId" = ?`);
+    params.push(projectId);
+  }
+
+  const rows = sqlite
+    .prepare(
+      `SELECT "id" FROM "deployment" WHERE ${clauses.join(" AND ")}`,
+    )
+    .all(...params) as Array<{ id: string }>;
+
+  const failedAt = nowIso();
+  for (const row of rows) {
+    updateDeploymentRecord(workspaceId, row.id, {
+      status: "failed",
+      failedAt,
+      errorMessage: "Timed out while building (stale deployment recovery).",
+      buildFinishedAt: failedAt,
+    });
+  }
+  return rows.length;
+}
+
 export function pruneOldDeployments(
   workspaceId: string,
   projectId: string,
   retention: number,
 ): void {
   const keep = Math.max(5, retention);
+  const project = getProjectById(workspaceId, projectId);
+  const protect = new Set<string>();
+  if (project?.currentDeploymentId) protect.add(project.currentDeploymentId);
+
   const rows = sqlite
     .prepare(
-      `SELECT "id" FROM "deployment"
+      `SELECT "id", "previousDeploymentId" FROM "deployment"
        WHERE "workspaceId" = ? AND "projectId" = ?
        ORDER BY "createdAt" DESC
        LIMIT -1 OFFSET ?`,
     )
-    .all(workspaceId, projectId, keep) as Array<{ id: string }>;
+    .all(workspaceId, projectId, keep) as Array<{
+    id: string;
+    previousDeploymentId: string | null;
+  }>;
+
+  // Also protect previousDeploymentId of the current release for rollback.
+  if (project?.currentDeploymentId) {
+    const current = getDeploymentById(workspaceId, project.currentDeploymentId);
+    if (current?.previousDeploymentId) protect.add(current.previousDeploymentId);
+  }
 
   for (const row of rows) {
+    if (protect.has(row.id)) continue;
     sqlite.prepare(`DELETE FROM "deployment" WHERE "id" = ?`).run(row.id);
   }
 }

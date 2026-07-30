@@ -60,12 +60,15 @@ export function SectionHeading({
   title,
   lead,
   align = "left",
+  as = "h2",
 }: {
   eyebrow?: string;
   title: string;
   lead?: string;
   align?: "left" | "center";
+  as?: "h1" | "h2";
 }) {
+  const TitleTag = as;
   return (
     <div className={align === "center" ? "mx-auto max-w-2xl text-center" : "max-w-2xl"}>
       {eyebrow ? (
@@ -73,7 +76,9 @@ export function SectionHeading({
           {eyebrow}
         </p>
       ) : null}
-      <h2 className={`m-section-title m-display ${eyebrow ? "mt-4" : ""}`}>{title}</h2>
+      <TitleTag className={`m-section-title m-display ${eyebrow ? "mt-4" : ""}`}>
+        {title}
+      </TitleTag>
       {lead ? <p className={`m-section-lead ${align === "center" ? "mx-auto" : ""}`}>{lead}</p> : null}
     </div>
   );
@@ -193,6 +198,7 @@ export function FeatureCard({
       <p className="mt-2 flex-1 text-sm leading-6 text-[var(--m-muted)]">{description}</p>
       <Link
         href={href}
+        aria-label={`Learn more about ${title}`}
         className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--m-accent)] transition-colors hover:text-[var(--m-accent-deep)]"
       >
         Learn More

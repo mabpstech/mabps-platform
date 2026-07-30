@@ -1,8 +1,23 @@
 import { notFound } from "next/navigation";
-import { ThemeStudio } from "@/components/website/theme/theme-studio";
+import dynamic from "next/dynamic";
 import { isWorkspaceManager } from "@/lib/auth/permissions";
 import { requireWebsiteWorkspace } from "@/lib/website/access";
 import { getSiteById, getThemeBySiteId } from "@/lib/website/repository";
+
+const ThemeStudio = dynamic(
+  () =>
+    import("@/components/website/theme/theme-studio").then(
+      (mod) => mod.ThemeStudio,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex min-h-[50vh] items-center justify-center text-sm text-zinc-500">
+        Loading theme studio…
+      </div>
+    ),
+  },
+);
 
 type PageProps = {
   params: Promise<{ siteId: string }>;

@@ -5,6 +5,7 @@
 
 import { DEFAULT_AI_MODEL } from "@/lib/ai/defaults";
 import { resolveProviderCredential } from "@/lib/ai/repository";
+import { fetchWithTimeout } from "@/lib/platform/fetch-timeout";
 import { AI_WEBSITE_LLM_SYSTEM_PROMPT } from "@/lib/website/ai/llm/schema";
 import { extractJsonObject } from "@/lib/website/ai/llm/validate";
 import type {
@@ -94,7 +95,7 @@ export class OpenAiWebsiteLlmProvider implements AiWebsiteLlmProvider {
     }
 
     const prompt = clampAiTextByKey(input.prompt, "prompt");
-    const response = await fetch(`${config.baseUrl}/chat/completions`, {
+    const response = await fetchWithTimeout(`${config.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${config.apiKey}`,
@@ -112,6 +113,7 @@ export class OpenAiWebsiteLlmProvider implements AiWebsiteLlmProvider {
           },
         ],
       }),
+      timeoutMs: 60_000,
     });
 
     const data = (await response.json()) as {

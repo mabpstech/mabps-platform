@@ -2265,6 +2265,36 @@ export function getFormWithFields(
   return { ...form, fields: listFormFields(formId) };
 }
 
+/** Batch-load forms + fields for a site (avoids N+1 on public render). */
+export function listFormsWithFields(siteId: string): WebsiteFormWithFields[] {
+  ensureWebsiteReady();
+  const forms = listForms(siteId);
+  if (forms.length === 0) return [];
+
+  const formIds = forms.map((form) => form.id);
+  const placeholders = formIds.map(() => "?").join(", ");
+  const fieldRows = sqlite
+    .prepare(
+      `SELECT * FROM "website_form_field"
+       WHERE "formId" IN (${placeholders})
+       ORDER BY "sortOrder" ASC`,
+    )
+    .all(...formIds) as Record<string, unknown>[];
+
+  const fieldsByForm = new Map<string, WebsiteFormField[]>();
+  for (const row of fieldRows) {
+    const field = rowToFormField(row);
+    const list = fieldsByForm.get(field.formId) ?? [];
+    list.push(field);
+    fieldsByForm.set(field.formId, list);
+  }
+
+  return forms.map((form) => ({
+    ...form,
+    fields: fieldsByForm.get(form.id) ?? [],
+  }));
+}
+
 export function createForm(input: {
   siteId: string;
   name: string;

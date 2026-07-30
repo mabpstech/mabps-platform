@@ -103,6 +103,13 @@ export async function rollbackDeployment(options: {
   appendBuildLog(
     options.workspaceId,
     deployment.id,
+    "Local deployment pointer updated. Promote/alias the prior release in Vercel or Cloudflare if live traffic must follow this rollback.",
+    "warn",
+  );
+
+  appendBuildLog(
+    options.workspaceId,
+    deployment.id,
     "Rollback completed successfully",
   );
 

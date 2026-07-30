@@ -35,11 +35,8 @@ export async function GET(request: Request, { params }: Params) {
     if (!settings) {
       return NextResponse.json({ error: "Unknown webhook." }, { status: 404 });
     }
-    return NextResponse.json({
-      ok: true,
-      workspaceId: settings.workspaceId,
-      provider: settings.provider,
-    });
+    // Confirm endpoint exists without disclosing tenant metadata.
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
     return emailErrorResponse(error);
   }

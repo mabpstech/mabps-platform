@@ -4,6 +4,10 @@ import {
 } from "@/lib/knowledge/defaults";
 import { extractHtmlText } from "@/lib/knowledge/extract";
 import type { KbCrawlConfig } from "@/lib/knowledge/types";
+import {
+  assertSafeOutboundUrl,
+  fetchPublicUrl,
+} from "@/lib/platform/safe-url";
 
 export type CrawledPage = {
   url: string;
@@ -44,16 +48,18 @@ function extractTitle(html: string, fallback: string): string {
 }
 
 async function fetchPage(url: string): Promise<{ html: string; finalUrl: string }> {
-  const response = await fetch(url, {
+  const response = await fetchPublicUrl(url, {
     headers: {
       "User-Agent": "MABPS-KnowledgeCrawler/1.0",
       Accept: "text/html,application/xhtml+xml,text/plain",
     },
-    redirect: "follow",
+    timeoutMs: 15_000,
   });
   if (!response.ok) {
     throw new Error(`Failed to fetch ${url} (${response.status}).`);
   }
+  // Re-validate final URL in case of edge cases / absolute Location quirks.
+  assertSafeOutboundUrl(response.url || url);
   const contentType = response.headers.get("content-type") || "";
   if (
     !contentType.includes("text/html") &&
@@ -79,6 +85,7 @@ export async function crawlWebsite(
   if (!/^https?:\/\//i.test(seed)) {
     throw new Error("Website URL must start with http:// or https://.");
   }
+  assertSafeOutboundUrl(seed);
 
   const origin = new URL(seed).origin;
   const queue: Array<{ url: string; depth: number }> = [{ url: seed, depth: 0 }];
@@ -116,6 +123,11 @@ export async function crawlWebsite(
         for (const link of extractLinks(html, finalUrl)) {
           if (seen.has(link)) continue;
           if (sameOriginOnly && new URL(link).origin !== origin) continue;
+          try {
+            assertSafeOutboundUrl(link);
+          } catch {
+            continue;
+          }
           queue.push({ url: link, depth: next.depth + 1 });
         }
       }
