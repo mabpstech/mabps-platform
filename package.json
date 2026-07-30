@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "db:migrate": "npx auth migrate --config ./lib/auth/server.ts --yes",
     "db:migrate:billing": "node ./scripts/migrate-billing.mjs",
     "db:migrate:website": "node ./scripts/migrate-website.mjs",
