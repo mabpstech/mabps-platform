@@ -578,7 +578,7 @@ export function deleteBot(id: string, workspaceId: string): void {
   }
   const sources = listKnowledgeSources(workspaceId, bot.id);
   for (const source of sources) {
-    removeKnowledgeFile(source.storagePath);
+    removeKnowledgeFile(source.storagePath, workspaceId);
   }
   sqlite
     .prepare(`DELETE FROM "chatbot_bot" WHERE "id" = ? AND "workspaceId" = ?`)
@@ -880,6 +880,7 @@ export async function processKnowledgeSource(
       type: source.type,
       storagePath: source.storagePath,
       sourceUrl: source.sourceUrl,
+      workspaceId: source.workspaceId,
     });
     const chunks = chunkText(text);
     if (!chunks.length) throw new Error("No text content found to index.");
@@ -1010,7 +1011,7 @@ export function deleteKnowledgeSource(
   if (!source || source.workspaceId !== workspaceId) {
     throw new Error("Knowledge source not found.");
   }
-  removeKnowledgeFile(source.storagePath);
+  removeKnowledgeFile(source.storagePath, workspaceId);
   sqlite
     .prepare(
       `DELETE FROM "chatbot_knowledge_source" WHERE "id" = ? AND "workspaceId" = ?`,

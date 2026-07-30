@@ -128,6 +128,7 @@ export async function extractKnowledgeText(input: {
   type: KnowledgeSourceType;
   storagePath?: string | null;
   sourceUrl?: string | null;
+  workspaceId?: string;
 }): Promise<string> {
   if (input.type === "website") {
     if (!input.sourceUrl) throw new Error("Website URL is required.");
@@ -138,7 +139,7 @@ export async function extractKnowledgeText(input: {
     throw new Error("Uploaded file is missing.");
   }
 
-  const buffer = readKnowledgeFile(input.storagePath);
+  const buffer = readKnowledgeFile(input.storagePath, input.workspaceId);
   if (input.type === "txt") {
     return buffer.toString("utf8").trim();
   }

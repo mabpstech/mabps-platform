@@ -1,24 +1,41 @@
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import {
+  assertSafePathSegment,
+  resolveContainedPath,
+} from "@/lib/platform/path-containment";
 
-function uploadsRoot(): string {
-  return path.join(
-    /* turbopackIgnore: true */ process.cwd(),
-    "data",
-    "uploads",
-    "knowledge",
-  );
+function cwdRoot(): string {
+  return /* turbopackIgnore: true */ process.cwd();
+}
+
+/** Absolute root for workspace knowledge uploads. */
+export function knowledgeUploadsRoot(): string {
+  return path.join(cwdRoot(), "data", "uploads", "knowledge");
 }
 
 export function knowledgeUploadDir(workspaceId: string): string {
-  return path.join(uploadsRoot(), workspaceId);
+  assertSafePathSegment(workspaceId, "workspace id");
+  return path.join(knowledgeUploadsRoot(), workspaceId);
 }
 
 export function ensureKnowledgeUploadDir(workspaceId: string): string {
   const dir = knowledgeUploadDir(workspaceId);
   fs.mkdirSync(dir, { recursive: true });
   return dir;
+}
+
+function resolveKnowledgeAbsolute(
+  storagePath: string,
+  workspaceId?: string,
+): string {
+  return resolveContainedPath({
+    root: knowledgeUploadsRoot(),
+    storagePath,
+    workspaceId,
+    cwd: cwdRoot(),
+  });
 }
 
 export function saveKnowledgeFile(input: {
@@ -30,27 +47,33 @@ export function saveKnowledgeFile(input: {
   const ext = path.extname(input.originalName).toLowerCase().slice(0, 12);
   const fileName = `${randomUUID()}${ext}`;
   const absolutePath = path.join(dir, fileName);
-  fs.writeFileSync(absolutePath, input.bytes);
-  const storagePath = path.relative(
-    /* turbopackIgnore: true */ process.cwd(),
-    absolutePath,
+  // Contain write target (defensive — path is built from safe segments + UUID).
+  const contained = resolveKnowledgeAbsolute(
+    path.relative(cwdRoot(), absolutePath),
+    input.workspaceId,
   );
-  return { storagePath, absolutePath, fileName };
+  fs.writeFileSync(contained, input.bytes);
+  const storagePath = path.relative(cwdRoot(), contained);
+  return { storagePath, absolutePath: contained, fileName };
 }
 
-export function readKnowledgeFile(storagePath: string): Buffer {
-  const absolute = path.isAbsolute(storagePath)
-    ? storagePath
-    : path.join(/* turbopackIgnore: true */ process.cwd(), storagePath);
+export function readKnowledgeFile(
+  storagePath: string,
+  workspaceId?: string,
+): Buffer {
+  const absolute = resolveKnowledgeAbsolute(storagePath, workspaceId);
   return fs.readFileSync(absolute);
 }
 
-export function removeKnowledgeFile(storagePath: string | null | undefined) {
+export function removeKnowledgeFile(
+  storagePath: string | null | undefined,
+  workspaceId?: string,
+) {
   if (!storagePath) return;
-  const absolute = path.isAbsolute(storagePath)
-    ? storagePath
-    : path.join(/* turbopackIgnore: true */ process.cwd(), storagePath);
+  const absolute = resolveKnowledgeAbsolute(storagePath, workspaceId);
   if (fs.existsSync(absolute)) {
     fs.unlinkSync(absolute);
   }
 }
+
+export { resolveKnowledgeAbsolute };

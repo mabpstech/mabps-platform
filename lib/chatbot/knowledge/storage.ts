@@ -1,21 +1,27 @@
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import {
+  assertSafePathSegment,
+  resolveContainedPath,
+} from "@/lib/platform/path-containment";
 
-function uploadsRoot(): string {
-  return path.join(
-    /* turbopackIgnore: true */ process.cwd(),
-    "data",
-    "uploads",
-    "chatbot",
-  );
+function cwdRoot(): string {
+  return /* turbopackIgnore: true */ process.cwd();
+}
+
+/** Absolute root for chatbot knowledge uploads. */
+export function chatbotKnowledgeUploadsRoot(): string {
+  return path.join(cwdRoot(), "data", "uploads", "chatbot");
 }
 
 export function knowledgeUploadDir(
   workspaceId: string,
   botId: string,
 ): string {
-  return path.join(uploadsRoot(), workspaceId, botId);
+  assertSafePathSegment(workspaceId, "workspace id");
+  assertSafePathSegment(botId, "bot id");
+  return path.join(chatbotKnowledgeUploadsRoot(), workspaceId, botId);
 }
 
 export function ensureKnowledgeUploadDir(
@@ -25,6 +31,18 @@ export function ensureKnowledgeUploadDir(
   const dir = knowledgeUploadDir(workspaceId, botId);
   fs.mkdirSync(dir, { recursive: true });
   return dir;
+}
+
+function resolveChatbotKnowledgeAbsolute(
+  storagePath: string,
+  workspaceId?: string,
+): string {
+  return resolveContainedPath({
+    root: chatbotKnowledgeUploadsRoot(),
+    storagePath,
+    workspaceId,
+    cwd: cwdRoot(),
+  });
 }
 
 export function saveKnowledgeFile(input: {
@@ -37,27 +55,32 @@ export function saveKnowledgeFile(input: {
   const ext = path.extname(input.originalName).toLowerCase().slice(0, 12);
   const fileName = `${randomUUID()}${ext}`;
   const absolutePath = path.join(dir, fileName);
-  fs.writeFileSync(absolutePath, input.bytes);
-  const storagePath = path.relative(
-    /* turbopackIgnore: true */ process.cwd(),
-    absolutePath,
+  const contained = resolveChatbotKnowledgeAbsolute(
+    path.relative(cwdRoot(), absolutePath),
+    input.workspaceId,
   );
-  return { storagePath, absolutePath, fileName };
+  fs.writeFileSync(contained, input.bytes);
+  const storagePath = path.relative(cwdRoot(), contained);
+  return { storagePath, absolutePath: contained, fileName };
 }
 
-export function readKnowledgeFile(storagePath: string): Buffer {
-  const absolute = path.isAbsolute(storagePath)
-    ? storagePath
-    : path.join(/* turbopackIgnore: true */ process.cwd(), storagePath);
+export function readKnowledgeFile(
+  storagePath: string,
+  workspaceId?: string,
+): Buffer {
+  const absolute = resolveChatbotKnowledgeAbsolute(storagePath, workspaceId);
   return fs.readFileSync(absolute);
 }
 
-export function removeKnowledgeFile(storagePath: string | null | undefined) {
+export function removeKnowledgeFile(
+  storagePath: string | null | undefined,
+  workspaceId?: string,
+) {
   if (!storagePath) return;
-  const absolute = path.isAbsolute(storagePath)
-    ? storagePath
-    : path.join(/* turbopackIgnore: true */ process.cwd(), storagePath);
+  const absolute = resolveChatbotKnowledgeAbsolute(storagePath, workspaceId);
   if (fs.existsSync(absolute)) {
     fs.unlinkSync(absolute);
   }
 }
+
+export { resolveChatbotKnowledgeAbsolute };

@@ -584,7 +584,7 @@ export async function deleteSource(
   if (!source) throw new Error("Knowledge source not found.");
 
   await getVectorStore().deleteBySource(source.id, workspaceId);
-  removeKnowledgeFile(source.storagePath);
+  removeKnowledgeFile(source.storagePath, workspaceId);
   sqlite
     .prepare(`DELETE FROM "kb_source" WHERE "id" = ? AND "workspaceId" = ?`)
     .run(id, workspaceId);

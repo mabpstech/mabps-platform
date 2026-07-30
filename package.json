@@ -28,6 +28,7 @@
     "db:encrypt-secrets": "node ./scripts/encrypt-provider-secrets.mjs",
     "test:secret-crypto": "node ./scripts/test-secret-crypto.mjs",
     "test:visitor-session": "node ./scripts/test-visitor-session.mjs",
+    "test:knowledge-path": "node ./scripts/test-knowledge-path-containment.mjs",
     "db:backup": "node ./scripts/backup-sqlite.mjs",
     "automation:worker": "node ./scripts/automation-worker.mjs"
   },

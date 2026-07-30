@@ -30,6 +30,14 @@ export {
   decryptOptionalSecret,
 } from "@/lib/platform/secret-crypto";
 export {
+  PathEscapeError,
+  assertSafePathSegment,
+  decodePathInput,
+  isPathInsideRoot,
+  resolveContainedPath,
+  type ResolveContainedPathInput,
+} from "@/lib/platform/path-containment";
+export {
   PUBLIC_RATE_LIMITS,
   checkRateLimit,
   enforcePublicRateLimit,

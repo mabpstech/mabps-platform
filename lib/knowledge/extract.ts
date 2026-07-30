@@ -121,8 +121,9 @@ export function extractHtmlText(html: string): string {
 export async function extractFileText(input: {
   type: Exclude<KbSourceType, "website">;
   storagePath: string;
+  workspaceId?: string;
 }): Promise<string> {
-  const buffer = readKnowledgeFile(input.storagePath);
+  const buffer = readKnowledgeFile(input.storagePath, input.workspaceId);
   if (input.type === "txt") {
     const text = buffer.toString("utf8").trim();
     if (!text) throw new Error("TXT file was empty.");

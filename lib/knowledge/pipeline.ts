@@ -53,6 +53,7 @@ async function loadSourceText(source: KbSource): Promise<{
   const text = await extractFileText({
     type: source.type,
     storagePath: source.storagePath,
+    workspaceId: source.workspaceId,
   });
   return {
     text,
