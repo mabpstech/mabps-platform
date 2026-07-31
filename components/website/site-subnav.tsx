@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 type NavIcon =
@@ -16,19 +17,25 @@ type NavIcon =
   | "seo"
   | "publish";
 
-const GROUPS: {
+type NavLinkItem = { href: string; label: string; icon: NavIcon };
+
+/** First-run essentials — website building without the full product dump. */
+const PRIMARY_LINKS: NavLinkItem[] = [
+  { href: "", label: "Overview", icon: "overview" },
+  { href: "/pages", label: "Pages", icon: "pages" },
+  { href: "/forms", label: "Forms", icon: "forms" },
+  { href: "/media", label: "Media", icon: "media" },
+  { href: "/publish", label: "Publish", icon: "publish" },
+];
+
+/** Still available; revealed on demand so first-time users stay focused. */
+const MORE_GROUPS: {
   title: string;
-  links: { href: string; label: string; icon: NavIcon }[];
+  links: NavLinkItem[];
 }[] = [
   {
-    title: "Build",
-    links: [
-      { href: "", label: "Overview", icon: "overview" },
-      { href: "/pages", label: "Pages", icon: "pages" },
-      { href: "/blog", label: "Blog", icon: "blog" },
-      { href: "/forms", label: "Forms", icon: "forms" },
-      { href: "/media", label: "Media", icon: "media" },
-    ],
+    title: "Content",
+    links: [{ href: "/blog", label: "Blog", icon: "blog" }],
   },
   {
     title: "Design",
@@ -41,11 +48,13 @@ const GROUPS: {
   },
   {
     title: "Grow",
-    links: [
-      { href: "/seo", label: "Search & SEO", icon: "seo" },
-      { href: "/publish", label: "Publish", icon: "publish" },
-    ],
+    links: [{ href: "/seo", label: "Search & SEO", icon: "seo" }],
   },
+];
+
+const ALL_LINKS = [
+  ...PRIMARY_LINKS,
+  ...MORE_GROUPS.flatMap((group) => group.links),
 ];
 
 function NavGlyph({ icon }: { icon: NavIcon }) {
@@ -143,6 +152,67 @@ function NavGlyph({ icon }: { icon: NavIcon }) {
   }
 }
 
+function isLinkActive(pathname: string, base: string, href: string) {
+  if (href === "") return pathname === base;
+  const full = `${base}${href}`;
+  return pathname === full || pathname.startsWith(`${full}/`);
+}
+
+function SubnavLink({
+  base,
+  link,
+  pathname,
+  compact = false,
+}: {
+  base: string;
+  link: NavLinkItem;
+  pathname: string;
+  compact?: boolean;
+}) {
+  const href = `${base}${link.href}`;
+  const active = isLinkActive(pathname, base, link.href);
+
+  if (compact) {
+    return (
+      <Link
+        href={href}
+        aria-current={active ? "page" : undefined}
+        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 focus-visible:ring-offset-2 ${
+          active
+            ? "bg-zinc-900 text-white"
+            : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-zinc-900"
+        }`}
+      >
+        <NavGlyph icon={link.icon} />
+        {link.label}
+      </Link>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={`group flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm font-medium tracking-[-0.01em] transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 focus-visible:ring-offset-2 ${
+        active
+          ? "bg-zinc-900 text-white shadow-sm"
+          : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+      }`}
+    >
+      <span
+        className={`flex h-6 w-6 items-center justify-center rounded-md transition ${
+          active
+            ? "bg-white/10 text-white"
+            : "bg-zinc-100 text-zinc-500 group-hover:bg-zinc-200/70 group-hover:text-zinc-700"
+        }`}
+      >
+        <NavGlyph icon={link.icon} />
+      </span>
+      {link.label}
+    </Link>
+  );
+}
+
 export function SiteSubnav({
   siteId,
   siteName,
@@ -152,7 +222,14 @@ export function SiteSubnav({
 }) {
   const pathname = usePathname();
   const base = `/website/${siteId}`;
-  const flatLinks = GROUPS.flatMap((group) => group.links);
+  const moreActive = MORE_GROUPS.some((group) =>
+    group.links.some((link) => isLinkActive(pathname, base, link.href)),
+  );
+  const [showMore, setShowMore] = useState(moreActive);
+
+  useEffect(() => {
+    if (moreActive) setShowMore(true);
+  }, [moreActive]);
 
   return (
     <aside className="w-full shrink-0 sm:sticky sm:top-4 sm:w-60 sm:self-start">
@@ -184,81 +261,120 @@ export function SiteSubnav({
           </Link>
         </div>
 
-        {/* Mobile: horizontal scroll chips */}
+        {/* Mobile: essentials first, then More */}
         <nav
           aria-label="Website sections"
           className="-mx-1 overflow-x-auto px-1 pb-1 sm:hidden"
         >
           <div className="flex min-w-max gap-1.5">
-            {flatLinks.map((link) => {
-              const href = `${base}${link.href}`;
-              const active =
-                link.href === ""
-                  ? pathname === base
-                  : pathname === href || pathname.startsWith(`${href}/`);
-              return (
-                <Link
-                  key={link.href}
-                  href={href}
-                  aria-current={active ? "page" : undefined}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 focus-visible:ring-offset-2 ${
-                    active
-                      ? "bg-zinc-900 text-white"
-                      : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-zinc-900"
-                  }`}
-                >
-                  <NavGlyph icon={link.icon} />
-                  {link.label}
-                </Link>
-              );
-            })}
+            {PRIMARY_LINKS.map((link) => (
+              <SubnavLink
+                key={link.href || "overview"}
+                base={base}
+                link={link}
+                pathname={pathname}
+                compact
+              />
+            ))}
+            <button
+              type="button"
+              className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                showMore || moreActive
+                  ? "bg-zinc-900 text-white"
+                  : "border border-zinc-200 bg-white text-zinc-600"
+              }`}
+              aria-expanded={showMore}
+              onClick={() => setShowMore((current) => !current)}
+            >
+              More
+            </button>
+            {showMore
+              ? ALL_LINKS.filter(
+                  (link) =>
+                    !PRIMARY_LINKS.some((primary) => primary.href === link.href),
+                ).map((link) => (
+                  <SubnavLink
+                    key={link.href}
+                    base={base}
+                    link={link}
+                    pathname={pathname}
+                    compact
+                  />
+                ))
+              : null}
           </div>
         </nav>
 
-        {/* Desktop: grouped sidebar */}
+        {/* Desktop: essentials + progressive More */}
         <nav
           aria-label="Website sections"
-          className="hidden space-y-5 rounded-2xl border border-zinc-200/90 bg-white p-2 shadow-[0_8px_24px_rgba(15,23,42,0.03)] sm:block"
+          className="hidden space-y-4 rounded-2xl border border-zinc-200/90 bg-white p-2 shadow-[0_8px_24px_rgba(15,23,42,0.03)] sm:block"
         >
-          {GROUPS.map((group) => (
-            <div key={group.title} className="px-1">
-              <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-                {group.title}
-              </p>
-              <div className="flex flex-col gap-0.5">
-                {group.links.map((link) => {
-                  const href = `${base}${link.href}`;
-                  const active =
-                    link.href === ""
-                      ? pathname === base
-                      : pathname === href || pathname.startsWith(`${href}/`);
-                  return (
-                    <Link
-                      key={link.href}
-                      href={href}
-                      aria-current={active ? "page" : undefined}
-                      className={`group flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm font-medium tracking-[-0.01em] transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 focus-visible:ring-offset-2 ${
-                        active
-                          ? "bg-zinc-900 text-white shadow-sm"
-                          : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
-                      }`}
-                    >
-                      <span
-                        className={`flex h-6 w-6 items-center justify-center rounded-md transition ${
-                          active
-                            ? "bg-white/10 text-white"
-                            : "bg-zinc-100 text-zinc-500 group-hover:bg-zinc-200/70 group-hover:text-zinc-700"
-                        }`}
-                      >
-                        <NavGlyph icon={link.icon} />
-                      </span>
-                      {link.label}
-                    </Link>
-                  );
-                })}
-              </div>
+          <div className="px-1">
+            <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+              Build
+            </p>
+            <div className="flex flex-col gap-0.5">
+              {PRIMARY_LINKS.map((link) => (
+                <SubnavLink
+                  key={link.href || "overview"}
+                  base={base}
+                  link={link}
+                  pathname={pathname}
+                />
+              ))}
             </div>
-          ))}
+          </div>
+
+          <div className="px-1">
+            <button
+              type="button"
+              className="mb-1.5 flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400 transition hover:bg-zinc-50 hover:text-zinc-600"
+              aria-expanded={showMore}
+              onClick={() => setShowMore((current) => !current)}
+            >
+              More tools
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden
+                className={`text-zinc-400 transition-transform ${
+                  showMore ? "rotate-180" : ""
+                }`}
+              >
+                <path
+                  d="M6 9l6 6 6-6"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+            {showMore ? (
+              <div className="space-y-3">
+                {MORE_GROUPS.map((group) => (
+                  <div key={group.title}>
+                    <p className="mb-1 px-2.5 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-300">
+                      {group.title}
+                    </p>
+                    <div className="flex flex-col gap-0.5">
+                      {group.links.map((link) => (
+                        <SubnavLink
+                          key={link.href}
+                          base={base}
+                          link={link}
+                          pathname={pathname}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
         </nav>
       </div>
     </aside>

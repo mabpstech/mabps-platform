@@ -8,13 +8,22 @@ import {
   getUserWorkspaces,
 } from "@/lib/auth/workspace";
 
-const CORE_NAV = [
+/** First-run focus: website building + essential settings. */
+const PRIMARY_NAV = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/website", label: "Website" },
 ] as const;
 
-const WORKSPACE_NAV = [
+/** Always available; kept short so the bar stays focused. */
+const SETTINGS_NAV = [
+  { href: "/settings/workspace", label: "Workspace" },
+  { href: "/settings/workspace/billing", label: "Billing" },
+  { href: "/settings/account", label: "Account" },
+] as const;
+
+/** Secondary modules — accessible via More, never removed. */
+const MORE_NAV = [
   { href: "/analytics", label: "Analytics" },
-  { href: "/website", label: "Website" },
   { href: "/crm", label: "CRM" },
   { href: "/ai", label: "AI" },
   { href: "/whatsapp", label: "WhatsApp" },
@@ -27,12 +36,6 @@ const WORKSPACE_NAV = [
   { href: "/memory", label: "Memory" },
   { href: "/automation", label: "Automation" },
   { href: "/marketplace", label: "Marketplace" },
-  { href: "/settings/workspace", label: "Workspace" },
-  { href: "/settings/workspace/billing", label: "Billing" },
-] as const;
-
-const ACCOUNT_NAV = [
-  { href: "/settings/account", label: "Account" },
 ] as const;
 
 export default async function AppLayout({
@@ -46,12 +49,6 @@ export default async function AppLayout({
     ? await ensureActiveWorkspace(session)
     : null;
 
-  const navItems = [
-    ...CORE_NAV,
-    ...(activeWorkspace ? WORKSPACE_NAV : []),
-    ...ACCOUNT_NAV,
-  ];
-
   return (
     <div className="flex min-h-full flex-1 flex-col bg-zinc-50">
       <header className="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/90 backdrop-blur-md">
@@ -63,7 +60,11 @@ export default async function AppLayout({
             >
               MABPS
             </Link>
-            <GlobalNav items={[...navItems]} />
+            <GlobalNav
+              primary={[...PRIMARY_NAV]}
+              settings={activeWorkspace ? [...SETTINGS_NAV] : [...ACCOUNT_ONLY]}
+              more={activeWorkspace ? [...MORE_NAV] : []}
+            />
           </div>
           <div className="flex shrink-0 items-center gap-3">
             {workspaces.length ? (
@@ -88,3 +89,5 @@ export default async function AppLayout({
     </div>
   );
 }
+
+const ACCOUNT_ONLY = [{ href: "/settings/account", label: "Account" }] as const;

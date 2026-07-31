@@ -9,6 +9,7 @@ import {
   authLabelClassName,
   authSecondaryButtonClassName,
 } from "@/lib/auth/styles";
+import { EditPageLink } from "@/components/website/edit-page-link";
 import { EmptyState, StatusBadge } from "@/components/website/ui/empty-state";
 import { InlineBanner } from "@/components/website/ui/inline-banner";
 import { formatRelativeTime } from "@/components/website/ui/labels";
@@ -239,7 +240,7 @@ export function PagesManager({
 
       {siteIsLive && draftCount > 0 ? (
         <InlineBanner
-          message={`${draftCount} draft page${draftCount === 1 ? "" : "s"} stay private until you set status to Published.`}
+          message={`${draftCount} draft page${draftCount === 1 ? "" : "s"} stay private until you set status to Live.`}
           tone="info"
         />
       ) : null}
@@ -330,12 +331,7 @@ export function PagesManager({
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <Link
-                    href={`/website/${siteId}/pages/${page.id}`}
-                    className={`${authButtonClassName} !w-auto px-3 py-1.5 text-xs`}
-                  >
-                    Edit
-                  </Link>
+                  <EditPageLink href={`/website/${siteId}/pages/${page.id}`} />
                   {canManage && !isHome ? (
                     <button
                       type="button"

@@ -83,9 +83,6 @@ export function SitesDashboard({
   const hasUnpublished = sites.some((site) => site.status !== "published");
   const hasPublished = sites.some((site) => site.status === "published");
 
-  const limitLabel =
-    sitesLimit < 0 ? "Unlimited" : `${sitesUsed} of ${sitesLimit}`;
-
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = sites.filter((site) => {
@@ -137,16 +134,29 @@ export function SitesDashboard({
           </h1>
           <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-zinc-500">
             Build and manage professional websites for your business.
-            {canManage ? ` ${limitLabel} websites used.` : ""}
+            {canManage
+              ? sitesLimit < 0
+                ? " Unlimited websites on your plan."
+                : ` ${sitesUsed} of ${sitesLimit} website${sitesLimit === 1 ? "" : "s"} used.`
+              : ""}
           </p>
         </div>
         {canManage ? (
-          <Link
-            href="/website/new"
-            className={`${authButtonClassName} !w-auto px-5`}
-          >
-            Create website
-          </Link>
+          sitesLimit >= 0 && sitesUsed >= sitesLimit ? (
+            <Link
+              href="/settings/workspace/billing"
+              className={`${authButtonClassName} !w-auto px-5`}
+            >
+              Upgrade to create more
+            </Link>
+          ) : (
+            <Link
+              href="/website/new"
+              className={`${authButtonClassName} !w-auto px-5`}
+            >
+              Create website
+            </Link>
+          )
         ) : null}
       </div>
 
@@ -178,7 +188,7 @@ export function SitesDashboard({
         <FirstRunPanel
           currentStep="website"
           headingLevel={2}
-          encouragement="You are one step away from publishing your first website."
+          encouragement="Create your website next — then edit and publish when you are ready."
           createHref="/website/new"
           onSkip={() => router.push("/dashboard")}
         />
@@ -199,7 +209,7 @@ export function SitesDashboard({
       ) : (
         <>
           {hasUnpublished && !hasPublished ? (
-            <OnboardingEncouragement message="You are one step away from publishing your first website." />
+            <OnboardingEncouragement message="Your website is ready to edit. Publish when you want visitors to see it." />
           ) : null}
           {query.trim() ? (
             <p className="text-sm text-zinc-500">
@@ -260,8 +270,10 @@ export function SitesDashboard({
                     </dt>
                     <dd className="mt-0.5 font-medium text-zinc-700">
                       {site.status === "published"
-                        ? "Published and visible"
-                        : "Not published yet"}
+                        ? "Live and visible"
+                        : site.status === "unpublished"
+                          ? "Unpublished — offline"
+                          : "Draft — not live yet"}
                     </dd>
                   </div>
                 </dl>

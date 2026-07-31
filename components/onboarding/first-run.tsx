@@ -64,7 +64,7 @@ export function OnboardingProgress({ current }: { current: OnboardingStep }) {
 
 export function WelcomeBanner({
   title = "Welcome to MABPS",
-  description = "Set up your workspace, create a website, and publish — most customers reach their first live site in under two minutes.",
+  description = "Set up your workspace, create a website, edit your pages, and publish when you are ready for visitors.",
   headingLevel = 1,
 }: {
   title?: string;
@@ -91,7 +91,7 @@ export function WelcomeBanner({
 }
 
 export function OnboardingEncouragement({
-  message = "You are one step away from publishing your first website.",
+  message = "Create your website next — then edit and publish when you are ready.",
 }: {
   message?: string;
 }) {

@@ -150,8 +150,8 @@ export default async function SiteOverviewPage({ params }: PageProps) {
           value={String(pages.length)}
           detail={
             publishedPages.length === pages.length && pages.length > 0
-              ? "All pages ready"
-              : `${publishedPages.length} published`
+              ? "All pages live"
+              : `${publishedPages.length} live`
           }
           href={`/website/${site.id}/pages`}
         />
@@ -171,7 +171,7 @@ export default async function SiteOverviewPage({ params }: PageProps) {
           detail={
             isLive
               ? site.publishedAt
-                ? `Published ${formatRelativeTime(site.publishedAt)}`
+                ? `Went live ${formatRelativeTime(site.publishedAt)}`
                 : "Visible to visitors"
               : "Not visible to visitors yet"
           }

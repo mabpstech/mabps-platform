@@ -365,7 +365,7 @@ export function SiteChrome({
           className={`mx-auto flex w-full flex-wrap items-center justify-between gap-3 px-6 pb-8 text-sm opacity-80 ${shellWidth}`}
         >
           {tokens.footer.showCopyright !== false ? (
-            <p>{footer.copyrightText}</p>
+            <p>{withCurrentCopyrightYear(footer.copyrightText)}</p>
           ) : (
             <span />
           )}
@@ -418,6 +418,13 @@ function sanitizeExternalHref(href: string): string {
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
   if (trimmed.startsWith("mailto:") || trimmed.startsWith("tel:")) return trimmed;
   return "#";
+}
+
+/** Keep © YYYY current even when copyright was baked in at site create time. */
+function withCurrentCopyrightYear(text: string | null): string {
+  if (!text) return "";
+  const year = new Date().getFullYear();
+  return text.replace(/©\s*\d{4}/g, `© ${year}`);
 }
 
 function socialGlyph(label: string): string {

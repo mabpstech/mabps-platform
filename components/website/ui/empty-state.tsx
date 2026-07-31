@@ -174,8 +174,8 @@ export function StatusBadge({
       className: "bg-rose-50 text-rose-700 ring-rose-200",
     },
     unpublished: {
-      label: "Draft",
-      className: "bg-zinc-100 text-zinc-600 ring-zinc-200",
+      label: "Unpublished",
+      className: "bg-amber-50 text-amber-800 ring-amber-200",
     },
   };
   const item = map[status] ?? {
@@ -194,7 +194,9 @@ export function StatusBadge({
               ? "bg-sky-500"
               : status === "failed"
                 ? "bg-rose-500"
-                : "bg-zinc-400"
+                : status === "unpublished"
+                  ? "bg-amber-500"
+                  : "bg-zinc-400"
         }`}
         aria-hidden
       />

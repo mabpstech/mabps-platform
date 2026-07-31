@@ -250,24 +250,25 @@ function buildExceededReason(
   planId?: PlanId,
 ): string {
   const planLabel = planId ? `${getPlanDisplayName(planId)} plan` : "Current plan";
-  return `${planLabel} allows ${formatTrackingCap(limit, metric)}. Upgrade to continue.`;
+  return `You've reached your ${planLabel} limit (${formatTrackingCap(limit, metric)}). Upgrade to continue.`;
 }
 
 function formatTrackingCap(limit: number, metric: UsageTrackingMetric): string {
   const formatted = limit.toLocaleString("en-US");
+  const plural = limit !== 1;
   switch (metric) {
     case "websitesCreated":
-      return `${formatted} websites`;
+      return `${formatted} ${plural ? "websites" : "website"}`;
     case "storageMb":
       return `${formatted} MB storage`;
     case "aiRequests":
-      return `${formatted} AI requests / month`;
+      return `${formatted} ${plural ? "AI requests / month" : "AI request / month"}`;
     case "automationRuns":
-      return `${formatted} automation runs`;
+      return `${formatted} ${plural ? "automation runs" : "automation run"}`;
     case "teamMembers":
-      return `${formatted} team members`;
+      return `${formatted} ${plural ? "team members" : "team member"}`;
     case "mediaAssets":
-      return `${formatted} media assets`;
+      return `${formatted} ${plural ? "media assets" : "media asset"}`;
     default:
       return formatted;
   }

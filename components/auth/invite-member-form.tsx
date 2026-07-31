@@ -41,7 +41,7 @@ export function InviteMemberForm() {
       const current = entitlements.usage?.members ?? 0;
       if (limit >= 0 && current + 1 > limit) {
         setError(
-          `${entitlements.plan?.name ?? "Current"} plan allows ${limit} members (including pending invites). Upgrade billing to invite more.`,
+          `You've reached your ${entitlements.plan?.name ?? "Current"} plan limit (${limit} ${limit === 1 ? "member" : "members"}, including pending invites). Upgrade billing to invite more.`,
         );
         setPending(false);
         return;

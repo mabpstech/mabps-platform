@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { WebsiteFormWithFields } from "@/lib/website/types";
+import { readableOn } from "@/lib/website/theme";
 
 export function PublicForm({
   form,
@@ -18,6 +19,7 @@ export function PublicForm({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const buttonColor = readableOn(primaryColor);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -178,9 +180,10 @@ export function PublicForm({
       <button
         type="submit"
         disabled={pending}
-        className="px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+        className="px-4 py-2 text-sm font-medium disabled:opacity-60"
         style={{
           background: `var(--site-color-primary, ${primaryColor})`,
+          color: `var(--site-color-on-primary, ${buttonColor})`,
           borderRadius: `var(--site-radius-button, ${borderRadius})`,
           fontFamily: "var(--site-font-button, inherit)",
           boxShadow: "var(--site-shadow-button, none)",

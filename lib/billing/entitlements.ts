@@ -99,24 +99,32 @@ export function checkLimit(
     remaining,
     message: allowed
       ? undefined
-      : `${getPlan(planId).name} plan allows ${formatLimit(limit, metricLabel(metric))}. Upgrade to continue.`,
+      : `You've reached your ${getPlan(planId).name} plan limit (${formatMetricCap(limit, metric)}). Upgrade to continue.`,
   };
 }
 
-function metricLabel(metric: UsageMetric): string {
+function formatMetricCap(limit: number, metric: UsageMetric): string {
+  if (limit < 0) {
+    return formatLimit(limit, metricLabel(metric, 2));
+  }
+  return formatLimit(limit, metricLabel(metric, limit));
+}
+
+function metricLabel(metric: UsageMetric, count: number): string {
+  const plural = count !== 1;
   switch (metric) {
     case "members":
-      return "members";
+      return plural ? "members" : "member";
     case "sites":
-      return "sites";
+      return plural ? "sites" : "site";
     case "storageMb":
       return "MB storage";
     case "aiCredits":
-      return "AI credits / month";
+      return plural ? "AI credits / month" : "AI credit / month";
     case "automations":
-      return "automations";
+      return plural ? "automations" : "automation";
     case "plugins":
-      return "marketplace plugins";
+      return plural ? "marketplace plugins" : "marketplace plugin";
     default:
       return metric;
   }

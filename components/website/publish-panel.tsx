@@ -47,6 +47,20 @@ function liveUrlFor(site: WebsiteSite): string {
   return `/p/${site.slug}`;
 }
 
+function isLocalPreviewUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url, "http://localhost");
+    return (
+      parsed.hostname === "localhost" ||
+      parsed.hostname === "127.0.0.1" ||
+      parsed.hostname === "0.0.0.0" ||
+      parsed.hostname.endsWith(".local")
+    );
+  } catch {
+    return false;
+  }
+}
+
 function toDisplayStatus(
   siteStatus: WebsiteSite["status"],
   pending: string | null,
@@ -103,6 +117,7 @@ export function PublishPanel({
 
   const displayStatus = toDisplayStatus(current.status, pending, publishFailed);
   const liveUrl = liveUrlFor(current);
+  const localPreview = isLocalPreviewUrl(liveUrl);
   const warningCount = useMemo(
     () => checklist.filter((item) => !item.ok && !item.required).length,
     [checklist],
@@ -283,12 +298,12 @@ export function PublishPanel({
               Your website is now live
             </h1>
             <p className="mx-auto mt-2 max-w-md text-sm text-zinc-600">
-              {current.name} is published and ready for visitors.
+              {current.name} is live and ready for visitors.
             </p>
             <div className="mx-auto mt-6 flex max-w-xl items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-left shadow-sm">
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-                  Live URL
+                  {localPreview ? "Local preview URL" : "Live URL"}
                 </p>
                 <p className="mt-0.5 truncate font-mono text-sm text-zinc-800">
                   {liveUrl}
@@ -296,35 +311,43 @@ export function PublishPanel({
               </div>
               <StatusBadge status="published" />
             </div>
+            {localPreview ? (
+              <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-amber-800">
+                This is a local development preview. It is not publicly shareable.
+                Connect a custom domain or deploy to production before sharing with customers.
+              </p>
+            ) : null}
             <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-              <button
-                type="button"
-                className={`${authButtonClassName} !w-auto px-4`}
-                onClick={() => void copyLiveUrl()}
-              >
-                {copied ? "Copied!" : "Copy URL"}
-              </button>
               <a
                 href={liveUrl}
                 target="_blank"
                 rel="noreferrer"
-                className={`${authSecondaryButtonClassName} !w-auto px-4 no-underline`}
+                className={`${authButtonClassName} !w-auto px-4 no-underline`}
               >
-                Open Website
+                Open Live Site
               </a>
+              <button
+                type="button"
+                className={`${authSecondaryButtonClassName} !w-auto px-4`}
+                onClick={() => void copyLiveUrl()}
+              >
+                {copied ? "Copied!" : "Copy URL"}
+              </button>
+              {!localPreview ? (
+                <button
+                  type="button"
+                  className={`${authSecondaryButtonClassName} !w-auto px-4`}
+                  onClick={() => void shareLiveUrl()}
+                >
+                  Share
+                </button>
+              ) : null}
               <Link
                 href="/analytics/website"
                 className={`${authSecondaryButtonClassName} !w-auto px-4 no-underline`}
               >
                 View Analytics
               </Link>
-              <button
-                type="button"
-                className={`${authSecondaryButtonClassName} !w-auto px-4`}
-                onClick={() => void shareLiveUrl()}
-              >
-                Share
-              </button>
             </div>
             {canManage ? (
               <button
@@ -404,28 +427,33 @@ export function PublishPanel({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
-                Live URL
+                {localPreview ? "Local preview URL" : "Live URL"}
               </p>
               <p className="mt-0.5 truncate font-mono text-sm text-zinc-800">
                 {liveUrl}
               </p>
+              {localPreview ? (
+                <p className="mt-1 text-xs text-amber-800">
+                  Local preview only — not publicly shareable.
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5 text-xs`}
-                onClick={() => void copyLiveUrl()}
-              >
-                {copied ? "Copied!" : "Copy"}
-              </button>
               <a
                 href={liveUrl}
                 target="_blank"
                 rel="noreferrer"
                 className={`${authButtonClassName} !w-auto px-3 py-1.5 text-xs no-underline`}
               >
-                Open
+                Open Live Site
               </a>
+              <button
+                type="button"
+                className={`${authSecondaryButtonClassName} !w-auto px-3 py-1.5 text-xs`}
+                onClick={() => void copyLiveUrl()}
+              >
+                {copied ? "Copied!" : "Copy URL"}
+              </button>
             </div>
           </div>
         </div>

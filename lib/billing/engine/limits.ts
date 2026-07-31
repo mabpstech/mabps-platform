@@ -91,7 +91,7 @@ export function evaluateUsageLimit(input: {
     unlimited: false,
     message: allowed
       ? undefined
-      : `${getPlanDisplayName(planId)} plan allows ${formatUsageCap(limit, metric)}. Upgrade to continue.`,
+      : `You've reached your ${getPlanDisplayName(planId)} plan limit (${formatUsageCap(limit, metric)}). Upgrade to continue.`,
   };
 }
 
@@ -120,19 +120,20 @@ export function listUsageMetrics(): readonly UsageMetric[] {
 
 function formatUsageCap(limit: number, metric: UsageMetric): string {
   const formatted = limit.toLocaleString("en-US");
+  const plural = limit !== 1;
   switch (metric) {
     case "members":
-      return `${formatted} members`;
+      return `${formatted} ${plural ? "members" : "member"}`;
     case "sites":
-      return `${formatted} sites`;
+      return `${formatted} ${plural ? "sites" : "site"}`;
     case "storageMb":
       return `${formatted} MB storage`;
     case "aiCredits":
-      return `${formatted} AI credits / month`;
+      return `${formatted} ${plural ? "AI credits / month" : "AI credit / month"}`;
     case "automations":
-      return `${formatted} automations`;
+      return `${formatted} ${plural ? "automations" : "automation"}`;
     case "plugins":
-      return `${formatted} marketplace plugins`;
+      return `${formatted} ${plural ? "marketplace plugins" : "marketplace plugin"}`;
     default:
       return formatted;
   }

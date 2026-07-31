@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
 export type GlobalNavItem = {
@@ -77,10 +77,128 @@ function NavLink({
   );
 }
 
-export function GlobalNav({ items }: { items: GlobalNavItem[] }) {
+function MoreMenu({
+  items,
+  pathname,
+  onNavigate,
+}: {
+  items: GlobalNavItem[];
+  pathname: string;
+  onNavigate?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const moreActive = items.some((item) => isItemActive(pathname, item.href));
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    function onPointerDown(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("mousedown", onPointerDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("mousedown", onPointerDown);
+    };
+  }, [open]);
+
+  if (items.length === 0) return null;
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={menuId}
+        aria-haspopup="menu"
+        onClick={() => setOpen((current) => !current)}
+        className={[
+          "inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[13px] font-medium tracking-tight transition-all duration-200 ease-out",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 focus-visible:ring-offset-2",
+          moreActive || open
+            ? "bg-zinc-900 text-white shadow-[0_1px_2px_rgba(24,24,27,0.28)]"
+            : "text-zinc-500 hover:-translate-y-px hover:bg-zinc-100 hover:text-zinc-900 hover:shadow-sm",
+        ].join(" ")}
+      >
+        More
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden
+          className={`transition-transform ${open ? "rotate-180" : ""}`}
+        >
+          <path
+            d="M6 9l6 6 6-6"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      {open ? (
+        <div
+          id={menuId}
+          role="menu"
+          className="absolute left-0 top-[calc(100%+0.4rem)] z-50 max-h-[min(70vh,24rem)] w-52 overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-1.5 shadow-[0_18px_40px_rgba(15,23,42,0.14)]"
+        >
+          <p className="px-2.5 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+            More tools
+          </p>
+          {items.map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              pathname={pathname}
+              compact
+              onNavigate={() => {
+                setOpen(false);
+                onNavigate?.();
+              }}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function GlobalNav({
+  primary,
+  settings = [],
+  more = [],
+  /** @deprecated Prefer primary/settings/more. Flat list still supported. */
+  items,
+}: {
+  primary?: GlobalNavItem[];
+  settings?: GlobalNavItem[];
+  more?: GlobalNavItem[];
+  items?: GlobalNavItem[];
+}) {
   const pathname = usePathname();
   const menuId = useId();
   const [open, setOpen] = useState(false);
+
+  const primaryItems = primary ?? items ?? [];
+  const settingsItems = settings;
+  const moreItems = more;
+  const allMobileItems = [...primaryItems, ...settingsItems, ...moreItems];
 
   useEffect(() => {
     setOpen(false);
@@ -103,9 +221,19 @@ export function GlobalNav({ items }: { items: GlobalNavItem[] }) {
         aria-label="Modules"
         className="hidden max-w-[min(100%,52rem)] flex-wrap items-center gap-0.5 sm:flex"
       >
-        {items.map((item) => (
+        {primaryItems.map((item) => (
           <NavLink key={item.href} item={item} pathname={pathname} />
         ))}
+        {settingsItems.length > 0 ? (
+          <span
+            aria-hidden
+            className="mx-1 hidden h-4 w-px bg-zinc-200 lg:block"
+          />
+        ) : null}
+        {settingsItems.map((item) => (
+          <NavLink key={item.href} item={item} pathname={pathname} />
+        ))}
+        <MoreMenu items={moreItems} pathname={pathname} />
       </nav>
 
       <div className="sm:hidden">
@@ -152,7 +280,10 @@ export function GlobalNav({ items }: { items: GlobalNavItem[] }) {
               className="absolute left-4 right-4 top-[calc(100%+0.5rem)] z-50 max-h-[min(70vh,28rem)] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,0.14)]"
             >
               <div className="grid gap-0.5">
-                {items.map((item) => (
+                <p className="px-3 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+                  Main
+                </p>
+                {primaryItems.map((item) => (
                   <NavLink
                     key={item.href}
                     item={item}
@@ -161,6 +292,39 @@ export function GlobalNav({ items }: { items: GlobalNavItem[] }) {
                     onNavigate={() => setOpen(false)}
                   />
                 ))}
+                {settingsItems.length > 0 ? (
+                  <>
+                    <p className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+                      Settings
+                    </p>
+                    {settingsItems.map((item) => (
+                      <NavLink
+                        key={item.href}
+                        item={item}
+                        pathname={pathname}
+                        compact
+                        onNavigate={() => setOpen(false)}
+                      />
+                    ))}
+                  </>
+                ) : null}
+                {moreItems.length > 0 ? (
+                  <>
+                    <p className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+                      More tools
+                    </p>
+                    {moreItems.map((item) => (
+                      <NavLink
+                        key={item.href}
+                        item={item}
+                        pathname={pathname}
+                        compact
+                        onNavigate={() => setOpen(false)}
+                      />
+                    ))}
+                  </>
+                ) : null}
+                {allMobileItems.length === 0 ? null : null}
               </div>
             </nav>
           </>

@@ -63,6 +63,7 @@ export function platformErrorResponse(
     matched = true;
   } else if (
     message.includes("Plan limit") ||
+    message.includes("plan limit") ||
     message.includes("plan allows") ||
     message.includes("Upgrade to continue") ||
     message.includes("requires the")

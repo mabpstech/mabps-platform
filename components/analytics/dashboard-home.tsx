@@ -63,7 +63,7 @@ export function DashboardHome({
         <FirstRunPanel
           currentStep="website"
           headingLevel={2}
-          encouragement="You are one step away from publishing your first website."
+          encouragement="Create your website next — then edit and publish when you are ready."
           onSkip={() => {
             markOnboardingSkipped();
             setSkipped(true);

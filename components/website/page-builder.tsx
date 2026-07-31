@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -470,11 +471,11 @@ export function PageBuilder({
           <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
             {status === "draft"
               ? siteStatus === "published"
-                ? "This page is draft — visitors will not see it until you set status to Published."
-                : "Draft page. Publish the page (and the site) when you are ready for visitors."
+                ? "This page is draft — visitors will not see it until you set status to Live."
+                : "Draft page. Set it to Live, then publish the website when you are ready for visitors."
               : siteStatus === "published"
-                ? "Published — saves go live immediately."
-                : "Page is ready. Publish the website to make it visible to visitors."}
+                ? "Live — saves update the public site immediately."
+                : "Page is marked Live. Publish the website to make it visible to visitors."}
           </p>
         </div>
         <EditorHeaderActions>
@@ -491,7 +492,7 @@ export function PageBuilder({
               >
                 {PAGE_STATUSES.map((value) => (
                   <option key={value} value={value}>
-                    {value === "published" ? "Published" : "Draft"}
+                    {value === "published" ? "Live" : "Draft"}
                   </option>
                 ))}
               </select>
@@ -553,7 +554,7 @@ export function PageBuilder({
               >
                 {PAGE_STATUSES.map((value) => (
                   <option key={value} value={value}>
-                    {value === "published" ? "Published" : "Draft"}
+                    {value === "published" ? "Live" : "Draft"}
                   </option>
                 ))}
               </select>
@@ -561,8 +562,8 @@ export function PageBuilder({
                 {status === "draft"
                   ? "Draft pages stay private even if the website is live."
                   : siteStatus === "published"
-                    ? "This page is public. Saves update the live site."
-                    : "This page will be public once you publish the website."}
+                    ? "This page is live. Saves update the public site."
+                    : "This page will be visible once you publish the website."}
               </p>
             </div>
             <div>
@@ -625,11 +626,18 @@ export function PageBuilder({
               }
               disabled={!canManage}
             >
-              {SECTION_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {SECTION_LABELS[type]}
-                </option>
-              ))}
+              <optgroup label="Common">
+                {SECTION_TYPES.filter((type) => type !== "spacer").map(
+                  (type) => (
+                    <option key={type} value={type}>
+                      {SECTION_LABELS[type]}
+                    </option>
+                  ),
+                )}
+              </optgroup>
+              <optgroup label="Advanced">
+                <option value="spacer">{SECTION_LABELS.spacer}</option>
+              </optgroup>
             </select>
             {canManage ? (
               <button
@@ -1228,7 +1236,6 @@ function HeroInspector({
       <HeroEditorCard
         title="Buttons"
         description="Primary and secondary calls to action."
-        defaultOpen
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <HeroField
@@ -1266,8 +1273,7 @@ function HeroInspector({
 
       <HeroEditorCard
         title="Background"
-        description="Imagery and video behind your hero content."
-        defaultOpen
+        description="Add a background image. Open Advanced for mobile crop or video."
       >
         {previewMediaId ? (
           <div className="overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50">
@@ -1287,51 +1293,49 @@ function HeroInspector({
           </div>
         )}
 
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50/40 p-3.5">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-            Desktop
-          </p>
-          <MediaPicker
-            siteId={siteId}
-            value={desktopMediaId}
-            onChange={(mediaId) => {
-              onChange("desktopMediaId", mediaId);
-              onChange("backgroundMediaId", mediaId);
-            }}
-            disabled={!canManage}
-            label="Desktop background image"
-            hint="hero"
-          />
-          <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
-            Wide image for laptop and desktop screens.
-          </p>
-        </div>
-
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50/40 p-3.5">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-            Mobile
-          </p>
-          <MediaPicker
-            siteId={siteId}
-            value={mobileMediaId}
-            onChange={(mediaId) => onChange("mobileMediaId", mediaId)}
-            disabled={!canManage}
-            label="Mobile background image"
-            hint="banner"
-          />
-          <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
-            Optional taller crop optimized for phones. Falls back to desktop if empty.
-          </p>
-        </div>
-
-        <HeroField
-          label="Background video URL"
-          value={String(content.backgroundVideoUrl ?? "")}
-          onChange={(value) => onChange("backgroundVideoUrl", value)}
+        <MediaPicker
+          siteId={siteId}
+          value={desktopMediaId}
+          onChange={(mediaId) => {
+            onChange("desktopMediaId", mediaId);
+            onChange("backgroundMediaId", mediaId);
+          }}
           disabled={!canManage}
-          placeholder="https://…"
-          helper="Optional. When set, video plays behind the content on supported devices."
+          label="Background image"
+          hint="hero"
         />
+        <p className="text-[11px] leading-relaxed text-zinc-500">
+          Wide image for most screens. Optional mobile crop and video are below.
+        </p>
+
+        <details className="rounded-xl border border-zinc-200 bg-zinc-50/40 p-3.5">
+          <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+            Advanced background
+          </summary>
+          <div className="mt-3 space-y-4">
+            <div>
+              <MediaPicker
+                siteId={siteId}
+                value={mobileMediaId}
+                onChange={(mediaId) => onChange("mobileMediaId", mediaId)}
+                disabled={!canManage}
+                label="Mobile background image"
+                hint="banner"
+              />
+              <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+                Optional taller crop for phones. Falls back to the main image if empty.
+              </p>
+            </div>
+            <HeroField
+              label="Background video URL"
+              value={String(content.backgroundVideoUrl ?? "")}
+              onChange={(value) => onChange("backgroundVideoUrl", value)}
+              disabled={!canManage}
+              placeholder="https://…"
+              helper="Optional. When set, video plays behind the content on supported devices."
+            />
+          </div>
+        </details>
       </HeroEditorCard>
 
       <HeroEditorCard
@@ -1488,13 +1492,16 @@ function HeroField({
   helper?: string;
   maxLength?: number;
 }) {
+  const fieldId = useId();
   const count = value.length;
   const over = maxLength != null && count > maxLength;
 
   return (
     <div>
       <div className="mb-1.5 flex items-baseline justify-between gap-3">
-        <label className={`${authLabelClassName} !mb-0`}>{label}</label>
+        <label htmlFor={fieldId} className={`${authLabelClassName} !mb-0`}>
+          {label}
+        </label>
         {maxLength != null ? (
           <span
             className={`text-[11px] tabular-nums ${
@@ -1506,6 +1513,7 @@ function HeroField({
         ) : null}
       </div>
       <StableTextInput
+        id={fieldId}
         value={value}
         onChange={onChange}
         disabled={disabled}
@@ -1536,6 +1544,7 @@ function InspectorHeading({ type }: { type: SectionType }) {
 
 /** Keeps a local draft while focused so parent/autosave updates cannot overwrite typing. */
 function StableTextInput({
+  id,
   value,
   onChange,
   disabled,
@@ -1543,6 +1552,7 @@ function StableTextInput({
   multiline,
   className,
 }: {
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
@@ -1575,6 +1585,7 @@ function StableTextInput({
   }
 
   const sharedProps = {
+    id,
     className: className ?? (multiline
       ? `${authInputClassName} min-h-24`
       : authInputClassName),
@@ -1611,10 +1622,14 @@ function Field({
   placeholder?: string;
   multiline?: boolean;
 }) {
+  const fieldId = useId();
   return (
     <div>
-      <label className={authLabelClassName}>{label}</label>
+      <label htmlFor={fieldId} className={authLabelClassName}>
+        {label}
+      </label>
       <StableTextInput
+        id={fieldId}
         value={value}
         onChange={onChange}
         disabled={disabled}
@@ -2043,100 +2058,107 @@ function SectionSettingsPanel({
   onChange: (patch: Partial<SectionSettings>) => void;
 }) {
   return (
-    <div className="space-y-3 rounded-2xl border border-zinc-200 bg-zinc-50/50 p-4">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-          Section layout
-        </p>
-        <p className="mt-0.5 text-[11px] text-zinc-500">
-          Spacing, background, and width for this block.
-        </p>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className={authLabelClassName}>Vertical padding</label>
-          <select
-            className={authInputClassName}
-            value={settings.paddingY ?? "md"}
-            onChange={(event) =>
-              onChange({
-                paddingY: event.target.value as SectionSettings["paddingY"],
-              })
-            }
-            disabled={!canManage}
-          >
-            <option value="none">None</option>
-            <option value="sm">Small</option>
-            <option value="md">Medium</option>
-            <option value="lg">Large</option>
-            <option value="xl">Extra large</option>
-          </select>
+    <details className="rounded-2xl border border-zinc-200 bg-zinc-50/50 p-4">
+      <summary className="cursor-pointer list-none">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+              Section layout
+            </p>
+            <p className="mt-0.5 text-[11px] text-zinc-500">
+              Optional spacing, background, and visibility controls.
+            </p>
+          </div>
+          <span className="text-[11px] font-medium text-zinc-500">Advanced</span>
         </div>
-        <div>
-          <label className={authLabelClassName}>Background</label>
+      </summary>
+      <div className="mt-4 space-y-3">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className={authLabelClassName}>Vertical padding</label>
+            <select
+              className={authInputClassName}
+              value={settings.paddingY ?? "md"}
+              onChange={(event) =>
+                onChange({
+                  paddingY: event.target.value as SectionSettings["paddingY"],
+                })
+              }
+              disabled={!canManage}
+            >
+              <option value="none">None</option>
+              <option value="sm">Small</option>
+              <option value="md">Medium</option>
+              <option value="lg">Large</option>
+              <option value="xl">Extra large</option>
+            </select>
+          </div>
+          <div>
+            <label className={authLabelClassName}>Background</label>
+            <input
+              type="text"
+              className={authInputClassName}
+              value={settings.background ?? ""}
+              onChange={(event) =>
+                onChange({ background: event.target.value || undefined })
+              }
+              disabled={!canManage}
+              placeholder="#ffffff or leave empty"
+            />
+          </div>
+        </div>
+        <label className="flex items-center gap-2 text-sm text-zinc-700">
           <input
-            type="text"
-            className={authInputClassName}
-            value={settings.background ?? ""}
-            onChange={(event) =>
-              onChange({ background: event.target.value || undefined })
-            }
+            type="checkbox"
+            checked={Boolean(settings.fullWidth)}
+            onChange={(event) => onChange({ fullWidth: event.target.checked })}
             disabled={!canManage}
-            placeholder="#ffffff or leave empty"
           />
+          Full width (edge to edge)
+        </label>
+        <label className="flex items-center gap-2 text-sm text-zinc-700">
+          <input
+            type="checkbox"
+            checked={Boolean(settings.hidden)}
+            onChange={(event) => onChange({ hidden: event.target.checked })}
+            disabled={!canManage}
+          />
+          Hide this section on the live site
+        </label>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+            Responsive visibility
+          </p>
+          <p className="mt-0.5 text-[11px] text-zinc-500">
+            Preview with Desktop / Tablet / Mobile above the live preview.
+          </p>
+          <div className="mt-3 space-y-2">
+            <label className="flex items-center gap-2 text-sm text-zinc-700">
+              <input
+                type="checkbox"
+                checked={Boolean(settings.hideOnMobile)}
+                onChange={(event) =>
+                  onChange({ hideOnMobile: event.target.checked })
+                }
+                disabled={!canManage}
+              />
+              Hide on phones
+            </label>
+            <label className="flex items-center gap-2 text-sm text-zinc-700">
+              <input
+                type="checkbox"
+                checked={Boolean(settings.hideOnDesktop)}
+                onChange={(event) =>
+                  onChange({ hideOnDesktop: event.target.checked })
+                }
+                disabled={!canManage}
+              />
+              Hide on tablet & desktop
+            </label>
+          </div>
         </div>
       </div>
-      <label className="flex items-center gap-2 text-sm text-zinc-700">
-        <input
-          type="checkbox"
-          checked={Boolean(settings.fullWidth)}
-          onChange={(event) => onChange({ fullWidth: event.target.checked })}
-          disabled={!canManage}
-        />
-        Full width (edge to edge)
-      </label>
-      <label className="flex items-center gap-2 text-sm text-zinc-700">
-        <input
-          type="checkbox"
-          checked={Boolean(settings.hidden)}
-          onChange={(event) => onChange({ hidden: event.target.checked })}
-          disabled={!canManage}
-        />
-        Hide this section on the live site
-      </label>
-      <div className="rounded-xl border border-zinc-200 bg-white p-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-          Responsive visibility
-        </p>
-        <p className="mt-0.5 text-[11px] text-zinc-500">
-          Preview with Desktop / Tablet / Mobile above the live preview.
-        </p>
-        <div className="mt-3 space-y-2">
-          <label className="flex items-center gap-2 text-sm text-zinc-700">
-            <input
-              type="checkbox"
-              checked={Boolean(settings.hideOnMobile)}
-              onChange={(event) =>
-                onChange({ hideOnMobile: event.target.checked })
-              }
-              disabled={!canManage}
-            />
-            Hide on phones
-          </label>
-          <label className="flex items-center gap-2 text-sm text-zinc-700">
-            <input
-              type="checkbox"
-              checked={Boolean(settings.hideOnDesktop)}
-              onChange={(event) =>
-                onChange({ hideOnDesktop: event.target.checked })
-              }
-              disabled={!canManage}
-            />
-            Hide on tablet & desktop
-          </label>
-        </div>
-      </div>
-    </div>
+    </details>
   );
 }
 

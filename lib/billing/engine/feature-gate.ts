@@ -146,7 +146,7 @@ export function canCreateAnotherWebsite(
   const feature = canCreateWebsite(input);
   if (!feature.allowed) return feature;
 
-  return evaluateMetricGate(input, "sites", delta, "sites");
+  return evaluateMetricGate(input, "sites", delta, "site");
 }
 
 export function canUploadMoreMedia(
@@ -176,7 +176,7 @@ export function canCreateAnotherWorkspace(
 
   return {
     allowed: false,
-    reason: `${getPlanDisplayName(input.planId)} plan allows ${formatWorkspaceCap(limit)}. Upgrade to continue.`,
+    reason: `You've reached your ${getPlanDisplayName(input.planId)} plan limit (${formatWorkspaceCap(limit)}). Upgrade to continue.`,
     upgradePlan: findUpgradeForWorkspaceQuota(input.planId, next),
   };
 }
@@ -232,11 +232,16 @@ function evaluateMetricGate(
   }
 
   const next = current + delta;
+  const limit = limits[metric];
+  const countLabel =
+    unitLabel === "MB storage"
+      ? `${limit.toLocaleString("en-US")} ${unitLabel}`
+      : `${limit.toLocaleString("en-US")} ${unitLabel}${limit === 1 ? "" : "s"}`;
   return {
     allowed: false,
     reason:
       evaluation.message ??
-      `${getPlanDisplayName(input.planId)} plan allows ${limits[metric].toLocaleString("en-US")} ${unitLabel}. Upgrade to continue.`,
+      `You've reached your ${getPlanDisplayName(input.planId)} plan limit (${countLabel}). Upgrade to continue.`,
     upgradePlan: findUpgradeForMetric(input.planId, metric, next),
   };
 }
